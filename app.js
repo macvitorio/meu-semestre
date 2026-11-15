@@ -967,6 +967,7 @@ V.config = () => {
   return `<div class="stack"><h1>Configurações</h1><div class="cfg">
 
   ${secaoPlano()}
+  ${PLANO.admin ? `<section class="grp full"><h4>Administração</h4><div class="card">${li('user', '#495057', 'Painel Admin', 'Contas, planos e cortesias', chev, `onclick="go('admin')"`)}</div></section>` : ''}
   <section class="grp full"><div class="card"><div class="perfil"><div class="avatar">${esc(ini)}</div><div class="sp">
     <input class="inl" style="font-weight:600;font-size:17px;background:none;border:0;padding:0;min-height:0;box-shadow:none" value="${esc(nome)}" placeholder="Seu nome" aria-label="Seu nome" onchange="S.perfil.nome=this.value.trim();save();toast('Nome salvo.')">
     <div class="mu">${user ? esc(user.email) + ' · ' + (syncState === 'off' ? 'offline' : 'sincronizado') : 'Sem conta — dados só neste aparelho'}</div></div></div></div></section>
