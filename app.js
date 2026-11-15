@@ -1022,7 +1022,7 @@ async function entrarComGoogle({ credential }) {
 const hex = (h, sat, l) => { l /= 100; const a = sat * Math.min(l, 1 - l) / 100, f = n => { const k = (n + h / 30) % 12, c = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1); return Math.round(255 * c).toString(16).padStart(2, '0'); }; return '#' + f(0) + f(8) + f(4); };
 function gradeCores() {
   const hues = [0, 15, 30, 45, 60, 90, 130, 160, 185, 205, 225, 250, 275, 300, 330], luz = [78, 66, 56, 46, 38, 30];
-  const cores = [...luz.flatMap(l => hues.map(h => hex(h, l > 70 ? 70 : 78, l))), ...[80, 64, 50, 38, 26, 16].map(l => hex(220, 8, l))];
+  const cores = [...luz.flatMap(l => hues.map(h => hex(h, l > 70 ? 70 : 78, l))), ...hues.map((_, i) => hex(220, 8, 92 - i * 6))];
   let escolhida = S.perfil.cor || CORES_APP[0];
   sheet(`<h2>Cor personalizada</h2><p class="mu" style="margin:4px 0 14px">Arraste o dedo pela grade, o app muda na hora. Solte na cor que quiser.</p>
     <div id="grade" style="display:grid;grid-template-columns:repeat(${hues.length},1fr);border-radius:14px;overflow:hidden;touch-action:none;cursor:crosshair">
