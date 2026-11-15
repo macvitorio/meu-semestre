@@ -1120,7 +1120,10 @@ try { const c = JSON.parse(localStorage.getItem(KEY + ':plano')); if (c) PLANO =
 const premium = () => !!PLANO.premium;
 const fmtData = d => d ? new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }) : '';
 const diasRestam = d => Math.max(0, Math.ceil((new Date(d) - new Date()) / 864e5));
-async function tokenAtual() { return (await sb?.auth.getSession())?.data?.session?.access_token; }
+async function tokenAtual(renovar = false) {
+  if (renovar) { const r = await sb?.auth.refreshSession(); if (r?.data?.session) return r.data.session.access_token; }
+  return (await sb?.auth.getSession())?.data?.session?.access_token;
+}
 async function carregarPlano() {
   if (!sb || !user) return;
   try {
@@ -1211,9 +1214,10 @@ V.admin = () => {
       <button class="ib" aria-label="Gerenciar conta" onclick="admConta('${c.id}')">${ic('pen', 18)}</button></div>`).join('') || '<p class="mu" style="padding:16px">Nenhuma conta encontrada.</p>'}</div></div></div>`;
 };
 async function carregarAdmin() {
-  const r = await fetch('/api/admin', { headers: { Authorization: 'Bearer ' + await tokenAtual() } });
+  let r = await fetch('/api/admin', { headers: { Authorization: 'Bearer ' + await tokenAtual() } });
+  if (r.status === 401 || r.status === 403) r = await fetch('/api/admin', { headers: { Authorization: 'Bearer ' + await tokenAtual(true) } }); // sessão vencida: renova e tenta de novo
   const d = await r.json();
-  if (!r.ok) { toast(d.error || 'Erro ao carregar.'); return go('inicio'); }
+  if (!r.ok) { toast((d.error || 'Erro ao carregar.') + (user ? ` (conta: ${user.email})` : '')); PLANO.admin = false; return go('inicio'); }
   ADM = d; render();
 }
 function admConta(id) {
