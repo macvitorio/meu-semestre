@@ -1050,32 +1050,43 @@ addEventListener('load', () => setTimeout(() => {
 
 // ================= Login com Google dentro do app (Google Identity Services) =================
 // Mostra "Meu Semestre" e o endereço do app na tela do Google, em vez do domínio do Supabase.
-let gisNonce = null;
+let gisNonce = null, gisPronto = null;
 const sha256 = async t => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)))].map(b => b.toString(16).padStart(2, '0')).join('');
 function carregarGIS() {
   return window.google?.accounts?.id ? Promise.resolve() : new Promise((ok, err) => {
     const sc = document.createElement('script'); sc.src = 'https://accounts.google.com/gsi/client'; sc.async = true; sc.onload = ok; sc.onerror = err; document.head.append(sc);
   });
 }
-async function montarGoogle() {
-  const box = $('#gbtn');
-  if (!box || !cfg.googleClientId || !sb) return; // sem Client ID: usa o login antigo (redirecionamento)
-  try {
+// inicializa o Google UMA vez por carregamento (o mesmo nonce vale para o botão e o One Tap)
+function iniciarGIS() {
+  return gisPronto ||= (async () => {
     await carregarGIS();
     gisNonce = crypto.randomUUID();
     google.accounts.id.initialize({
       client_id: cfg.googleClientId, nonce: await sha256(gisNonce), callback: entrarComGoogle,
-      ux_mode: 'popup', auto_select: false, itp_support: true, use_fedcm_for_prompt: true, context: 'signin',
+      ux_mode: 'popup', auto_select: false, itp_support: true, use_fedcm_for_prompt: true, context: 'signin', cancel_on_tap_outside: true,
     });
+  })();
+}
+async function montarGoogle() {
+  const box = $('#gbtn');
+  if (!box || !cfg.googleClientId || !sb) return; // sem Client ID: usa o login antigo (redirecionamento)
+  try {
+    await iniciarGIS();
+    if (!document.body.contains(box)) return;
     const escuro = getComputedStyle(document.body).backgroundColor.match(/\d+/g).slice(0, 3).reduce((a, n) => a + +n, 0) < 300;
     box.innerHTML = '';
     google.accounts.id.renderButton(box, { type: 'standard', theme: escuro ? 'filled_black' : 'outline', size: 'large', text: 'continue_with', shape: 'pill', logo_alignment: 'center', width: Math.min(400, box.clientWidth || 340), locale: 'pt-BR' });
-    google.accounts.id.prompt(); // "One Tap": cartão do Google que aparece por cima do app
+    google.accounts.id.prompt();
   } catch { /* mantém o botão antigo */ }
 }
 async function entrarComGoogle({ credential }) {
   const { error } = await sb.auth.signInWithIdToken({ provider: 'google', token: credential, nonce: gisNonce });
-  if (error) toast('Não foi possível entrar com o Google: ' + error.message);
+  if (error) {
+    console.warn('login google (id token):', error.message);
+    toast('Abrindo o login do Google…');
+    loginGoogle(); // plano B: login pelo redirecionamento, que sempre funciona
+  }
 }
 
 // ================= Grade de cores (arrastar o dedo para escolher) =================
