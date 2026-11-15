@@ -16,7 +16,6 @@ export default async function handler(req, res) {
         method: 'POST',
         body: JSON.stringify({
           items: [{ id: 'premium-semestral', title: p.titulo, quantity: 1, unit_price: p.valor, currency_id: 'BRL' }],
-          payer: { email: user.email },
           external_reference: `${user.id}|semestral`,
           back_urls: { success: `${base}/#/premium/ok`, pending: `${base}/#/premium/pendente`, failure: `${base}/#/premium/erro` },
           auto_return: 'approved',
