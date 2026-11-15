@@ -181,3 +181,63 @@ input[type=checkbox]{width:20px;height:20px;min-height:0;accent-color:var(--pr)}
 @keyframes sp{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 .hide{display:none!important}
+
+/* ================= Sensação de app nativo ================= */
+html{overscroll-behavior:none;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overscroll-behavior-y:none}
+input,textarea,select,[contenteditable]{-webkit-user-select:text;user-select:text}
+::-webkit-scrollbar{width:0;height:0}
+@media (max-width:899px){input,select,textarea{font-size:16px}} /* evita zoom automático no iPhone */
+img{-webkit-user-drag:none}
+
+/* toque com resposta visual (como botões nativos) */
+.btn,.ib,.chip,.seg button,.cal button,nav.bn a,.card.tap{transition:transform .12s ease,background-color .15s,opacity .15s}
+.btn:active,.chip:active,.seg button:active{transform:scale(.96)}
+.ib:active{transform:scale(.9);background:var(--surface-2)}
+.card.tap:active{transform:scale(.98);opacity:.9}
+.cal button:active{transform:scale(.9)}
+
+/* barra inferior estilo app: vidro fosco + indicador em pílula */
+@media (max-width:899px){
+  nav.bn{background:color-mix(in srgb,var(--surface) 82%,transparent);backdrop-filter:saturate(1.6) blur(18px);-webkit-backdrop-filter:saturate(1.6) blur(18px)}
+  nav.bn a:not(.fab) svg{padding:4px 18px;box-sizing:content-box;border-radius:99px;transition:background-color .2s}
+  nav.bn a.on:not(.fab) svg{background:var(--pr-2)}
+  nav.bn a:active:not(.fab) svg{transform:scale(.9)}
+  nav.bn a.fab:active span.circ{transform:scale(.92)}
+  nav.bn a.fab span.circ{transition:transform .12s}
+  .top{padding-top:calc(8px + env(safe-area-inset-top))}
+}
+/* no app instalado o cabeçalho mostra o título da tela */
+.top .ttl{font-weight:700;font-size:17px;opacity:0;transform:translateY(6px);transition:.2s}
+.top.scrolled .ttl{opacity:1;transform:none}
+.top.scrolled{border-bottom:1px solid var(--bd)}
+.top .brand-tx{transition:opacity .2s}
+.top.scrolled .brand-tx{opacity:0}
+
+/* transição entre telas */
+@keyframes entra{from{opacity:0;transform:translateY(8px)}}
+@keyframes entraLado{from{opacity:0;transform:translateX(24px)}}
+#view>*{animation:entra .22s cubic-bezier(.2,.8,.2,1)}
+#view.lado>*{animation:entraLado .24s cubic-bezier(.2,.8,.2,1)}
+
+/* arrastar para atualizar */
+.ptr{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 56px);z-index:25;width:38px;height:38px;margin-left:-19px;border-radius:50%;background:var(--surface);box-shadow:var(--shadow);display:grid;place-items:center;color:var(--pr);transform:translateY(-80px);opacity:0;pointer-events:none}
+.ptr.on svg{animation:sp .8s linear infinite}
+
+/* bottom sheet arrastável */
+.sheet{touch-action:pan-y;will-change:transform}
+.sheet .grip{width:44px;height:5px;margin:2px auto 14px;cursor:grab}
+.sheet.drag{transition:none!important;animation:none}
+
+/* banner de instalação */
+.install{display:flex;align-items:center;gap:12px}
+.install img{width:44px;height:44px;border-radius:12px;flex:none}
+.ios-steps{counter-reset:p;list-style:none;padding:0;margin:14px 0 0}
+.ios-steps li{counter-increment:p;display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--bd)}
+.ios-steps li:before{content:counter(p);width:26px;height:26px;border-radius:50%;background:var(--pr-2);color:var(--pr);display:grid;place-items:center;font-weight:700;font-size:13px;flex:none}
+.switch{position:relative;width:50px;height:30px;flex:none}
+.switch input{opacity:0;width:0;height:0;position:absolute}
+.switch i{position:absolute;inset:0;border-radius:99px;background:var(--bd);transition:.2s}
+.switch i:after{content:"";position:absolute;width:26px;height:26px;left:2px;top:2px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:.2s}
+.switch input:checked+i{background:var(--ok)}
+.switch input:checked+i:after{transform:translateX(20px)}

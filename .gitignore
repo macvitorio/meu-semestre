@@ -3,3 +3,4 @@
 .vercel
 config.local.json
 node_modules
+.claude

@@ -1,9 +1,25 @@
 {
+  "id": "/",
   "name": "Meu Semestre",
   "short_name": "Semestre",
-  "start_url": "./",
+  "description": "Frequência, grade, notas e estudos do seu semestre na UFSC.",
+  "lang": "pt-BR",
+  "start_url": "/?origem=app",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#f4f6fb",
+  "display_override": ["standalone"],
+  "orientation": "portrait",
+  "background_color": "#2846d6",
   "theme_color": "#2846d6",
-  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+  "categories": ["education", "productivity"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Aulas de hoje", "url": "/#/inicio", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Atualizar com print", "url": "/#/atualizar", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Agenda", "url": "/#/agenda", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+  ]
 }

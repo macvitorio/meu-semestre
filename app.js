@@ -237,12 +237,16 @@ const corEv = e => e.tipo === 'feriado' ? 'var(--ok)' : byId(e.materiaId)?.cor |
 // ================= Navegação =================
 let R = { v: 'inicio' };
 function parseHash() { const [v = 'inicio', id, sub] = location.hash.replace(/^#\/?/, '').split('/'); R = { v: v || 'inicio', id, sub }; }
-addEventListener('hashchange', () => { parseHash(); render(); scrollTo(0, 0); });
+addEventListener('hashchange', () => {
+  const antes = R.v; parseHash();
+  const v = $('#view'); if (v) v.classList.toggle('lado', R.v === 'disc' && antes !== 'disc');
+  render(); scrollTo(0, 0);
+});
 const go = h => { location.hash = '#/' + h; };
 function startApp() {
   document.body.classList.add('app');
   parseHash();
-  $('#root').innerHTML = `<header class="top"><div class="brand"><img src="icon.svg" alt="">Meu Semestre</div><span class="sp"></span>
+  $('#root').innerHTML = `<header class="top" id="top"><div class="brand"><img src="icons/icon-192.png" alt=""><span class="brand-tx">Meu Semestre</span></div><span class="ttl" id="ttl"></span><span class="sp"></span>
     <span class="sync" id="sync"><i></i><span></span></span>
     <button class="ib" aria-label="Configurações" onclick="configSheet()">${ic('gear')}</button></header>
     <main id="view"></main><nav class="bn" id="nav"></nav>`;
@@ -258,6 +262,7 @@ function render() {
     ? `<a href="#/atualizar" class="fab ${cur === k ? 'on' : ''}"><span class="circ">${ic(i, 24)}</span><small>${l}</small></a>`
     : `<a href="#/${k}" class="${cur === k ? 'on' : ''}">${ic(i, 22)}${l}</a>`).join('');
   $('#view').innerHTML = (V[R.v] || V.inicio)();
+  const t = $('#ttl'); if (t) t.textContent = R.v === 'disc' ? nomeM(byId(R.id)) : (NAV.find(n => n[0] === cur) || [, , ''])[2];
 }
 
 // ================= Componentes =================
@@ -277,6 +282,7 @@ V.inicio = () => {
   const sauda = agora.getHours() < 12 ? 'Bom dia' : agora.getHours() < 18 ? 'Boa tarde' : 'Boa noite';
   let html = `<div class="stack"><div style="padding:6px 2px 4px"><p class="mu" style="text-transform:capitalize">${agora.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</p><h1>${sauda}${nome ? ', ' + esc(nome) : ''} 👋</h1></div>`;
   if (!S.materias.length) return html + vazio('spark', 'Vamos montar seu semestre', 'Envie o PDF ou um print do plano de ensino de cada disciplina. Grade, faltas permitidas, avaliações e conteúdos são criados automaticamente — e você pode editar tudo depois.', ctaImportar) + '</div>';
+  html += cardInstalar();
   if (!S.semestre.inicio) html += `<div class="card tap" onclick="configSheet()"><div class="row">${ic('alert')}<div class="sp"><b>Defina as datas do semestre</b><div class="mu">Necessário para calcular os dias de aula e as faltas.</div></div>${ic('right')}</div></div>`;
   const prox = ag.aulas.find(a => { const f = fimAula(a.h.inicio, a.h.aulas).split(':'); return +f[0] * 60 + +f[1] > mins; });
   if (prox) {
@@ -313,6 +319,7 @@ V.agenda = () => {
     S.materias.forEach(m => m.horarios.forEach(h => { const i = SLOTS.indexOf(h.inicio); for (let k = 0; k < (+h.aulas || 1); k++) { const s = SLOTS[i + k]; if (s) oc[h.dia + s] = { m, h, first: !k }; } }));
     const usados = SLOTS.filter(s => dias.some(d => oc[d + s]));
     if (!usados.length) return html + vazio('cal', 'Grade vazia', 'Os horários aparecem aqui quando você importa um plano de ensino ou edita uma disciplina.', ctaImportar) + '</div>';
+    html += `<div class="row wrap"><button class="btn sm" onclick="compartilharGrade()">${ic('up', 16)} Compartilhar grade</button><button class="btn sm" onclick="exportarAgenda()">${ic('cal', 16)} Google Agenda</button></div>`;
     html += `<div class="card"><div class="wk" style="--d:${dias.length}"><div></div>${dias.map(d => `<div class="h">${DIAS[d]}</div>`).join('')}
       ${usados.map(s => `<div class="t">${hhmm(s)}</div>${dias.map(d => { const o = oc[d + s]; return o ? `<div class="c has" style="background:${o.m.cor};${o.first ? '' : 'opacity:.8'}" onclick="go('disc/${o.m.id}')">${o.first ? esc(o.m.codigo || o.m.nome.slice(0, 10)) + (o.h.sala ? `<small>${esc(o.h.sala)}</small>` : '') : ''}</div>` : '<div class="c"></div>'; }).join('')}`).join('')}</div></div>`;
   } else if (agModo === 'mes') {
@@ -403,7 +410,7 @@ V.disc = () => {
   }
   return html + '</div>';
 };
-function togTop(mid_, tid) { upd(() => { const t = byId(mid_).topicos.find(x => x.id === tid); t.feito = !t.feito; }); }
+function togTop(mid_, tid) { vibrar(8); upd(() => { const t = byId(mid_).topicos.find(x => x.id === tid); t.feito = !t.feito; }); }
 function addTop(mid_, v) { if (v.trim()) upd(() => byId(mid_).topicos.push({ id: uid(), texto: v.trim(), feito: false })); }
 
 V.historico = () => {
@@ -590,6 +597,7 @@ function toggleFalta(id, d) {
   const m = byId(id), dia = diasDeAula(m).find(x => x.data === d);
   const aulas = dia ? dia.aulas : m.horarios.filter(h => +h.dia - 1 === parseISO(d).getDay()).reduce((a, h) => a + (+h.aulas || 0), 0) || 1;
   const antes = m.faltas[d];
+  vibrar(antes ? 8 : [10, 40, 10]);
   upd(() => { if (antes) delete m.faltas[d]; else m.faltas[d] = aulas; });
   if (!antes) { const f = freq(m); toast(f.restam >= 0 ? `Falta registrada. Restam ${f.restam}.` : 'Falta registrada — limite ultrapassado!', () => upd(() => delete m.faltas[d])); }
 }
@@ -688,6 +696,9 @@ function configSheet() {
     <div class="fields c2"><label class="f">Início das aulas<input type="date" id="c-ini" value="${S.semestre.inicio}"></label><label class="f">Fim das aulas<input type="date" id="c-fim" value="${S.semestre.fim}"></label></div>
     <label class="f">Feriados e dias sem aula <span class="mu">(dd/mm/aaaa Descrição — um por linha)</span><textarea id="c-fer">${S.feriados.map(f => f.data.split('-').reverse().join('/') + ' ' + esc(f.descricao || '')).join('\n')}</textarea></label></div>
     <div class="actions" style="position:static"><button class="btn pr sp" onclick="salvarConfig()">Salvar</button></div>
+    <div class="divider">lembretes</div>
+    <div class="row"><div class="sp"><b class="sm">Resumo diário às 7h</b><div class="mu">Aulas do dia, provas próximas e alerta de faltas</div></div><label class="switch"><input type="checkbox" id="c-notif" ${S.perfil.notif ? 'checked' : ''} onchange="alternarNotif(this.checked)"><i></i></label></div>
+    <div class="row wrap" style="margin-top:12px"><button class="btn sm" onclick="exportarAgenda()">${ic('cal', 16)} Exportar para Google Agenda</button><button class="btn sm" onclick="compartilharGrade()">${ic('up', 16)} Grade como imagem</button>${!standalone() ? `<button class="btn sm" onclick="instalar()">${ic('plus', 16)} Instalar app</button>` : ''}</div>
     <div class="divider">dados</div>
     <div class="row wrap"><button class="btn sm" onclick="exportar()">Exportar backup</button><label class="btn sm">Importar backup<input type="file" accept="application/json" hidden onchange="importar(this)"></label>
     <button class="btn sm" onclick="sair()">${ic('out', 16)} ${user ? 'Sair' : 'Entrar com conta'}</button>
@@ -714,4 +725,164 @@ function toast(msg, desfazer) {
   el.innerHTML = `<span>${esc(msg)}</span>${desfazer ? '<button>Desfazer</button>' : ''}`;
   if (desfazer) el.querySelector('button').onclick = () => { el.remove(); desfazer(); };
   document.body.append(el); toastT = setTimeout(() => el.remove(), desfazer ? 6000 : 3500);
+}
+
+// ================= Sensação de app nativo =================
+const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+function vibrar(p = 10) { try { navigator.vibrate?.(p); } catch { } }
+
+// cabeçalho mostra o título da tela ao rolar
+addEventListener('scroll', () => $('#top')?.classList.toggle('scrolled', scrollY > 40), { passive: true });
+// tocar de novo na aba ativa volta ao topo
+document.addEventListener('click', e => { const a = e.target.closest('nav.bn a'); if (a && a.classList.contains('on')) { e.preventDefault(); scrollTo({ top: 0, behavior: 'smooth' }); } });
+
+// gestos: arrastar para atualizar, deslizar da borda para voltar, arrastar sheet para fechar
+(() => {
+  let y0 = 0, x0 = 0, modo = null, dy = 0, ptr;
+  addEventListener('touchstart', e => {
+    const t = e.touches[0]; x0 = t.clientX; y0 = t.clientY; dy = 0; modo = null;
+    const sh = e.target.closest('.sheet');
+    if (sh) { if (sh.scrollTop <= 0) modo = 'sheet'; return; }
+    if (!document.body.classList.contains('app') || $('.scrim')) return;
+    if (x0 < 24 && R.v === 'disc') modo = 'voltar';
+    else if (scrollY <= 0 && user) modo = 'ptr';
+  }, { passive: true });
+  addEventListener('touchmove', e => {
+    if (!modo) return;
+    const t = e.touches[0]; dy = t.clientY - y0; const dx = t.clientX - x0;
+    if (modo === 'sheet') { const sh = $('.sheet'); if (dy > 0 && sh) { sh.classList.add('drag'); sh.style.transform = `translateY(${dy}px)`; } }
+    if (modo === 'ptr' && dy > 0) {
+      ptr ||= Object.assign(document.body.appendChild(document.createElement('div')), { className: 'ptr', innerHTML: ic('hist', 20) });
+      const p = Math.min(dy, 120); ptr.style.transform = `translateY(${p - 60}px) rotate(${p * 3}deg)`; ptr.style.opacity = Math.min(1, p / 70);
+    }
+    if (modo === 'voltar') $('#view').style.transform = `translateX(${Math.max(0, dx)}px)`;
+  }, { passive: true });
+  addEventListener('touchend', async e => {
+    const dx = (e.changedTouches[0]?.clientX || x0) - x0;
+    if (modo === 'sheet') { const sh = $('.sheet'); if (sh) { sh.classList.remove('drag'); if (dy > 110) closeSheet(); else sh.style.transform = ''; } }
+    if (modo === 'voltar') { $('#view').style.transform = ''; if (dx > 90) { vibrar(8); history.length > 1 ? history.back() : go('disciplinas'); } }
+    if (modo === 'ptr' && ptr) {
+      if (dy > 80) { ptr.classList.add('on'); ptr.style.transform = 'translateY(10px)'; vibrar(10); await sincronizar(); }
+      ptr.remove(); ptr = null;
+    }
+    modo = null;
+  });
+})();
+async function sincronizar() {
+  if (!sb || !user) return;
+  setSync('busy');
+  const { data, error } = await sb.from('user_data').select('data').eq('user_id', user.id).maybeSingle();
+  if (error) { setSync('off'); return toast('Sem conexão.'); }
+  if (data?.data) { S = migrar(data.data); saveLocal(); }
+  setSync('ok'); render(); toast('Atualizado.');
+}
+
+// ================= Instalação =================
+let promptInstalar = null;
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); promptInstalar = e; if (R.v === 'inicio') render(); });
+addEventListener('appinstalled', () => { promptInstalar = null; toast('App instalado! 🎉'); render(); });
+function cardInstalar() {
+  if (standalone() || localStorage.getItem(KEY + ':sem-instalar')) return '';
+  if (!promptInstalar && !isIOS()) return '';
+  return `<div class="card install"><img src="icons/icon-192.png" alt=""><div class="sp"><b>Instale o Meu Semestre</b><div class="mu">Abre em tela cheia, funciona offline e recebe lembretes.</div></div>
+    <div class="row"><button class="ib" aria-label="Dispensar" onclick="try{localStorage.setItem(KEY+':sem-instalar',1)}catch{};render()">${ic('x', 18)}</button><button class="btn pr sm" onclick="instalar()">Instalar</button></div></div>`;
+}
+async function instalar() {
+  if (promptInstalar) { promptInstalar.prompt(); await promptInstalar.userChoice; promptInstalar = null; render(); return; }
+  sheet(`<h2>Instalar no iPhone</h2><p class="mu" style="margin-top:6px">Abra este site no <b>Safari</b> e siga:</p>
+    <ol class="ios-steps"><li>Toque em <b>Compartilhar</b> (quadrado com seta ↑) na barra do Safari</li><li>Role e toque em <b>Adicionar à Tela de Início</b></li><li>Toque em <b>Adicionar</b>. O ícone aparece na sua tela inicial</li></ol>
+    <p class="mu" style="margin-top:12px">Se você já tinha adicionado antes, remova o ícone antigo e adicione de novo para atualizar o ícone.</p>
+    <div class="actions"><button class="btn pr block" onclick="closeSheet()">Entendi</button></div>`);
+}
+
+// ================= Notificações (Web Push) =================
+const b64ToU8 = b => { const p = '='.repeat((4 - b.length % 4) % 4), r = atob((b + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(r, c => c.charCodeAt(0)); };
+async function alternarNotif(on) {
+  const reverter = () => { const c = $('#c-notif'); if (c) c.checked = !on; };
+  if (!user) { reverter(); return toast('Entre com sua conta para receber lembretes.'); }
+  if (!cfg.vapidPublicKey) { reverter(); return toast('Lembretes ainda não configurados no servidor.'); }
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    reverter();
+    return isIOS() && !standalone() ? instalar().then(() => toast('No iPhone, instale o app para ativar lembretes.')) : toast('Este navegador não suporta notificações.');
+  }
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    if (on) {
+      if (await Notification.requestPermission() !== 'granted') { reverter(); return toast('Permissão negada. Libere nas configurações do aparelho.'); }
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToU8(cfg.vapidPublicKey) });
+      const { error } = await sb.from('push_subscriptions').upsert({ user_id: user.id, endpoint: sub.endpoint, subscription: sub.toJSON() }, { onConflict: 'endpoint' });
+      if (error) throw error;
+      toast('Pronto! Você recebe o resumo todo dia às 7h.');
+    } else {
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) { await sb.from('push_subscriptions').delete().eq('endpoint', sub.endpoint); await sub.unsubscribe(); }
+      toast('Lembretes desativados.');
+    }
+    S.perfil.notif = on; save(); vibrar(10);
+  } catch (e) { reverter(); toast('Não foi possível ativar: ' + (e.message || e)); }
+}
+
+// ================= Google Agenda (.ics) =================
+function exportarAgenda() {
+  if (!S.materias.length) return toast('Cadastre disciplinas primeiro.');
+  const tz = 'America/Sao_Paulo', z = s => s.replace(/-/g, ''), escI = t => String(t || '').replace(/([,;\\])/g, '\\$1').replace(/\n/g, '\\n');
+  const stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
+  const ev = [];
+  const add = (id, campos) => ev.push(['BEGIN:VEVENT', `UID:${id}@meusemestre`, `DTSTAMP:${stamp}`, ...campos, 'END:VEVENT'].join('\r\n'));
+  const diaSeg = d => { const x = parseISO(d); x.setDate(x.getDate() + 1); return iso(x); };
+  for (const m of S.materias) {
+    for (const d of diasDeAula(m)) for (const h of m.horarios.filter(h => +h.dia - 1 === parseISO(d.data).getDay())) {
+      add(`${m.id}-${d.data}-${h.inicio}`, [`DTSTART;TZID=${tz}:${z(d.data)}T${h.inicio}00`, `DTEND;TZID=${tz}:${z(d.data)}T${fimAula(h.inicio, h.aulas).replace(':', '')}00`, `SUMMARY:${escI((m.codigo ? m.codigo + ' · ' : '') + nomeM(m))}`, h.sala ? `LOCATION:${escI(h.sala)}` : '', m.professor ? `DESCRIPTION:${escI('Prof. ' + m.professor)}` : ''].filter(Boolean));
+    }
+    for (const a of m.avaliacoes.filter(a => a.data)) add(`av-${m.id}-${a.id}`, [`DTSTART;VALUE=DATE:${z(a.data)}`, `DTEND;VALUE=DATE:${z(diaSeg(a.data))}`, `SUMMARY:${escI('📝 ' + a.nome + ' · ' + nomeM(m))}`, 'BEGIN:VALARM', 'TRIGGER:-PT15H', 'ACTION:DISPLAY', `DESCRIPTION:${escI(a.nome)}`, 'END:VALARM']);
+  }
+  for (const e of S.eventos) add(`ev-${e.id}`, [`DTSTART;VALUE=DATE:${z(e.data)}`, `DTEND;VALUE=DATE:${z(diaSeg(e.data))}`, `SUMMARY:${escI(e.titulo + (e.materiaId ? ' · ' + nomeM(byId(e.materiaId)) : ''))}`]);
+  for (const f of S.feriados) add(`fer-${f.data}`, [`DTSTART;VALUE=DATE:${z(f.data)}`, `DTEND;VALUE=DATE:${z(diaSeg(f.data))}`, `SUMMARY:${escI('🎉 ' + (f.descricao || 'Sem aula'))}`, 'TRANSP:TRANSPARENT']);
+  const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Meu Semestre//PT-BR', 'CALSCALE:GREGORIAN', 'X-WR-CALNAME:Meu Semestre', `X-WR-TIMEZONE:${tz}`, ...ev, 'END:VCALENDAR'].join('\r\n');
+  const file = new File([ics], 'meu-semestre.ics', { type: 'text/calendar' });
+  closeSheet();
+  sheet(`<h2>Levar para sua agenda</h2><p class="mu" style="margin-top:6px">${ev.length} eventos: aulas do semestre, provas (com lembrete na véspera), entregas e feriados.</p>
+    <ol class="ios-steps"><li><span><b>iPhone:</b> toque em Baixar e depois em <b>Adicionar tudo</b></span></li><li><span><b>Google Agenda:</b> no computador, abra calendar.google.com → ⚙️ Configurações → <b>Importar e exportar</b> → selecione o arquivo</span></li><li><span>Se mudar algo no app, exporte de novo. Para não duplicar, importe numa agenda nova chamada "Meu Semestre".</span></li></ol>
+    <div class="actions"><button class="btn" onclick="closeSheet()">Fechar</button><button class="btn pr sp" id="ics-btn">${ic('cal', 18)} Baixar arquivo</button></div>`);
+  $('#ics-btn').onclick = () => baixarOuCompartilhar(file);
+}
+async function baixarOuCompartilhar(file) {
+  if (navigator.canShare?.({ files: [file] }) && /mobi|android|iphone/i.test(navigator.userAgent)) { try { await navigator.share({ files: [file], title: file.name }); return; } catch (e) { if (e.name === 'AbortError') return; } }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = file.name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+
+// ================= Grade como imagem =================
+async function compartilharGrade() {
+  const dias = [2, 3, 4, 5, 6, 7].filter(d => d < 7 || S.materias.some(m => m.horarios.some(h => +h.dia === 7)));
+  const oc = {};
+  S.materias.forEach(m => m.horarios.forEach(h => { const i = SLOTS.indexOf(h.inicio); for (let k = 0; k < (+h.aulas || 1); k++) { const s = SLOTS[i + k]; if (s) oc[h.dia + s] = { m, h, first: !k }; } }));
+  const usados = SLOTS.filter(s => dias.some(d => oc[d + s]));
+  if (!usados.length) return toast('Sua grade está vazia.');
+  await document.fonts?.ready;
+  const W = 1080, pad = 48, colT = 110, top = 210, cw = (W - pad * 2 - colT) / dias.length, rh = 96;
+  const H = top + usados.length * rh + 150;
+  const c = Object.assign(document.createElement('canvas'), { width: W, height: H }), g = c.getContext('2d');
+  const F = (w, s) => `${w} ${s}px Inter, system-ui, sans-serif`;
+  const grad = g.createLinearGradient(0, 0, W, H); grad.addColorStop(0, '#0e1530'); grad.addColorStop(1, '#1d2a6b');
+  g.fillStyle = grad; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#fff'; g.font = F(700, 54); g.fillText('Minha grade', pad, 100);
+  g.fillStyle = 'rgba(255,255,255,.65)'; g.font = F(500, 28); g.fillText(`${S.perfil.nome ? S.perfil.nome.split(' ')[0] + ' · ' : ''}${S.materias.length} disciplinas`, pad, 146);
+  g.textAlign = 'center'; g.font = F(600, 26);
+  dias.forEach((d, i) => g.fillText(DIAS[d], pad + colT + cw * i + cw / 2, top - 18));
+  const rr = (x, y, w, h, r) => { g.beginPath(); g.roundRect ? g.roundRect(x, y, w, h, r) : g.rect(x, y, w, h); g.fill(); };
+  usados.forEach((s, r) => {
+    const y = top + r * rh;
+    g.textAlign = 'right'; g.fillStyle = 'rgba(255,255,255,.55)'; g.font = F(500, 24); g.fillText(hhmm(s), pad + colT - 18, y + 38);
+    dias.forEach((d, i) => {
+      const x = pad + colT + cw * i + 4, o = oc[d + s];
+      g.fillStyle = o ? o.m.cor : 'rgba(255,255,255,.06)'; g.globalAlpha = o && !o.first ? .8 : 1; rr(x, y + 4, cw - 8, rh - 8, 16); g.globalAlpha = 1;
+      if (o?.first) {
+        g.fillStyle = '#fff'; g.textAlign = 'left'; g.font = F(700, 24); g.fillText((o.m.codigo || o.m.nome).slice(0, 9), x + 14, y + 40);
+        if (o.h.sala) { g.font = F(500, 19); g.fillStyle = 'rgba(255,255,255,.85)'; g.fillText(o.h.sala.slice(0, 11), x + 14, y + 68); }
+      }
+    });
+  });
+  g.textAlign = 'left'; g.fillStyle = 'rgba(255,255,255,.5)'; g.font = F(500, 24); g.fillText('Feito com Meu Semestre · ' + location.host, pad, H - 56);
+  c.toBlob(b => baixarOuCompartilhar(new File([b], 'minha-grade.png', { type: 'image/png' })), 'image/png');
 }
