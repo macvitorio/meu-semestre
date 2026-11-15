@@ -318,3 +318,62 @@ body{min-height:100%;min-height:100dvh}
   .top{background:var(--bg);backdrop-filter:none;-webkit-backdrop-filter:none;padding-top:calc(10px + env(safe-area-inset-top));box-shadow:0 -40px 0 var(--bg)}
   .top.scrolled{border-bottom:1px solid var(--bd)}
 }
+
+/* ================= Marca, painel e harmonia (web + celular) ================= */
+.marca{width:30px;height:30px;border-radius:9px;background:var(--pr);color:#fff;display:grid;place-items:center;flex:none;box-shadow:0 2px 8px color-mix(in srgb,var(--pr) 35%,transparent)}
+.marca svg{width:20px;height:20px}
+.nav-brand{display:none!important}
+.pg-h{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:4px 2px}
+.pg-acoes{display:none}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.kpi{display:block;padding:14px;text-decoration:none;color:inherit}
+.kpi-ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;margin-bottom:10px}
+.kpi-v{font-size:26px;font-weight:700;letter-spacing:-.02em;margin:2px 0}
+.dash{display:grid;gap:12px}
+.dash>.stack>*+*{margin-top:12px}
+.mini{display:flex;flex-direction:column;align-items:flex-end;min-width:58px;font-size:15px}
+.mini .mu{font-size:11px}
+.dia-box{width:44px;height:48px;border-radius:12px;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;background:color-mix(in srgb,var(--c) 14%,transparent);color:var(--c);line-height:1.1}
+.dia-box b{font-size:18px}.dia-box small{font-size:11px;font-weight:600;text-transform:uppercase}
+.boas{display:grid;gap:20px;padding:24px;overflow:hidden}
+.boas-ilu{display:none}
+.mock{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:44px;gap:8px;padding:18px;border-radius:18px;background:var(--surface-2);transform:rotate(-3deg)}
+.mock i{border-radius:10px;background:var(--bd);opacity:.9}
+.passos{display:grid;gap:12px}
+.passo .num{width:28px;height:28px;border-radius:50%;background:var(--surface-2);display:grid;place-items:center;font-weight:700;font-size:13px}
+.passo .row{justify-content:space-between}
+@media(max-width:899px){.so-desktop{display:none!important}}
+
+@media(min-width:900px){
+  .so-mobile{display:none!important}
+  /* barra lateral: marca no topo, usuário no rodapé */
+  nav.bn{padding:16px 12px 14px;gap:2px;background:var(--surface)}
+  .nav-brand{display:flex!important;align-items:center;gap:10px;padding:6px 10px 18px!important;font-size:16px!important;color:var(--tx)!important;background:none!important}
+  nav.bn a.fab{order:0;margin:0 0 14px;justify-content:center;font-weight:600;border-radius:12px;padding:11px 12px}
+  nav.bn a.fab small{font-size:14px}
+  nav.bn a{font-weight:500}
+  nav.bn a.on{color:var(--pr);background:var(--pr-2)}
+  .cfg-link{margin-top:auto;display:flex;flex-direction:column;gap:2px;border-top:1px solid var(--bd);padding-top:10px}
+  .cfg-link a{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;color:var(--tx-2);text-decoration:none;font-size:14px;font-weight:500}
+  .cfg-link a.on{color:var(--pr);background:var(--pr-2)}
+  .cfg-link .eu{padding:8px 10px}
+  .cfg-link .eu .avatar{width:34px;height:34px;font-size:14px}
+  .cfg-link .eu .tx{display:flex;flex-direction:column;min-width:0}
+  .cfg-link .eu b{color:var(--tx);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cfg-link .eu small{font-size:12px;color:var(--tx-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+  /* topo: sem marca repetida, mostra o nome da tela */
+  .top{padding:14px 40px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(12px)}
+  .top .brand{display:none}
+  .top .ttl{position:static;transform:none;opacity:1;font-size:15px;color:var(--tx-2);font-weight:600;max-width:none}
+  main{max-width:1240px;margin:0 auto;padding:6px 40px 48px}
+  .pg-acoes{display:flex}
+  .kpis{grid-template-columns:repeat(4,1fr);gap:14px}
+  .dash{grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr);gap:16px;align-items:start}
+  .dash>.stack>*+*{margin-top:16px}
+  .boas{grid-template-columns:1.3fr 1fr;align-items:center;padding:36px}
+  .boas-ilu{display:block}
+  .passos{grid-template-columns:repeat(3,1fr);gap:16px}
+  .grid.two{gap:16px}
+  .card{padding:18px}
+}
+@media(min-width:1400px){nav.bn{width:256px}body.app{padding-left:256px}}

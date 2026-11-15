@@ -12,6 +12,7 @@ const KEY = 'meu-semestre-v2';
 
 // ================= Ícones =================
 const P = {
+  cap: '<path d="M22 10 12 5 2 10l10 5 10-5z" fill="currentColor" stroke="none"/><path d="M6 12v4c0 1.7 2.7 3 6 3s6-1.3 6-3v-4l-6 3z" fill="#fbbf24" stroke="none"/>',
   home: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
   cal: '<rect x="3" y="4" width="18" height="17" rx="3"/><path d="M8 2v4M16 2v4M3 10h18"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
@@ -262,9 +263,9 @@ const go = h => { location.hash = '#/' + h; };
 function startApp() {
   document.body.classList.add('app');
   parseHash();
-  $('#root').innerHTML = `<header class="top" id="top"><div class="brand"><img src="icons/icon-192.png" alt=""><span class="brand-tx">Meu Semestre</span></div><span class="ttl" id="ttl"></span><span class="sp"></span>
+  $('#root').innerHTML = `<header class="top" id="top"><div class="brand">${marca()}<span class="brand-tx">Meu Semestre</span></div><span class="ttl" id="ttl"></span><span class="sp"></span>
     <span class="sync" id="sync"><i></i><span></span></span>
-    <a class="ib" aria-label="Configurações" href="#/config">${ic('gear', 22)}</a></header>
+    <a class="ib so-mobile" aria-label="Configurações" href="#/config">${ic('gear', 22)}</a></header>
     <main id="view"></main><nav class="bn" id="nav"></nav>`;
   setSync(syncState);
   render();
@@ -276,7 +277,9 @@ function render() {
   const cur = R.v === 'disc' ? 'disciplinas' : R.v;
   $('#nav').innerHTML = NAV.map(([k, i, l]) => k === 'atualizar'
     ? `<a href="#/atualizar" class="fab ${cur === k ? 'on' : ''}"><span class="circ">${ic(i, 24)}</span><small>${l}</small></a>`
-    : `<a href="#/${k}" class="${cur === k ? 'on' : ''}">${ic(i, 22)}${l}</a>`).join('') + `<a href="#/config" class="cfg-link ${cur === 'config' ? 'on' : ''}">${ic('gear', 22)}Configurações</a>`;
+    : `<a href="#/${k}" class="${cur === k ? 'on' : ''}">${ic(i, 22)}${l}</a>`).join('') + `<div class="cfg-link"><a href="#/config" class="${cur === 'config' ? 'on' : ''}">${ic('gear', 22)}Configurações</a>
+    <a href="#/config" class="eu"><span class="avatar">${esc(((S.perfil.nome || user?.email || '?').trim()[0] || '?').toUpperCase())}</span><span class="tx"><b>${esc(S.perfil.nome || 'Sem nome')}</b><small>${esc(user?.email || 'Neste aparelho')}</small></span></a></div>`;
+  $('#nav').insertAdjacentHTML('afterbegin', `<a href="#/inicio" class="nav-brand">${marca()}<b>Meu Semestre</b></a>`);
   aplicarTema();
   $('#view').innerHTML = (V[R.v] || V.inicio)();
   const t = $('#ttl'); if (t) t.textContent = R.v === 'disc' ? nomeM(byId(R.id)) : R.v === 'config' ? 'Configurações' : (NAV.find(n => n[0] === cur) || [, , ''])[2];
@@ -288,6 +291,7 @@ const pen = (fn, lbl = 'Editar') => `<button class="ib" aria-label="${lbl}" titl
 const ring = (p, c, t) => `<div class="ring" style="--p:${p};--c:${c}"><b>${t}</b></div>`;
 const nivelCor = n => `var(--${n === 'neu' ? 'tx-2' : n})`;
 const vazio = (icn, t, d, acao = '') => `<div class="card empty"><div class="ic">${ic(icn, 26)}</div><h3>${t}</h3><p class="mu" style="margin:6px 0 16px">${d}</p><div class="row wrap" style="justify-content:center">${acao}</div></div>`;
+const marca = () => `<span class="marca">${ic('cap', 20)}</span>`;
 const ctaImportar = `<a class="btn pr" href="#/atualizar">${ic('up')} Enviar plano de ensino</a>`;
 
 // ================= Telas =================
@@ -297,34 +301,73 @@ V.inicio = () => {
   const h = hoje(), ag = agendaDoDia(h), agora = new Date(), mins = agora.getHours() * 60 + agora.getMinutes();
   const nome = (S.perfil.nome || '').split(' ')[0];
   const sauda = agora.getHours() < 12 ? 'Bom dia' : agora.getHours() < 18 ? 'Boa tarde' : 'Boa noite';
-  let html = `<div class="stack"><div style="padding:6px 2px 4px"><p class="mu cap1">${agora.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</p><h1>${sauda}${nome ? ', ' + esc(nome) : ''} 👋</h1></div>`;
-  if (!S.materias.length) return html + vazio('spark', 'Vamos montar seu semestre', 'Envie o PDF ou um print do plano de ensino de cada disciplina. Grade, faltas permitidas, avaliações e conteúdos são criados automaticamente — e você pode editar tudo depois.', ctaImportar) + '</div>';
-  html += cardInstalar();
-  if (!S.semestre.inicio) html += `<div class="card tap" onclick="configSheet()"><div class="row">${ic('alert')}<div class="sp"><b>Defina as datas do semestre</b><div class="mu">Necessário para calcular os dias de aula e as faltas.</div></div>${ic('right')}</div></div>`;
+  const topo = `<div class="pg-h"><div><p class="mu cap1">${agora.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</p><h1>${sauda}${nome ? ', ' + esc(nome) : ''} 👋</h1></div>
+    <div class="row pg-acoes"><button class="btn" onclick="eventoSheet()">${ic('plus', 18)} Evento</button><a class="btn pr" href="#/atualizar">${ic('up', 18)} Atualizar</a></div></div>`;
+  if (!S.materias.length) return `<div class="stack">${topo}${boasVindas()}</div>`;
+
+  // indicadores
+  const fs = S.materias.map(freq), ns = S.materias.map(notas).map(n => n.mf ?? n.parcial).filter(n => n != null);
+  const freqMed = fs.length ? fs.reduce((a, f) => a + f.pct, 0) / fs.length : 100;
+  const mediaG = ns.length ? ns.reduce((a, n) => a + n, 0) / ns.length : null;
+  const em7 = todosEventos().filter(e => e.data >= h && diasAte(e.data) <= 7 && e.tipo !== 'feriado').length;
+  const tp = S.materias.flatMap(m => m.topicos), feitos = tp.filter(t => t.feito).length, pc = tp.length ? Math.round(feitos / tp.length * 100) : 0;
+  const risco = fs.filter(f => f.nivel !== 'ok').length;
+  const kpi = (icone, rot, val, sub, cor = 'var(--pr)', link = '') => `<${link ? `a href="${link}"` : 'div'} class="kpi card ${link ? 'tap' : ''}"><span class="kpi-ic" style="color:${cor};background:color-mix(in srgb,${cor} 14%,transparent)">${ic(icone, 18)}</span><div class="mu">${rot}</div><div class="kpi-v">${val}</div><div class="mu sm">${sub}</div></${link ? 'a' : 'div'}>`;
+  const kpis = `<div class="kpis">
+    ${kpi('check', 'Presença média', Math.round(freqMed) + '%', risco ? `${risco} disciplina(s) em atenção` : 'Tudo em dia', risco ? 'var(--warn)' : 'var(--ok)', '#/disciplinas')}
+    ${kpi('pen', 'Média geral', fmt(mediaG), mediaG == null ? 'Sem notas ainda' : mediaG >= MEDIA_APROV ? 'Acima de 6,0' : 'Abaixo de 6,0', mediaG != null && mediaG < MEDIA_APROV ? 'var(--bad)' : 'var(--pr)', '#/disciplinas')}
+    ${kpi('cal', 'Próximos 7 dias', em7, em7 === 1 ? 'prova ou entrega' : 'provas e entregas', '#7048e8', '#/agenda')}
+    ${kpi('book', 'Conteúdos', pc + '%', `${feitos} de ${tp.length} estudados`, '#0ca678', '#/disciplinas')}</div>`;
+
+  // coluna principal
+  let main = '';
+  if (!S.semestre.inicio) main += `<a class="card tap row" href="#/config" style="color:inherit;text-decoration:none">${ic('alert')}<div class="sp"><b>Defina as datas do semestre</b><div class="mu">Necessário para calcular os dias de aula e as faltas.</div></div>${ic('right')}</a>`;
   const prox = ag.aulas.find(a => { const f = fimAula(a.h.inicio, a.h.aulas).split(':'); return +f[0] * 60 + +f[1] > mins; });
   if (prox) {
     const em = +prox.h.inicio.slice(0, 2) * 60 + +prox.h.inicio.slice(2) - mins;
-    html += `<div class="card hero tap" onclick="go('disc/${prox.m.id}')"><p class="mu">${em <= 0 ? 'Acontecendo agora' : em < 90 ? `Começa em ${em} min` : 'Próxima aula hoje'}</p>
+    main += `<div class="card hero tap" onclick="go('disc/${prox.m.id}')"><p class="mu">${em <= 0 ? 'Acontecendo agora' : em < 90 ? `Começa em ${em} min` : 'Próxima aula hoje'}</p>
       <h2 style="margin:4px 0">${esc(nomeM(prox.m))}</h2><p class="mu">${hhmm(prox.h.inicio)}–${fimAula(prox.h.inicio, prox.h.aulas)}${prox.h.sala ? ' · ' + esc(prox.h.sala) : ''}</p></div>`;
   }
-  html += `<div class="grid two"><div class="card"><div class="card-h"><h3 class="sp">Aulas de hoje</h3><a class="btn ghost sm" href="#/agenda">Agenda</a></div>`;
-  if (ag.fer) html += `<p class="mu">${esc(ag.fer.descricao || 'Feriado')} — sem aula 🎉</p>`;
-  else if (!ag.aulas.length) html += `<p class="mu">Nenhuma aula hoje. Bom descanso!</p>`;
-  else html += `<div class="list">${ag.aulas.map(({ m, h: x }) => {
+  main += `<div class="card"><div class="card-h"><h3 class="sp">Aulas de hoje</h3><a class="btn ghost sm" href="#/agenda">Ver agenda</a></div>`;
+  if (ag.fer) main += `<p class="mu">${esc(ag.fer.descricao || 'Feriado')} — sem aula 🎉</p>`;
+  else if (!ag.aulas.length) main += `<p class="mu">Nenhuma aula hoje. Bom descanso!</p>`;
+  else main += `<div class="list">${ag.aulas.map(({ m, h: x }) => {
     const f = m.faltas[h] || 0;
     return `<div class="row"><span class="swatch" style="background:${m.cor}"></span><div class="sp"><b>${esc(nomeM(m))}</b><div class="mu">${hhmm(x.inicio)}–${fimAula(x.inicio, x.aulas)}${x.sala ? ' · ' + esc(x.sala) : ''}</div></div>
       <button class="btn sm ${f ? 'danger' : ''}" onclick="toggleFalta('${m.id}','${h}')" aria-pressed="${!!f}">${f ? ic('x', 16) + ' Faltei' : ic('check', 16) + ' Presente'}</button></div>`;
   }).join('')}</div>`;
-  html += `</div>`;
-  const evs = todosEventos().filter(e => e.data >= h).slice(0, 5);
-  html += `<div class="card"><div class="card-h"><h3 class="sp">Próximas datas</h3><button class="btn ghost sm" onclick="eventoSheet()">${ic('plus', 16)} Evento</button></div>
-    ${evs.length ? `<div class="list">${evs.map(e => `<div class="row"><span class="dot" style="background:${corEv(e)}"></span><div class="sp"><b>${esc(e.titulo)}</b><div class="mu">${esc(nomeM(byId(e.materiaId)) || TIPOS_EV[e.tipo] || '')}</div></div><div style="text-align:right"><div class="sm">${brD(e.data)}</div><div class="mu">${quando(e.data)}</div></div></div>`).join('')}</div>` : '<p class="mu">Nenhuma data cadastrada.</p>'}</div></div>`;
+  main += `</div>`;
+  // disciplinas resumidas
+  main += `<div class="card"><div class="card-h"><h3 class="sp">Suas disciplinas</h3><a class="btn ghost sm" href="#/disciplinas">Ver todas</a></div><div class="list">${S.materias.map(m => {
+    const f = freq(m), n = notas(m);
+    return `<a class="row" href="#/disc/${m.id}" style="color:inherit;text-decoration:none"><span class="swatch" style="background:${m.cor}"></span><div class="sp"><b>${esc(nomeM(m))}</b><div class="mu">${esc(m.codigo)}</div></div>
+      <div class="mini"><span class="mu">Presença</span><b style="color:${nivelCor(f.nivel)}">${Math.round(f.pct)}%</b></div><div class="mini"><span class="mu">Média</span><b>${fmt(n.mf ?? n.parcial)}</b></div>${ic('right', 18)}</a>`;
+  }).join('')}</div></div>`;
+
+  // coluna lateral
+  let lado = '';
   const al = S.materias.map(m => ({ m, f: freq(m) })).filter(o => o.f.nivel !== 'ok');
-  if (al.length) html += `<div class="card" style="border-color:var(--warn)"><div class="card-h">${ic('alert')}<h3>Atenção às faltas</h3></div><div class="list">${al.map(({ m, f }) => `<div class="between"><span>${esc(nomeM(m))}</span>${f.restam < 0 ? tag('Limite ultrapassado', 'bad') : tag(`Pode faltar mais ${f.restam}`, 'warn')}</div>`).join('')}</div></div>`;
-  const tp = S.materias.flatMap(m => m.topicos), feitos = tp.filter(t => t.feito).length, pc = tp.length ? Math.round(feitos / tp.length * 100) : 0;
-  html += `<div class="card tap" onclick="go('disciplinas')"><div class="row">${ring(pc, 'var(--pr)', tp.length ? pc + '%' : '—')}<div class="sp"><b>Conteúdos estudados</b><div class="mu">${feitos} de ${tp.length} em ${S.materias.length} disciplina(s)</div></div>${ic('right')}</div></div>`;
-  return html + '</div>';
+  if (al.length) lado += `<div class="card" style="border-color:var(--warn)"><div class="card-h"><span style="color:var(--warn)">${ic('alert')}</span><h3>Atenção às faltas</h3></div><div class="list">${al.map(({ m, f }) => `<div class="between"><span class="sm">${esc(nomeM(m))}</span>${f.restam < 0 ? tag('Limite ultrapassado', 'bad') : tag(`Mais ${f.restam}`, 'warn')}</div>`).join('')}</div></div>`;
+  const evs = todosEventos().filter(e => e.data >= h).slice(0, 6);
+  lado += `<div class="card"><div class="card-h"><h3 class="sp">Próximas datas</h3><button class="btn ghost sm" onclick="eventoSheet()">${ic('plus', 16)}</button></div>
+    ${evs.length ? `<div class="list">${evs.map(e => `<div class="row"><div class="dia-box" style="--c:${corEv(e)}"><b>${parseISO(e.data).getDate()}</b><small>${parseISO(e.data).toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}</small></div><div class="sp"><b class="sm">${esc(e.titulo)}</b><div class="mu">${esc(nomeM(byId(e.materiaId)) || TIPOS_EV[e.tipo] || '')} · ${quando(e.data)}</div></div></div>`).join('')}</div>` : '<p class="mu">Nenhuma data cadastrada.</p>'}</div>`;
+  lado += `<div class="card tap" onclick="go('disciplinas')"><div class="row">${ring(pc, 'var(--pr)', tp.length ? pc + '%' : '—')}<div class="sp"><b>Conteúdos estudados</b><div class="mu">${feitos} de ${tp.length} em ${S.materias.length} disciplina(s)</div></div>${ic('right')}</div></div>`;
+  lado += cardInstalar();
+
+  return `<div class="stack">${topo}${kpis}<div class="dash"><div class="stack">${main}</div><div class="stack">${lado}</div></div></div>`;
 };
+function boasVindas() {
+  const passo = (n, icone, t, d, acao) => `<div class="card passo"><div class="row"><span class="num">${n}</span><span class="kpi-ic" style="color:var(--pr);background:var(--pr-2)">${ic(icone, 18)}</span></div><h3 style="margin:14px 0 6px">${t}</h3><p class="mu" style="margin:0 0 16px">${d}</p>${acao}</div>`;
+  return `<div class="card boas"><div class="boas-tx"><span class="tag neu" style="margin-bottom:12px">${ic('spark', 14)} Comece por aqui</span><h2 style="font-size:24px">Vamos montar seu semestre</h2>
+      <p class="mu" style="margin:8px 0 18px;font-size:15px">Envie o plano de ensino de cada disciplina (PDF ou print). O app cria a grade, calcula as faltas permitidas, monta as avaliações e a lista de conteúdos. Depois é só editar o que quiser pelo ✏️.</p>
+      <a class="btn pr" href="#/atualizar">${ic('up', 18)} Enviar plano de ensino</a></div>
+    <div class="boas-ilu" aria-hidden="true"><div class="mock"><i style="background:#2846d6;grid-row:span 2"></i><i></i><i style="background:#14945a"></i><i></i><i style="background:#d6336c;grid-row:span 2"></i><i style="background:#7048e8"></i><i></i><i style="background:#e8590c"></i><i></i></div></div></div>
+  <div class="passos">
+    ${passo(1, 'up', 'Envie os planos', 'PDF do CAGR, print do Moodle ou texto colado. Pode mandar vários de uma vez.', `<a class="btn sm" href="#/atualizar">Enviar agora</a>`)}
+    ${passo(2, 'cal', 'Confira o semestre', 'Datas de início e fim e feriados, para contar os dias de aula certinho.', `<a class="btn sm" href="#/config">Abrir configurações</a>`)}
+    ${passo(3, 'bell', 'Receba lembretes', 'Resumo diário com aulas, provas e alerta de faltas. Funciona com o app instalado.', standalone() ? `<a class="btn sm" href="#/config">Ativar lembretes</a>` : `<button class="btn sm" onclick="instalar()">Instalar o app</button>`)}
+  </div>`;
+}
 
 let agModo = 'semana', agMes = null, agSel = null;
 V.agenda = () => {
