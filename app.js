@@ -24,7 +24,14 @@ const P = {
   file: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>',
   up: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>',
   trash: '<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>',
-  gear: '<circle cx="12" cy="12" r="3"/><path d="M12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>',
+  gear: '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  palette: '<circle cx="13.5" cy="6.5" r="1"/><circle cx="17.5" cy="10.5" r="1"/><circle cx="8.5" cy="7.5" r="1"/><circle cx="6.5" cy="12.5" r="1"/><path d="M12 2a10 10 0 0 0 0 20c1 0 1.7-.8 1.7-1.7 0-.4-.2-.8-.4-1.1-.3-.3-.4-.7-.4-1.1 0-.9.8-1.7 1.7-1.7H16a6 6 0 0 0 6-6c0-4.4-4.5-8.4-10-8.4z"/>',
+  bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  share: '<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/>',
+  db: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5M3 12c0 1.7 4 3 9 3s9-1.3 9-3"/>',
+  phone: '<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/>',
   back: '<path d="M15 18l-6-6 6-6"/>',
   left: '<path d="M15 18l-6-6 6-6"/>', right: '<path d="M9 18l6-6-6-6"/>',
   alert: '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
@@ -254,7 +261,7 @@ function startApp() {
   parseHash();
   $('#root').innerHTML = `<header class="top" id="top"><div class="brand"><img src="icons/icon-192.png" alt=""><span class="brand-tx">Meu Semestre</span></div><span class="ttl" id="ttl"></span><span class="sp"></span>
     <span class="sync" id="sync"><i></i><span></span></span>
-    <button class="ib" aria-label="Configurações" onclick="configSheet()">${ic('gear')}</button></header>
+    <a class="ib" aria-label="Configurações" href="#/config">${ic('gear', 22)}</a></header>
     <main id="view"></main><nav class="bn" id="nav"></nav>`;
   setSync(syncState);
   render();
@@ -266,9 +273,10 @@ function render() {
   const cur = R.v === 'disc' ? 'disciplinas' : R.v;
   $('#nav').innerHTML = NAV.map(([k, i, l]) => k === 'atualizar'
     ? `<a href="#/atualizar" class="fab ${cur === k ? 'on' : ''}"><span class="circ">${ic(i, 24)}</span><small>${l}</small></a>`
-    : `<a href="#/${k}" class="${cur === k ? 'on' : ''}">${ic(i, 22)}${l}</a>`).join('');
+    : `<a href="#/${k}" class="${cur === k ? 'on' : ''}">${ic(i, 22)}${l}</a>`).join('') + `<a href="#/config" class="cfg-link ${cur === 'config' ? 'on' : ''}">${ic('gear', 22)}Configurações</a>`;
+  aplicarTema();
   $('#view').innerHTML = (V[R.v] || V.inicio)();
-  const t = $('#ttl'); if (t) t.textContent = R.v === 'disc' ? nomeM(byId(R.id)) : (NAV.find(n => n[0] === cur) || [, , ''])[2];
+  const t = $('#ttl'); if (t) t.textContent = R.v === 'disc' ? nomeM(byId(R.id)) : R.v === 'config' ? 'Configurações' : (NAV.find(n => n[0] === cur) || [, , ''])[2];
 }
 
 // ================= Componentes =================
@@ -695,28 +703,7 @@ function salvarHist(id) {
   if (!d.nome && !d.codigo) return toast('Informe o nome ou código.');
   closeSheet(); upd(() => id ? Object.assign(S.historico.find(x => x.id === id), d) : S.historico.push({ id: uid(), ...d }));
 }
-function configSheet() {
-  sheet(`<h2>Configurações</h2>
-    <div class="card flat" style="margin:14px 0"><div class="row">${ic(user ? 'mail' : 'alert')}<div class="sp"><b class="sm">${user ? esc(user.email) : 'Sem conta — dados só neste aparelho'}</b><div class="mu">${user ? 'Sincronizado com a nuvem' : 'Entre para sincronizar entre celular e computador'}</div></div></div></div>
-    <div class="fields">
-    <label class="f">Seu nome<input id="c-nome" value="${esc(S.perfil.nome)}"></label>
-    <div class="fields c2"><label class="f">Início das aulas<input type="date" id="c-ini" value="${S.semestre.inicio}"></label><label class="f">Fim das aulas<input type="date" id="c-fim" value="${S.semestre.fim}"></label></div>
-    <label class="f">Feriados e dias sem aula <span class="mu">(dd/mm/aaaa Descrição — um por linha)</span><textarea id="c-fer">${S.feriados.map(f => f.data.split('-').reverse().join('/') + ' ' + esc(f.descricao || '')).join('\n')}</textarea></label></div>
-    <div class="actions" style="position:static"><button class="btn pr sp" onclick="salvarConfig()">Salvar</button></div>
-    <div class="divider">lembretes</div>
-    <div class="row"><div class="sp"><b class="sm">Resumo diário às 7h</b><div class="mu">Aulas do dia, provas próximas e alerta de faltas</div></div><label class="switch"><input type="checkbox" id="c-notif" ${S.perfil.notif ? 'checked' : ''} onchange="alternarNotif(this.checked)"><i></i></label></div>
-    <div class="row wrap" style="margin-top:12px"><button class="btn sm" onclick="exportarAgenda()">${ic('cal', 16)} Exportar para Google Agenda</button><button class="btn sm" onclick="compartilharGrade()">${ic('up', 16)} Grade como imagem</button>${!standalone() ? `<button class="btn sm" onclick="instalar()">${ic('plus', 16)} Instalar app</button>` : ''}</div>
-    <div class="divider">dados</div>
-    <div class="row wrap"><button class="btn sm" onclick="exportar()">Exportar backup</button><label class="btn sm">Importar backup<input type="file" accept="application/json" hidden onchange="importar(this)"></label>
-    <button class="btn sm" onclick="sair()">${ic('out', 16)} ${user ? 'Sair' : 'Entrar com conta'}</button>
-    <button class="btn sm danger" onclick="apagarTudo()">Apagar tudo</button></div>`);
-}
-function salvarConfig() {
-  const fer = val('c-fer').split('\n').map(l => l.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s*(.*)$/)).filter(Boolean).map(m => ({ data: `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`, descricao: m[4] || 'Sem aula' }));
-  const ini = val('c-ini'), fim = val('c-fim');
-  if (ini && fim && fim < ini) return toast('O fim deve ser depois do início.');
-  closeSheet(); upd(() => { S.perfil.nome = val('c-nome'); S.semestre = { inicio: ini, fim }; S.feriados = fer; }); toast('Configurações salvas.');
-}
+function configSheet() { closeSheet(); go('config'); }
 function exportar() { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' })); a.download = 'meu-semestre-backup.json'; a.click(); }
 async function importar(inp) { try { const d = JSON.parse(await inp.files[0].text()); if (!d.materias) throw 0; const b = JSON.stringify(S); S = migrar(d); save(); closeSheet(); render(); toast('Backup importado.', () => { S = migrar(JSON.parse(b)); save(); render(); }); } catch { toast('Arquivo inválido.'); } }
 function apagarTudo() {
@@ -893,3 +880,89 @@ async function compartilharGrade() {
   g.textAlign = 'left'; g.fillStyle = 'rgba(255,255,255,.5)'; g.font = F(500, 24); g.fillText('Feito com Meu Semestre · ' + location.host, pad, H - 56);
   c.toBlob(b => baixarOuCompartilhar(new File([b], 'minha-grade.png', { type: 'image/png' })), 'image/png');
 }
+
+// ================= Tema (claro / escuro / sistema + cor) =================
+const CORES_APP = ['#2846d6', '#7048e8', '#d6336c', '#e03131', '#e8590c', '#f59f00', '#2f9e44', '#0ca678', '#1098ad', '#1c7ed6', '#495057'];
+function aplicarTema(t = S.perfil.tema || 'sistema', c = S.perfil.cor || '') {
+  const r = document.documentElement;
+  if (t === 'sistema') delete r.dataset.theme; else r.dataset.theme = t === 'claro' ? 'light' : 'dark';
+  if (c) r.style.setProperty('--pr-base', c); else r.style.removeProperty('--pr-base');
+  try { localStorage.setItem(KEY + ':tema', JSON.stringify({ t, c })); } catch { }
+  const bg = getComputedStyle(document.body).backgroundColor;
+  document.querySelectorAll('meta[name=theme-color]').forEach(m => { m.content = bg; m.removeAttribute('media'); });
+}
+(() => { try { const x = JSON.parse(localStorage.getItem(KEY + ':tema')); if (x) addEventListener('DOMContentLoaded', () => aplicarTema(x.t, x.c)); } catch { } })();
+matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => aplicarTema());
+function setTema(t) { vibrar(8); S.perfil.tema = t; save(); render(); }
+function setCor(c) { vibrar(8); S.perfil.cor = c; save(); render(); }
+
+// ================= Tela de Configurações =================
+const li = (icone, cor, titulo, sub, direita = '', attrs = '') => `<${attrs.startsWith('onclick') ? 'button' : attrs.startsWith('for') ? 'label' : 'div'} class="li" ${attrs}><span class="ico" style="background:${cor}">${ic(icone)}</span><span class="tx">${titulo}${sub ? `<small>${sub}</small>` : ''}</span>${direita}</${attrs.startsWith('onclick') ? 'button' : attrs.startsWith('for') ? 'label' : 'div'}>`;
+const chev = `<span class="chev">${ic('right', 18)}</span>`;
+V.config = () => {
+  const p = S.perfil, tema = p.tema || 'sistema', corAtual = p.cor || CORES_APP[0];
+  const nome = p.nome || user?.user_metadata?.full_name || '';
+  const ini = (nome || user?.email || '?').trim()[0].toUpperCase();
+  return `<div class="stack"><h1>Configurações</h1><div class="cfg">
+
+  <section class="grp full"><div class="card"><div class="perfil"><div class="avatar">${esc(ini)}</div><div class="sp">
+    <input class="inl" style="font-weight:600;font-size:17px;background:none;border:0;padding:0;min-height:0;box-shadow:none" value="${esc(nome)}" placeholder="Seu nome" aria-label="Seu nome" onchange="S.perfil.nome=this.value.trim();save();toast('Nome salvo.')">
+    <div class="mu">${user ? esc(user.email) + ' · ' + (syncState === 'off' ? 'offline' : 'sincronizado') : 'Sem conta — dados só neste aparelho'}</div></div></div></div></section>
+
+  <section class="grp"><h4>Aparência</h4><div class="card">
+    <div style="padding:14px 16px 10px" class="sm"><b>Tema</b></div>
+    <div class="seg tema">${[['sistema', 'Automático'], ['claro', 'Claro'], ['escuro', 'Escuro']].map(([k, l]) => `<button class="${tema === k ? 'on' : ''}" onclick="setTema('${k}')">${l}</button>`).join('')}</div>
+    <div style="padding:6px 16px 0" class="sm"><b>Cor do app</b></div>
+    <div class="cores">${CORES_APP.map(c => `<button class="cor ${c === corAtual ? 'on' : ''}" style="background:${c}" aria-label="Cor ${c}" onclick="setCor('${c}')"></button>`).join('')}
+      <label class="cor custom ${!CORES_APP.includes(corAtual) ? 'on' : ''}" aria-label="Cor personalizada" title="Escolher qualquer cor"><input type="color" value="${corAtual}" oninput="aplicarTema(S.perfil.tema||'sistema',this.value)" onchange="setCor(this.value)"></label></div>
+  </div></section>
+
+  <section class="grp"><h4>Semestre</h4><div class="card">
+    ${li('cal', '#1c7ed6', 'Início das aulas', '', `<input type="date" value="${S.semestre.inicio}" aria-label="Início das aulas" onchange="setSemestre('inicio',this.value)">`)}
+    ${li('cal', '#1c7ed6', 'Fim das aulas', '', `<input type="date" value="${S.semestre.fim}" aria-label="Fim das aulas" onchange="setSemestre('fim',this.value)">`)}
+    ${li('sun', '#2f9e44', 'Feriados e dias sem aula', S.feriados.length ? `${S.feriados.length} cadastrado(s)` : 'Nenhum cadastrado', chev, `onclick="feriadosSheet()"`)}
+  </div></section>
+
+  <section class="grp"><h4>Lembretes</h4><div class="card">
+    ${li('bell', '#e8590c', 'Resumo diário às 7h', 'Aulas do dia, provas próximas e faltas', `<label class="switch"><input type="checkbox" id="c-notif" ${p.notif ? 'checked' : ''} onchange="alternarNotif(this.checked)"><i></i></label>`)}
+  </div></section>
+
+  <section class="grp"><h4>Agenda e compartilhamento</h4><div class="card">
+    ${li('cal', '#7048e8', 'Exportar para Google Agenda', 'Aulas, provas, entregas e feriados', chev, `onclick="exportarAgenda()"`)}
+    ${li('share', '#d6336c', 'Compartilhar grade como imagem', 'Para WhatsApp ou Stories', chev, `onclick="compartilharGrade()"`)}
+    ${standalone() ? '' : li('phone', '#0ca678', 'Instalar o app', isIOS() ? 'Adicionar à Tela de Início' : 'Abrir em tela cheia, com ícone', chev, `onclick="instalar()"`)}
+  </div></section>
+
+  <section class="grp"><h4>Dados</h4><div class="card">
+    ${li('db', '#495057', 'Exportar backup', 'Arquivo com todos os seus dados', chev, `onclick="exportar()"`)}
+    ${li('up', '#495057', 'Importar backup', '', `<input type="file" accept="application/json" hidden id="imp" onchange="importar(this)">` + chev, `for="imp"`)}
+  </div></section>
+
+  <section class="grp"><h4>Conta</h4><div class="card">
+    ${li('out', '#868e96', user ? 'Sair da conta' : 'Entrar com uma conta', user ? '' : 'Para sincronizar entre aparelhos', chev, `onclick="sair()"`)}
+    <button class="li danger" onclick="apagarTudo()"><span class="ico" style="background:var(--bad)">${ic('trash')}</span><span class="tx">Apagar todos os dados</span></button>
+  </div></section>
+
+  </div><p class="versao">Meu Semestre · app independente, não oficial da UFSC<br><a href="privacidade.html">Privacidade</a> · <a href="termos.html">Termos</a></p></div>`;
+};
+function setSemestre(k, v) {
+  const novo = { ...S.semestre, [k]: v };
+  if (novo.inicio && novo.fim && novo.fim < novo.inicio) { render(); return toast('O fim deve ser depois do início.'); }
+  S.semestre = novo; save(); toast('Semestre atualizado.');
+}
+function feriadosSheet() {
+  const lista = [...S.feriados].sort((a, b) => a.data.localeCompare(b.data));
+  sheet(`<h2>Feriados e dias sem aula</h2><p class="mu" style="margin:4px 0 12px">Nesses dias não há aula e as faltas não contam.</p>
+    <div class="list">${lista.map(f => `<div class="row"><div class="sp"><b class="sm">${esc(f.descricao || 'Sem aula')}</b><div class="mu" style="text-transform:capitalize">${brDL(f.data)}</div></div><button class="ib" aria-label="Remover" onclick="removerFeriado('${f.data}')">${ic('trash', 18)}</button></div>`).join('') || '<p class="mu">Nenhum cadastrado.</p>'}</div>
+    <div class="fields c2" style="margin-top:16px"><label class="f">Data<input type="date" id="fer-d"></label><label class="f">Descrição<input id="fer-t" placeholder="Feriado"></label></div>
+    <div class="actions"><button class="btn" onclick="closeSheet();render()">Fechar</button><button class="btn pr sp" onclick="addFeriado()">${ic('plus', 18)} Adicionar</button></div>`);
+}
+function addFeriado() { const d = val('fer-d'); if (!d) return toast('Escolha a data.'); if (!S.feriados.some(f => f.data === d)) S.feriados.push({ data: d, descricao: val('fer-t') || 'Sem aula' }); save(); feriadosSheet(); }
+function removerFeriado(d) { S.feriados = S.feriados.filter(f => f.data !== d); save(); feriadosSheet(); }
+
+// iPhone no Safari: mostra uma vez como instalar (sem isso fica com cara de site)
+addEventListener('load', () => setTimeout(() => {
+  if (!document.body.classList.contains('app') || standalone() || !isIOS()) return;
+  try { if (localStorage.getItem(KEY + ':ios-dica')) return; localStorage.setItem(KEY + ':ios-dica', 1); } catch { return; }
+  instalar();
+}, 1500));

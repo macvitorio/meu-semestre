@@ -48,6 +48,9 @@
     for (const m of d.materias || []) {
       const antes = (m.avaliacoes || []).map(a => a.nome);
       m.avaliacoes = juntarDuplicadas(m.avaliacoes);
+      // sobras de importação: sem nota, peso nem data, numa disciplina que já tem avaliações com peso
+      const vazia = a => [a.nota, a.peso, a.data].every(v => v === '' || v == null);
+      if (m.avaliacoes.some(a => a.peso)) m.avaliacoes = m.avaliacoes.filter(a => !vazia(a));
       if (m.avaliacoes.length !== antes.length) rel.push({ disciplina: m.codigo || m.nome, antes, depois: m.avaliacoes.map(a => `${a.nome}${a.nota !== '' && a.nota != null ? ' = ' + a.nota : ''}`) });
     }
     const n = (d.eventos || []).length;
