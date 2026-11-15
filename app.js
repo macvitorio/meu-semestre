@@ -61,6 +61,7 @@ function migrar(d) {
   d.feriados = (d.feriados || []).map(f => typeof f === 'string' ? { data: f, descricao: 'Sem aula' } : f);
   d.materias.forEach(m => { m.faltas ||= {}; m.canceladas ||= []; m.avaliacoes ||= []; m.topicos ||= []; m.horarios ||= []; });
   d.materias.forEach(m => { m.avaliacoes = juntarDuplicadas(m.avaliacoes); });
+  d.eventos = limparEventos(d);
   return d;
 }
 // junta avaliações repetidas (ex.: "Prova I" com peso/data + "P1" só com a nota) numa só
@@ -72,6 +73,17 @@ function juntarDuplicadas(avs) {
     for (const k of ['peso', 'data', 'nota']) if (!x[k] && a[k]) x[k] = a[k];
   }
   return out;
+}
+// remove eventos que repetem uma avaliação (mesma data e disciplina) ou outro evento igual
+function limparEventos(d) {
+  const vistos = new Set();
+  return (d.eventos || []).filter(e => {
+    const m = d.materias.find(x => x.id === e.materiaId);
+    const repeteAv = (m ? [m] : d.materias).some(mm => mm.avaliacoes.some(a => a.data === e.data && (m || mesmaAv(a, { nome: e.titulo })) && (e.tipo === 'prova' || mesmaAv(a, { nome: e.titulo }))));
+    const k = e.data + '|' + norm(e.titulo) + '|' + (e.materiaId || '');
+    if (repeteAv || vistos.has(k)) return false;
+    vistos.add(k); return true;
+  });
 }
 const byId = id => S.materias.find(m => m.id === id);
 const nomeM = m => m ? (m.nome || m.codigo) : '';
@@ -589,7 +601,10 @@ function montarMudancas(r) {
   for (const e of r.eventos || []) {
     if (!okData(e.data) || e.tipo === 'aula') continue;
     if (e.tipo === 'feriado') { ferAdd(e.data, e.titulo); continue; }
-    const dup = todosEventos().some(x => x.data === e.data && norm(x.titulo) === norm(e.titulo)) || out.some(o => o.grupo === 'Agenda' && o.titulo === e.titulo && o._d === e.data);
+    const dLida = (r.disciplinas || []).filter(d => !e.codigo || norm(d.codigo) === norm(e.codigo));
+    const ehAv = dLida.some(d => (d.avaliacoes || []).some(a => a.data === e.data && (e.tipo === 'prova' || mesmaAv(a, { nome: e.titulo }))))
+      || S.materias.filter(m => !e.codigo || norm(m.codigo) === norm(e.codigo)).some(m => m.avaliacoes.some(a => a.data === e.data && (e.tipo === 'prova' || mesmaAv(a, { nome: e.titulo }))));
+    const dup = ehAv || todosEventos().some(x => x.data === e.data && norm(x.titulo) === norm(e.titulo)) || out.some(o => o.grupo === 'Agenda' && norm(o.titulo) === norm(e.titulo) && o._d === e.data);
     if (!dup) { add('Agenda', e.titulo, `${brDL(e.data)}${e.codigo ? ' · ' + e.codigo : ''}`, () => S.eventos.push({ id: uid(), data: e.data, titulo: e.titulo, tipo: TIPOS_EV[e.tipo] ? e.tipo : 'outro', materiaId: mid(e.codigo) })); out[out.length - 1]._d = e.data; }
   }
   for (const h of r.historico || []) {
@@ -611,6 +626,7 @@ function aplicar() {
   const backup = JSON.stringify(S), ms = UP.mudancas.filter(m => m.on);
   ms.filter(m => m.grupo === 'Nova disciplina').forEach(m => m.apply());
   ms.filter(m => m.grupo !== 'Nova disciplina').forEach(m => m.apply());
+  S.materias.forEach(m => { m.avaliacoes = juntarDuplicadas(m.avaliacoes); }); S.eventos = limparEventos(S);
   save(); resetUP(false);
   toast(`${ms.length} mudança(s) aplicada(s).`, () => { S = migrar(JSON.parse(backup)); save(); render(); });
   go(ms.some(m => m.grupo === 'Histórico') && !ms.some(m => m.grupo === 'Nova disciplina') ? 'historico' : 'inicio');

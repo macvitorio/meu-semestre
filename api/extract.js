@@ -34,7 +34,7 @@ Regras:
 - Horários: "dia" é o número UFSC (2=segunda ... 7=sábado); "inicio" é HHMM entre 0730,0820,0910,1010,1100,1330,1420,1510,1620,1710,1830,1920,2020,2110; "aulas" é a quantidade de aulas de 50 min. O formato do CAGR "2.1010-2" significa dia 2, início 1010, 2 aulas.
 - Pesos das avaliações em porcentagem, sem o símbolo (ex.: "35"). Notas de 0 a 10 com ponto decimal.
 - "topicos" são itens do conteúdo programático, curtos, um por item.
-- "eventos": provas, entregas, trabalhos, feriados e datas do calendário; "tipo" é um de: prova, entrega, feriado, aula, outro. "codigo" é o código da disciplina relacionada, se houver.
+- "eventos": entregas, feriados, dias sem aula e outras datas do calendário. NÃO repita em "eventos" as provas/avaliações que já estão em "avaliacoes" da disciplina; "tipo" é um de: prova, entrega, feriado, aula, outro. "codigo" é o código da disciplina relacionada, se houver.
 - "historico": disciplinas já cursadas (histórico escolar), com situação como aparece (Aprovado, Reprovado, FI etc.).
 - Se o aluno já cadastrou a disciplina (lista no contexto), use em "avaliacoes" EXATAMENTE os nomes já existentes. Ex.: o print mostra "P1" e já existe "Prova I" → use "Prova I"; "Seminário" e já existe "Seminários" → use "Seminários". Só crie nome novo se a avaliação realmente não existir.
 - Em prints de notas, preencha só "nome" e "nota" (peso e data vazios, a menos que apareçam).
