@@ -64,27 +64,7 @@ function migrar(d) {
   d.eventos = limparEventos(d);
   return d;
 }
-// junta avaliações repetidas (ex.: "Prova I" com peso/data + "P1" só com a nota) numa só
-function juntarDuplicadas(avs) {
-  const out = [];
-  for (const a of avs) {
-    const x = out.find(o => mesmaAv(o, a));
-    if (!x) { out.push(a); continue; }
-    for (const k of ['peso', 'data', 'nota']) if (!x[k] && a[k]) x[k] = a[k];
-  }
-  return out;
-}
-// remove eventos que repetem uma avaliação (mesma data e disciplina) ou outro evento igual
-function limparEventos(d) {
-  const vistos = new Set();
-  return (d.eventos || []).filter(e => {
-    const m = d.materias.find(x => x.id === e.materiaId);
-    const repeteAv = (m ? [m] : d.materias).some(mm => mm.avaliacoes.some(a => a.data === e.data && (m || mesmaAv(a, { nome: e.titulo })) && (e.tipo === 'prova' || mesmaAv(a, { nome: e.titulo }))));
-    const k = e.data + '|' + norm(e.titulo) + '|' + (e.materiaId || '');
-    if (repeteAv || vistos.has(k)) return false;
-    vistos.add(k); return true;
-  });
-}
+const { mesmaAv, juntarDuplicadas, limparEventos } = Limpeza;
 const byId = id => S.materias.find(m => m.id === id);
 const nomeM = m => m ? (m.nome || m.codigo) : '';
 
@@ -543,24 +523,6 @@ function acharMat(d) {
 const mid = cod => (S.materias.find(m => cod && norm(m.codigo) === norm(cod)) || {}).id || '';
 const okHor = h => DIAS[h.dia] && SLOTS.includes(h.inicio);
 const okData = d => /^\d{4}-\d{2}-\d{2}$/.test(d || '');
-// "Prova II", "Prova 2 (P2)", "P2" e "2ª prova" viram a mesma chave "p2"; "Seminários" = "Seminário"
-const ROM = { i: 1, ii: 2, iii: 3, iv: 4, v: 5, vi: 6, vii: 7, viii: 8 };
-function chavesAv(nome) {
-  let n = norm(nome).replace(/\b(viii|vii|vi|iv|v|iii|ii|i)\b/g, r => ROM[r]).replace(/(\d)\s*[ºª°o]/g, '$1');
-  const k = new Set(n.match(/\b[a-z]{1,3}\d\b/g) || []);
-  const pal = n.replace(/[^a-z0-9 ]/g, ' ').split(' ').filter(w => w.length > 1 && !['de', 'da', 'do', 'e'].includes(w));
-  const d = n.match(/\d+/)?.[0], letra = (pal.find(w => /^[a-z]/.test(w)) || 'x')[0];
-  if (d) k.add(letra + d); else pal.forEach(w => k.add(w.replace(/(oes|aes|ns|s)$/, m => ({ oes: 'ao', aes: 'ao', ns: 'm', s: '' })[m])));
-  return k;
-}
-const pal1 = n => norm(n).replace(/[^a-z0-9 ]/g, ' ').trim().split(' ')[0] || '';
-const mesmaAv = (x, a) => {
-  if (norm(x.nome) === norm(a.nome)) return true;
-  if (![...chavesAv(a.nome)].some(k => chavesAv(x.nome).has(k))) return false;
-  // "Trabalho 1" ≠ "Teste 1": com número, exige a mesma palavra ou uma sigla curta (P1, T2)
-  const p = pal1(x.nome), q = pal1(a.nome);
-  return !/\d/.test(norm(a.nome) + norm(x.nome)) || p === q || /^[a-z]{1,3}\d$/.test(p) || /^[a-z]{1,3}\d$/.test(q) || /^\d/.test(p) || /^\d/.test(q);
-};
 function montarMudancas(r) {
   const out = [], add = (grupo, titulo, detalhe, apply) => out.push({ id: uid(), grupo, titulo, detalhe, apply, on: true });
   if (okData(r.semestre?.inicio) && r.semestre.inicio !== S.semestre.inicio) add('Semestre', 'Início das aulas', `${brD(S.semestre.inicio) || '—'} → ${brD(r.semestre.inicio)}`, () => S.semestre.inicio = r.semestre.inicio);
