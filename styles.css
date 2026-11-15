@@ -378,3 +378,4 @@ body{min-height:100%;min-height:100dvh}
 }
 @media(min-width:1400px){nav.bn{width:256px}body.app{padding-left:256px}}
 @media(min-width:900px){.nav-brand{order:-2}nav.bn a.fab{order:-1}}
+@media(max-width:899px){.kpi{padding:12px 14px}.kpi .kpi-ic{display:none}.kpi-v{font-size:22px}.kpi .sm{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
