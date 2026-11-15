@@ -94,6 +94,7 @@ function setSync(s) { syncState = s; const el = $('#sync'); if (el) { el.classNa
 addEventListener('online', () => user && save());
 
 async function boot() {
+  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('/sw.js').catch(() => { });
   $('#root').innerHTML = `<div class="auth"><div class="spin"></div></div>`;
   try { const r = await fetch('/api/config'); if (r.ok) cfg = await r.json(); } catch { }
   // desenvolvimento local sem Vercel: lê config.local.json (fora do git)
@@ -162,6 +163,7 @@ function renderAuth() {
     </div>
     <div class="divider"></div>`}
     <button class="btn ${semBackend ? 'pr' : ''} block" onclick="entrarLocal()">Usar sem conta (só neste aparelho)</button>
+    ${!standalone() && (isIOS() || /android/i.test(navigator.userAgent)) ? `<button class="btn ghost block" style="margin-top:12px" onclick="instalar()">${ic('phone', 18)} Instalar o app no celular</button>` : ''}
     <p class="mu" style="text-align:center;margin-top:18px">App independente, não oficial da UFSC.<br><a href="privacidade.html" style="color:inherit">Privacidade</a> · <a href="termos.html" style="color:inherit">Termos</a></p>
   </div></div>`;
   montarGoogle();
@@ -780,12 +782,16 @@ addEventListener('beforeinstallprompt', e => { e.preventDefault(); promptInstala
 addEventListener('appinstalled', () => { promptInstalar = null; toast('App instalado! 🎉'); render(); });
 function cardInstalar() {
   if (standalone() || localStorage.getItem(KEY + ':sem-instalar')) return '';
-  if (!promptInstalar && !isIOS()) return '';
+  if (!promptInstalar && !isIOS() && !/android/i.test(navigator.userAgent)) return '';
   return `<div class="card install"><img src="icons/icon-192.png" alt=""><div class="sp"><b>Instale o Meu Semestre</b><div class="mu">Abre em tela cheia, funciona offline e recebe lembretes.</div></div>
     <div class="row"><button class="ib" aria-label="Dispensar" onclick="try{localStorage.setItem(KEY+':sem-instalar',1)}catch{};render()">${ic('x', 18)}</button><button class="btn pr sm" onclick="instalar()">Instalar</button></div></div>`;
 }
 async function instalar() {
   if (promptInstalar) { promptInstalar.prompt(); await promptInstalar.userChoice; promptInstalar = null; render(); return; }
+  if (/android/i.test(navigator.userAgent)) return sheet(`<h2>Instalar no Android</h2><p class="mu" style="margin-top:6px">No <b>Chrome</b>:</p>
+    <ol class="ios-steps"><li><span>Toque no menu <b>⋮</b> no canto superior direito</span></li><li><span>Toque em <b>Instalar app</b> (não use "Adicionar à tela inicial", que cria só um atalho de site)</span></li><li><span>Confirme em <b>Instalar</b>. O app abre em tela cheia, sem barra do navegador</span></li></ol>
+    <p class="mu" style="margin-top:12px">Se você já tinha um ícone antigo, apague-o antes. Ele aponta para o endereço antigo e abre como site.</p>
+    <div class="actions"><button class="btn pr block" onclick="closeSheet()">Entendi</button></div>`);
   sheet(`<h2>Instalar no iPhone</h2><p class="mu" style="margin-top:6px">Abra este site no <b>Safari</b> e siga:</p>
     <ol class="ios-steps"><li><span>Toque em <b>Compartilhar</b> (quadrado com seta ↑) na barra do Safari</span></li><li><span>Role e toque em <b>Adicionar à Tela de Início</b></span></li><li><span>Toque em <b>Adicionar</b>. O ícone aparece na sua tela inicial</span></li></ol>
     <p class="mu" style="margin-top:12px">Se você já tinha adicionado antes, remova o ícone antigo e adicione de novo para atualizar o ícone.</p>
