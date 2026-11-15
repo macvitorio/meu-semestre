@@ -1,0 +1,5 @@
+*.local.json
+.env*
+.vercel
+config.local.json
+node_modules

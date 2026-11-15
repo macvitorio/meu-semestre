@@ -1,0 +1,717 @@
+/* Meu Semestre — PWA com login (Supabase), sincronização e atualização por print/PDF */
+'use strict';
+
+// ================= Constantes =================
+const DIAS = { 2: 'Seg', 3: 'Ter', 4: 'Qua', 5: 'Qui', 6: 'Sex', 7: 'Sáb' };
+const DIAS_L = { 2: 'Segunda', 3: 'Terça', 4: 'Quarta', 5: 'Quinta', 6: 'Sexta', 7: 'Sábado' };
+const SLOTS = ['0730', '0820', '0910', '1010', '1100', '1330', '1420', '1510', '1620', '1710', '1830', '1920', '2020', '2110'];
+const CORES = ['#2846d6', '#14945a', '#d6336c', '#e8590c', '#7048e8', '#0c8599', '#b08800', '#c92a2a', '#5f3dc4', '#2b8a3e'];
+const FREQ_MIN = 0.75, MEDIA_APROV = 6, MEDIA_REC = 3;
+const TIPOS_EV = { prova: 'Prova', entrega: 'Entrega', feriado: 'Feriado', aula: 'Aula', outro: 'Outro' };
+const KEY = 'meu-semestre-v2';
+
+// ================= Ícones =================
+const P = {
+  home: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+  cal: '<rect x="3" y="4" width="18" height="17" rx="3"/><path d="M8 2v4M16 2v4M3 10h18"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  book: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/>',
+  hist: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/>',
+  pen: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+  x: '<path d="M18 6 6 18M6 6l12 12"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  cam: '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>',
+  file: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>',
+  up: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>',
+  trash: '<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>',
+  gear: '<circle cx="12" cy="12" r="3"/><path d="M12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>',
+  back: '<path d="M15 18l-6-6 6-6"/>',
+  left: '<path d="M15 18l-6-6 6-6"/>', right: '<path d="M9 18l6-6-6-6"/>',
+  alert: '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
+  spark: '<path d="M12 3l1.9 5.8L20 10l-6.1 1.2L12 17l-1.9-5.8L4 10l6.1-1.2z"/>',
+  clip: '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
+  mail: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/>',
+  out: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>',
+};
+const ic = (n, s = 20) => `<svg class="i" viewBox="0 0 24 24" style="width:${s}px;height:${s}px" aria-hidden="true">${P[n]}</svg>`;
+const GOOGLE = '<svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>';
+
+// ================= Utilidades =================
+const $ = s => document.querySelector(s);
+const uid = () => Math.random().toString(36).slice(2, 10);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const parseISO = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const hoje = () => iso(new Date());
+const brD = s => s ? parseISO(s).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '';
+const brDL = s => parseISO(s).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' });
+const hhmm = h => h ? h.slice(0, 2) + ':' + h.slice(2) : '';
+const fimAula = (ini, n) => { const i = Math.max(0, SLOTS.indexOf(ini)); const last = SLOTS[Math.min(SLOTS.length - 1, i + (+n || 1) - 1)]; const m = +last.slice(0, 2) * 60 + +last.slice(2) + 50; return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`; };
+const num = v => { if (v === '' || v == null) return null; const n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? null : n; };
+const fmt = n => n == null ? '—' : n.toFixed(1).replace('.', ',');
+const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+const diasAte = d => Math.round((parseISO(d) - parseISO(hoje())) / 864e5);
+const quando = d => { const n = diasAte(d); return n === 0 ? 'hoje' : n === 1 ? 'amanhã' : n < 0 ? `há ${-n}d` : `em ${n} dias`; };
+
+// ================= Estado =================
+const novoEstado = () => ({ v: 2, perfil: { nome: '' }, semestre: { inicio: '', fim: '' }, feriados: [], materias: [], eventos: [], historico: [] });
+let S = novoEstado();
+function migrar(d) {
+  d = Object.assign(novoEstado(), d || {});
+  d.feriados = (d.feriados || []).map(f => typeof f === 'string' ? { data: f, descricao: 'Sem aula' } : f);
+  d.materias.forEach(m => { m.faltas ||= {}; m.canceladas ||= []; m.avaliacoes ||= []; m.topicos ||= []; m.horarios ||= []; });
+  return d;
+}
+const byId = id => S.materias.find(m => m.id === id);
+const nomeM = m => m ? (m.nome || m.codigo) : '';
+
+// ================= Backend / Sync =================
+let sb = null, user = null, cfg = { aiEnabled: false }, modoLocal = false, syncState = 'ok', saveT = null;
+function saveLocal() { try { localStorage.setItem(KEY + (user ? ':' + user.id : ':local'), JSON.stringify(S)); } catch { } }
+function loadLocal(k) { try { return JSON.parse(localStorage.getItem(KEY + k)); } catch { return null; } }
+function save() {
+  saveLocal();
+  if (!sb || !user) return;
+  setSync('busy');
+  clearTimeout(saveT);
+  saveT = setTimeout(async () => {
+    const { error } = await sb.from('user_data').upsert({ user_id: user.id, data: S, updated_at: new Date().toISOString() });
+    setSync(error ? 'off' : 'ok');
+    if (error) toast('Sem conexão — salvo no aparelho, sincroniza depois.');
+  }, 700);
+}
+function setSync(s) { syncState = s; const el = $('#sync'); if (el) { el.className = 'sync ' + s; el.lastChild.textContent = s === 'busy' ? 'Salvando…' : s === 'off' ? 'Offline' : user ? 'Sincronizado' : 'Neste aparelho'; } }
+addEventListener('online', () => user && save());
+
+async function boot() {
+  $('#root').innerHTML = `<div class="auth"><div class="spin"></div></div>`;
+  try { const r = await fetch('/api/config'); if (r.ok) cfg = await r.json(); } catch { }
+  // desenvolvimento local sem Vercel: lê config.local.json (fora do git)
+  if (!cfg.supabaseUrl && ['localhost', '127.0.0.1'].includes(location.hostname)) { try { const r = await fetch('config.local.json'); if (r.ok) cfg = { ...cfg, ...(await r.json()) }; } catch { } }
+  if (cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase) {
+    sb = supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+    sb.auth.onAuthStateChange((ev, session) => {
+      if (ev === 'PASSWORD_RECOVERY') return novaSenhaSheet();
+      if (ev === 'SIGNED_IN' && (!user || user.id !== session.user.id)) entrar(session.user);
+      if (ev === 'SIGNED_OUT') { user = null; renderAuth(); }
+    });
+    const { data } = await sb.auth.getSession();
+    if (data.session) return entrar(data.session.user);
+  }
+  if (localStorage.getItem(KEY + ':modo') === 'local') return entrarLocal();
+  renderAuth();
+}
+async function entrar(u) {
+  user = u; modoLocal = false;
+  S = migrar(loadLocal(':' + u.id));
+  startApp();
+  setSync('busy');
+  const { data, error } = await sb.from('user_data').select('data,updated_at').eq('user_id', u.id).maybeSingle();
+  if (error) return setSync('off');
+  if (data?.data && Object.keys(data.data).length) { S = migrar(data.data); saveLocal(); setSync('ok'); }
+  else {
+    const local = loadLocal(':local');
+    if (local?.materias?.length) { S = migrar(local); toast('Seus dados deste aparelho foram enviados para sua conta.'); }
+    S.perfil.nome ||= u.user_metadata?.full_name || u.user_metadata?.name || '';
+    save();
+  }
+  render();
+}
+function entrarLocal() { modoLocal = true; user = null; try { localStorage.setItem(KEY + ':modo', 'local'); } catch { } S = migrar(loadLocal(':local')); startApp(); }
+async function sair() {
+  closeSheet();
+  try { localStorage.removeItem(KEY + ':modo'); } catch { }
+  if (sb && user) await sb.auth.signOut();
+  user = null; modoLocal = false; renderAuth();
+}
+
+// ================= Tela de login =================
+let authMode = 'entrar';
+function renderAuth() {
+  document.body.classList.remove('app');
+  const semBackend = !sb;
+  $('#root').innerHTML = `<div class="auth"><div class="box">
+    <img class="logo" src="icon.svg" alt="">
+    <h1>${authMode === 'criar' ? 'Crie sua conta' : 'Seu semestre, organizado'}</h1>
+    <p class="mu" style="margin:6px 0 22px">Frequência, grade, notas e estudos — montados a partir do plano de ensino.</p>
+    ${semBackend ? `<div class="card flat" style="margin-bottom:16px"><div class="row">${ic('alert')}<span class="sm">Login indisponível neste ambiente (Supabase não configurado). Você pode usar o app só neste aparelho.</span></div></div>` : `
+    <button class="btn block" onclick="loginGoogle()">${GOOGLE} Continuar com Google</button>
+    <div class="divider">ou com e-mail</div>
+    <form class="fields" onsubmit="event.preventDefault();loginEmail()">
+      ${authMode === 'criar' ? `<label class="f">Nome<input id="a-nome" autocomplete="name" required></label>` : ''}
+      <label class="f">E-mail<input id="a-email" type="email" autocomplete="email" required></label>
+      <label class="f">Senha<input id="a-senha" type="password" minlength="6" autocomplete="${authMode === 'criar' ? 'new-password' : 'current-password'}" required></label>
+      <button class="btn pr block" id="a-btn">${authMode === 'criar' ? 'Criar conta' : 'Entrar'}</button>
+    </form>
+    <div class="between" style="margin-top:12px">
+      <button class="btn ghost sm" onclick="authMode='${authMode === 'criar' ? 'entrar' : 'criar'}';renderAuth()">${authMode === 'criar' ? 'Já tenho conta' : 'Criar conta'}</button>
+      ${authMode === 'entrar' ? `<button class="btn ghost sm" onclick="esqueciSenha()">Esqueci a senha</button>` : ''}
+    </div>
+    <div class="divider"></div>`}
+    <button class="btn ${semBackend ? 'pr' : ''} block" onclick="entrarLocal()">Usar sem conta (só neste aparelho)</button>
+    <p class="mu" style="text-align:center;margin-top:18px">App independente, não oficial da UFSC.<br><a href="privacidade.html" style="color:inherit">Privacidade</a> · <a href="termos.html" style="color:inherit">Termos</a></p>
+  </div></div>`;
+}
+async function loginGoogle() {
+  const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } });
+  if (error) toast('Não foi possível abrir o Google: ' + error.message);
+}
+async function loginEmail() {
+  const email = $('#a-email').value.trim(), password = $('#a-senha').value, btn = $('#a-btn');
+  btn.disabled = true; btn.textContent = 'Aguarde…';
+  let r;
+  if (authMode === 'criar') r = await sb.auth.signUp({ email, password, options: { data: { full_name: $('#a-nome').value.trim() }, emailRedirectTo: location.origin } });
+  else r = await sb.auth.signInWithPassword({ email, password });
+  btn.disabled = false; btn.textContent = authMode === 'criar' ? 'Criar conta' : 'Entrar';
+  if (r.error) return toast(traduzErro(r.error.message));
+  if (authMode === 'criar' && !r.data.session) toast('Conta criada! Confirme pelo link enviado ao seu e-mail.');
+}
+const traduzErro = m => /invalid login/i.test(m) ? 'E-mail ou senha incorretos.' : /already registered/i.test(m) ? 'Este e-mail já tem conta. Entre com ele.' : /not confirmed/i.test(m) ? 'Confirme seu e-mail antes de entrar.' : m;
+async function esqueciSenha() {
+  const email = ($('#a-email')?.value || '').trim();
+  if (!email) return toast('Digite seu e-mail no campo acima.');
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin });
+  toast(error ? traduzErro(error.message) : 'Enviamos um link para redefinir sua senha.');
+}
+function novaSenhaSheet() {
+  sheet(`<h2>Nova senha</h2><div class="fields" style="margin-top:14px"><label class="f">Nova senha<input id="ns" type="password" minlength="6"></label></div>
+  <div class="actions"><button class="btn pr block" onclick="trocarSenha()">Salvar</button></div>`);
+}
+async function trocarSenha() { const { error } = await sb.auth.updateUser({ password: $('#ns').value }); toast(error ? error.message : 'Senha alterada.'); if (!error) closeSheet(); }
+
+// ================= Cálculos =================
+function diasDeAula(m) {
+  const out = [];
+  if (!S.semestre.inicio || !S.semestre.fim) return out;
+  const fer = new Set(S.feriados.map(f => f.data)), canc = new Set(m.canceladas || []);
+  for (let d = parseISO(S.semestre.inicio); d <= parseISO(S.semestre.fim); d.setDate(d.getDate() + 1)) {
+    const k = iso(d), hs = m.horarios.filter(h => +h.dia - 1 === d.getDay());
+    if (!hs.length || fer.has(k) || canc.has(k)) continue;
+    out.push({ data: k, aulas: hs.reduce((a, h) => a + (+h.aulas || 0), 0) });
+  }
+  return out;
+}
+function freq(m) {
+  const dias = diasDeAula(m), gerado = dias.reduce((a, d) => a + d.aulas, 0);
+  const total = +m.cargaHoraria || gerado;
+  const faltas = Object.values(m.faltas || {}).reduce((a, n) => a + (+n || 0), 0);
+  const max = Math.floor(total * (1 - FREQ_MIN));
+  const pct = total ? Math.max(0, (1 - faltas / total) * 100) : 100;
+  const nivel = max - faltas < 0 ? 'bad' : max && faltas / max >= .7 ? 'warn' : 'ok';
+  return { dias, total, faltas, max, restam: max - faltas, pct, nivel };
+}
+function notas(m) {
+  const av = m.avaliacoes || [], pesos = av.map(a => num(a.peso)), usaPeso = pesos.some(p => p > 0);
+  const w = i => usaPeso ? (pesos[i] || 0) : 1, sumW = av.reduce((a, _, i) => a + w(i), 0);
+  let feito = 0, wF = 0;
+  av.forEach((a, i) => { const n = num(a.nota); if (n != null) { feito += n * w(i); wF += w(i); } });
+  const parcial = wF ? feito / wF : null, wR = sumW - wF;
+  const final = sumW && wR === 0 && av.length ? feito / sumW : null;
+  const precisa = wR > 0 ? (MEDIA_APROV * sumW - feito) / wR : null;
+  let sit = 'Em andamento', nivel = 'neu', mf = final;
+  if (final != null) {
+    const rec = num(m.rec);
+    if (final >= MEDIA_APROV) { sit = 'Aprovado'; nivel = 'ok'; }
+    else if (final >= MEDIA_REC) {
+      if (rec != null) { mf = (final + rec) / 2; sit = mf >= MEDIA_APROV ? 'Aprovado (REC)' : 'Reprovado'; nivel = mf >= MEDIA_APROV ? 'ok' : 'bad'; }
+      else { sit = 'Recuperação'; nivel = 'warn'; }
+    } else { sit = 'Reprovado'; nivel = 'bad'; }
+  } else if (precisa != null && wF && precisa > 10) { sit = 'Em risco'; nivel = 'bad'; }
+  else if (precisa != null && wF && precisa > 7.5) { sit = 'Atenção'; nivel = 'warn'; }
+  return { parcial, final, mf, precisa, sit, nivel };
+}
+function agendaDoDia(d) {
+  const dow = parseISO(d).getDay() + 1, fer = S.feriados.find(f => f.data === d);
+  const fora = S.semestre.inicio && S.semestre.fim && (d < S.semestre.inicio || d > S.semestre.fim);
+  const aulas = fer || fora ? [] : S.materias.flatMap(m => (m.canceladas || []).includes(d) ? [] : m.horarios.filter(h => +h.dia === dow).map(h => ({ m, h })))
+    .sort((a, b) => a.h.inicio.localeCompare(b.h.inicio));
+  return { aulas, evs: todosEventos().filter(e => e.data === d), fer };
+}
+function todosEventos() {
+  const avs = S.materias.flatMap(m => m.avaliacoes.filter(a => a.data).map(a => ({ id: 'av:' + m.id + ':' + a.id, data: a.data, titulo: a.nome, tipo: 'prova', materiaId: m.id, _av: true })));
+  const fer = S.feriados.map(f => ({ id: 'fer:' + f.data, data: f.data, titulo: f.descricao || 'Feriado', tipo: 'feriado', _fer: true }));
+  return [...S.eventos, ...avs, ...fer].sort((a, b) => a.data.localeCompare(b.data));
+}
+const corEv = e => e.tipo === 'feriado' ? 'var(--ok)' : byId(e.materiaId)?.cor || 'var(--tx-2)';
+
+// ================= Navegação =================
+let R = { v: 'inicio' };
+function parseHash() { const [v = 'inicio', id, sub] = location.hash.replace(/^#\/?/, '').split('/'); R = { v: v || 'inicio', id, sub }; }
+addEventListener('hashchange', () => { parseHash(); render(); scrollTo(0, 0); });
+const go = h => { location.hash = '#/' + h; };
+function startApp() {
+  document.body.classList.add('app');
+  parseHash();
+  $('#root').innerHTML = `<header class="top"><div class="brand"><img src="icon.svg" alt="">Meu Semestre</div><span class="sp"></span>
+    <span class="sync" id="sync"><i></i><span></span></span>
+    <button class="ib" aria-label="Configurações" onclick="configSheet()">${ic('gear')}</button></header>
+    <main id="view"></main><nav class="bn" id="nav"></nav>`;
+  setSync(syncState);
+  render();
+  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js');
+}
+const NAV = [['inicio', 'home', 'Início'], ['agenda', 'cal', 'Agenda'], ['atualizar', 'plus', 'Atualizar'], ['disciplinas', 'book', 'Disciplinas'], ['historico', 'hist', 'Histórico']];
+function render() {
+  if (!$('#view')) return;
+  const cur = R.v === 'disc' ? 'disciplinas' : R.v;
+  $('#nav').innerHTML = NAV.map(([k, i, l]) => k === 'atualizar'
+    ? `<a href="#/atualizar" class="fab ${cur === k ? 'on' : ''}"><span class="circ">${ic(i, 24)}</span><small>${l}</small></a>`
+    : `<a href="#/${k}" class="${cur === k ? 'on' : ''}">${ic(i, 22)}${l}</a>`).join('');
+  $('#view').innerHTML = (V[R.v] || V.inicio)();
+}
+
+// ================= Componentes =================
+const tag = (txt, n) => `<span class="tag ${n}">${esc(txt)}</span>`;
+const pen = (fn, lbl = 'Editar') => `<button class="ib" aria-label="${lbl}" title="${lbl}" onclick="event.stopPropagation();${fn}">${ic('pen', 18)}</button>`;
+const ring = (p, c, t) => `<div class="ring" style="--p:${p};--c:${c}"><b>${t}</b></div>`;
+const nivelCor = n => `var(--${n === 'neu' ? 'tx-2' : n})`;
+const vazio = (icn, t, d, acao = '') => `<div class="card empty"><div class="ic">${ic(icn, 26)}</div><h3>${t}</h3><p class="mu" style="margin:6px 0 16px">${d}</p><div class="row wrap" style="justify-content:center">${acao}</div></div>`;
+const ctaImportar = `<a class="btn pr" href="#/atualizar">${ic('up')} Enviar plano de ensino</a>`;
+
+// ================= Telas =================
+const V = {};
+
+V.inicio = () => {
+  const h = hoje(), ag = agendaDoDia(h), agora = new Date(), mins = agora.getHours() * 60 + agora.getMinutes();
+  const nome = (S.perfil.nome || '').split(' ')[0];
+  const sauda = agora.getHours() < 12 ? 'Bom dia' : agora.getHours() < 18 ? 'Boa tarde' : 'Boa noite';
+  let html = `<div class="stack"><div style="padding:6px 2px 4px"><p class="mu" style="text-transform:capitalize">${agora.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</p><h1>${sauda}${nome ? ', ' + esc(nome) : ''} 👋</h1></div>`;
+  if (!S.materias.length) return html + vazio('spark', 'Vamos montar seu semestre', 'Envie o PDF ou um print do plano de ensino de cada disciplina. Grade, faltas permitidas, avaliações e conteúdos são criados automaticamente — e você pode editar tudo depois.', ctaImportar) + '</div>';
+  if (!S.semestre.inicio) html += `<div class="card tap" onclick="configSheet()"><div class="row">${ic('alert')}<div class="sp"><b>Defina as datas do semestre</b><div class="mu">Necessário para calcular os dias de aula e as faltas.</div></div>${ic('right')}</div></div>`;
+  const prox = ag.aulas.find(a => { const f = fimAula(a.h.inicio, a.h.aulas).split(':'); return +f[0] * 60 + +f[1] > mins; });
+  if (prox) {
+    const em = +prox.h.inicio.slice(0, 2) * 60 + +prox.h.inicio.slice(2) - mins;
+    html += `<div class="card hero tap" onclick="go('disc/${prox.m.id}')"><p class="mu">${em <= 0 ? 'Acontecendo agora' : em < 90 ? `Começa em ${em} min` : 'Próxima aula hoje'}</p>
+      <h2 style="margin:4px 0">${esc(nomeM(prox.m))}</h2><p class="mu">${hhmm(prox.h.inicio)}–${fimAula(prox.h.inicio, prox.h.aulas)}${prox.h.sala ? ' · ' + esc(prox.h.sala) : ''}</p></div>`;
+  }
+  html += `<div class="grid two"><div class="card"><div class="card-h"><h3 class="sp">Aulas de hoje</h3><a class="btn ghost sm" href="#/agenda">Agenda</a></div>`;
+  if (ag.fer) html += `<p class="mu">${esc(ag.fer.descricao || 'Feriado')} — sem aula 🎉</p>`;
+  else if (!ag.aulas.length) html += `<p class="mu">Nenhuma aula hoje. Bom descanso!</p>`;
+  else html += `<div class="list">${ag.aulas.map(({ m, h: x }) => {
+    const f = m.faltas[h] || 0;
+    return `<div class="row"><span class="swatch" style="background:${m.cor}"></span><div class="sp"><b>${esc(nomeM(m))}</b><div class="mu">${hhmm(x.inicio)}–${fimAula(x.inicio, x.aulas)}${x.sala ? ' · ' + esc(x.sala) : ''}</div></div>
+      <button class="btn sm ${f ? 'danger' : ''}" onclick="toggleFalta('${m.id}','${h}')" aria-pressed="${!!f}">${f ? ic('x', 16) + ' Faltei' : ic('check', 16) + ' Presente'}</button></div>`;
+  }).join('')}</div>`;
+  html += `</div>`;
+  const evs = todosEventos().filter(e => e.data >= h).slice(0, 5);
+  html += `<div class="card"><div class="card-h"><h3 class="sp">Próximas datas</h3><button class="btn ghost sm" onclick="eventoSheet()">${ic('plus', 16)} Evento</button></div>
+    ${evs.length ? `<div class="list">${evs.map(e => `<div class="row"><span class="dot" style="background:${corEv(e)}"></span><div class="sp"><b>${esc(e.titulo)}</b><div class="mu">${esc(nomeM(byId(e.materiaId)) || TIPOS_EV[e.tipo] || '')}</div></div><div style="text-align:right"><div class="sm">${brD(e.data)}</div><div class="mu">${quando(e.data)}</div></div></div>`).join('')}</div>` : '<p class="mu">Nenhuma data cadastrada.</p>'}</div></div>`;
+  const al = S.materias.map(m => ({ m, f: freq(m) })).filter(o => o.f.nivel !== 'ok');
+  if (al.length) html += `<div class="card" style="border-color:var(--warn)"><div class="card-h">${ic('alert')}<h3>Atenção às faltas</h3></div><div class="list">${al.map(({ m, f }) => `<div class="between"><span>${esc(nomeM(m))}</span>${f.restam < 0 ? tag('Limite ultrapassado', 'bad') : tag(`Pode faltar mais ${f.restam}`, 'warn')}</div>`).join('')}</div></div>`;
+  const tp = S.materias.flatMap(m => m.topicos), feitos = tp.filter(t => t.feito).length, pc = tp.length ? Math.round(feitos / tp.length * 100) : 0;
+  html += `<div class="card tap" onclick="go('disciplinas')"><div class="row">${ring(pc, 'var(--pr)', tp.length ? pc + '%' : '—')}<div class="sp"><b>Conteúdos estudados</b><div class="mu">${feitos} de ${tp.length} em ${S.materias.length} disciplina(s)</div></div>${ic('right')}</div></div>`;
+  return html + '</div>';
+};
+
+let agModo = 'semana', agMes = null, agSel = null;
+V.agenda = () => {
+  let html = `<div class="stack"><div class="between"><h1>Agenda</h1><button class="btn sm" onclick="eventoSheet()">${ic('plus', 16)} Evento</button></div>
+    <div class="seg"><button class="${agModo === 'semana' ? 'on' : ''}" onclick="agModo='semana';render()">Grade</button><button class="${agModo === 'mes' ? 'on' : ''}" onclick="agModo='mes';render()">Calendário</button><button class="${agModo === 'lista' ? 'on' : ''}" onclick="agModo='lista';render()">Datas</button></div>`;
+  if (agModo === 'semana') {
+    const dias = [2, 3, 4, 5, 6, 7].filter(d => d < 7 || S.materias.some(m => m.horarios.some(h => +h.dia === 7)));
+    const oc = {};
+    S.materias.forEach(m => m.horarios.forEach(h => { const i = SLOTS.indexOf(h.inicio); for (let k = 0; k < (+h.aulas || 1); k++) { const s = SLOTS[i + k]; if (s) oc[h.dia + s] = { m, h, first: !k }; } }));
+    const usados = SLOTS.filter(s => dias.some(d => oc[d + s]));
+    if (!usados.length) return html + vazio('cal', 'Grade vazia', 'Os horários aparecem aqui quando você importa um plano de ensino ou edita uma disciplina.', ctaImportar) + '</div>';
+    html += `<div class="card"><div class="wk" style="--d:${dias.length}"><div></div>${dias.map(d => `<div class="h">${DIAS[d]}</div>`).join('')}
+      ${usados.map(s => `<div class="t">${hhmm(s)}</div>${dias.map(d => { const o = oc[d + s]; return o ? `<div class="c has" style="background:${o.m.cor};${o.first ? '' : 'opacity:.8'}" onclick="go('disc/${o.m.id}')">${o.first ? esc(o.m.codigo || o.m.nome.slice(0, 10)) + (o.h.sala ? `<small>${esc(o.h.sala)}</small>` : '') : ''}</div>` : '<div class="c"></div>'; }).join('')}`).join('')}</div></div>`;
+  } else if (agModo === 'mes') {
+    agMes ||= hoje().slice(0, 7); agSel ||= hoje();
+    const [y, mo] = agMes.split('-').map(Number), first = new Date(y, mo - 1, 1), start = new Date(first); start.setDate(1 - first.getDay());
+    const evs = todosEventos();
+    let cells = '';
+    for (let i = 0; i < 42; i++) {
+      const d = new Date(start); d.setDate(start.getDate() + i); const k = iso(d);
+      const ag = agendaDoDia(k), dots = [...new Set([...ag.aulas.map(a => a.m.cor), ...evs.filter(e => e.data === k).map(corEv)])].slice(0, 4);
+      cells += `<button class="${d.getMonth() !== mo - 1 ? 'out' : ''} ${k === hoje() ? 'today' : ''} ${k === agSel ? 'sel' : ''}" aria-label="${brDL(k)}" onclick="agSel='${k}';render()">${d.getDate()}<span class="ds">${dots.map(c => `<i style="background:${c}"></i>`).join('')}</span></button>`;
+    }
+    const nav = dm => iso(new Date(y, mo - 1 + dm, 1)).slice(0, 7);
+    html += `<div class="card"><div class="between" style="margin-bottom:8px"><button class="ib" aria-label="Mês anterior" onclick="agMes='${nav(-1)}';render()">${ic('left')}</button><h3 style="text-transform:capitalize">${first.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</h3><button class="ib" aria-label="Próximo mês" onclick="agMes='${nav(1)}';render()">${ic('right')}</button></div>
+      <div class="cal">${['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map(d => `<div class="wd">${d}</div>`).join('')}${cells}</div></div>`;
+    const ag = agendaDoDia(agSel);
+    html += `<div class="card"><div class="card-h"><h3 class="sp" style="text-transform:capitalize">${brDL(agSel)}</h3><button class="btn ghost sm" onclick="eventoSheet(null,'${agSel}')">${ic('plus', 16)} Evento</button></div>
+      ${ag.fer ? `<p>${tag('Feriado', 'ok')} ${esc(ag.fer.descricao)}</p>` : ''}
+      <div class="list">${ag.aulas.map(({ m, h }) => `<div class="row"><span class="swatch" style="background:${m.cor}"></span><div class="sp"><b>${esc(nomeM(m))}</b><div class="mu">${hhmm(h.inicio)}–${fimAula(h.inicio, h.aulas)}</div></div>${m.faltas[agSel] ? tag(m.faltas[agSel] + ' falta(s)', 'bad') : ''}</div>`).join('')}
+      ${ag.evs.filter(e => !e._fer).map(linhaEvento).join('')}</div>
+      ${!ag.aulas.length && !ag.evs.length ? '<p class="mu">Nada neste dia.</p>' : ''}</div>`;
+  } else {
+    const evs = todosEventos().filter(e => e.data >= hoje());
+    html += evs.length ? `<div class="card"><div class="list">${evs.map(linhaEvento).join('')}</div></div>` : vazio('cal', 'Sem datas futuras', 'Provas, entregas e feriados aparecem aqui. Envie um print do cronograma ou do calendário acadêmico na aba Atualizar.', `<a class="btn pr" href="#/atualizar/cronograma">${ic('cam')} Enviar print</a>`);
+  }
+  return html + '</div>';
+};
+const linhaEvento = e => `<div class="row"><span class="dot" style="background:${corEv(e)}"></span><div class="sp"><b>${esc(e.titulo)}</b><div class="mu">${brDL(e.data)} · ${esc(TIPOS_EV[e.tipo] || e.tipo)}${e.materiaId ? ' · ' + esc(nomeM(byId(e.materiaId))) : ''}</div></div>
+  ${e._av ? pen(`avSheet('${e.materiaId}','${e.id.split(':')[2]}')`) : e._fer ? pen('configSheet()') : pen(`eventoSheet('${e.id}')`)}</div>`;
+
+V.disciplinas = () => {
+  let html = `<div class="stack"><div class="between"><h1>Disciplinas</h1><button class="btn sm" onclick="discSheet()">${ic('plus', 16)} Nova</button></div>`;
+  if (!S.materias.length) return html + vazio('book', 'Nenhuma disciplina ainda', 'Importe pelo plano de ensino ou crie manualmente.', `${ctaImportar}<button class="btn" onclick="discSheet()">Criar manual</button>`) + '</div>';
+  html += `<div class="grid two">${S.materias.map(m => {
+    const f = freq(m), n = notas(m), tp = m.topicos, fe = tp.filter(t => t.feito).length;
+    return `<div class="card tap" onclick="go('disc/${m.id}')"><div class="row" style="align-items:flex-start"><span class="swatch" style="background:${m.cor};min-height:44px"></span>
+      <div class="sp"><div class="mu">${esc(m.codigo)}${m.turma ? ' · ' + esc(m.turma) : ''}</div><h3>${esc(m.nome || m.codigo)}</h3></div>${tag(n.sit, n.nivel)}</div>
+      <div class="stats" style="margin-top:12px"><div class="stat"><div class="mu">Presença</div><div class="v" style="color:${nivelCor(f.nivel)}">${f.pct.toFixed(0)}%</div></div>
+      <div class="stat"><div class="mu">Média</div><div class="v">${fmt(n.mf ?? n.parcial)}</div></div>
+      <div class="stat"><div class="mu">Estudos</div><div class="v">${fe}/${tp.length}</div></div></div></div>`;
+  }).join('')}</div>`;
+  return html + '</div>';
+};
+
+V.disc = () => {
+  const m = byId(R.id);
+  if (!m) { setTimeout(() => go('disciplinas')); return ''; }
+  const sub = R.sub || 'resumo', f = freq(m), n = notas(m);
+  let html = `<div class="stack"><div class="row"><a class="ib" href="#/disciplinas" aria-label="Voltar">${ic('back')}</a><span class="sp"></span>${pen(`discSheet('${m.id}')`, 'Editar disciplina')}</div>
+  <div class="card" style="border-top:5px solid ${m.cor}"><div class="mu">${esc(m.codigo)}${m.turma ? ' · Turma ' + esc(m.turma) : ''}</div><h1 style="font-size:22px;margin:2px 0 4px">${esc(m.nome || m.codigo)}</h1>
+    <div class="mu">${esc(m.professor || 'Professor(a) não informado')} · ${f.total} h/a</div>
+    <div class="chips" style="margin-top:10px">${m.horarios.map(h => `<span class="tag neu">${DIAS[h.dia]} ${hhmm(h.inicio)}–${fimAula(h.inicio, h.aulas)}${h.sala ? ' · ' + esc(h.sala) : ''}</span>`).join('') || '<span class="mu">Sem horários</span>'}</div></div>
+  <div class="seg">${[['resumo', 'Resumo'], ['faltas', 'Faltas'], ['notas', 'Notas'], ['estudos', 'Estudos']].map(([k, l]) => `<button class="${sub === k ? 'on' : ''}" onclick="go('disc/${m.id}/${k}')">${l}</button>`).join('')}</div>`;
+
+  if (sub === 'resumo') {
+    const prox = m.avaliacoes.filter(a => a.data && a.data >= hoje()).sort((a, b) => a.data.localeCompare(b.data))[0];
+    html += `<div class="grid two"><div class="card"><div class="row">${ring(Math.round(f.pct), nivelCor(f.nivel), Math.round(f.pct) + '%')}<div class="sp"><b>Presença</b><div class="mu" style="margin-bottom:4px">${f.faltas} de ${f.max} faltas usadas</div>${f.restam >= 0 ? tag(`Pode faltar mais ${f.restam}`, f.nivel) : tag('Reprovado por frequência', 'bad')}</div></div></div>
+      <div class="card"><div class="row"><div class="sp"><b>Média ${n.final != null ? 'final' : 'parcial'}</b><div class="big">${fmt(n.mf ?? n.parcial)}</div></div>${tag(n.sit, n.nivel)}</div>
+      ${n.precisa != null ? `<p class="mu">Precisa de <b>${n.precisa > 10 ? 'mais de 10' : fmt(Math.max(0, n.precisa))}</b> de média nas próximas para fechar 6,0.</p>` : ''}</div></div>
+      ${prox ? `<div class="card"><div class="row">${ic('cal')}<div class="sp"><b>Próxima avaliação: ${esc(prox.nome)}</b><div class="mu">${brDL(prox.data)} · ${quando(prox.data)}</div></div></div></div>` : ''}
+      <a class="card tap row" style="text-decoration:none;color:inherit" href="#/atualizar">${ic('cam')}<div class="sp"><b>Atualizar com print ou PDF</b><div class="mu">Notas do Moodle, novo cronograma, mudança de sala…</div></div>${ic('right')}</a>`;
+  }
+  if (sub === 'faltas') {
+    const uso = f.max ? Math.min(100, f.faltas / f.max * 100) : 0;
+    html += `<div class="card"><div class="between"><b>${f.faltas} / ${f.max} faltas</b>${tag(f.pct.toFixed(0) + '% de presença', f.nivel)}</div><div class="bar" style="margin:10px 0 6px"><i style="width:${uso}%;background:${nivelCor(f.nivel)}"></i></div>
+      <p class="mu">Mínimo de 75% de presença. Total de ${f.total} h/a${m.cargaHoraria ? '' : ' (calculado pela grade)'}.</p></div>`;
+    if (!f.dias.length) html += vazio('cal', 'Sem dias de aula', 'Defina as datas do semestre nas configurações e os horários da disciplina.', `<button class="btn pr" onclick="configSheet()">Definir semestre</button>`);
+    else html += `<div class="card"><div class="list">${f.dias.filter(d => d.data <= hoje()).reverse().map(d => {
+      const v = m.faltas[d.data] || 0;
+      return `<div class="row"><div class="sp"><b class="sm" style="text-transform:capitalize">${brDL(d.data)}</b><div class="mu">${d.aulas} aula(s)</div></div>
+        <select style="width:auto;min-height:36px" aria-label="Presença em ${brD(d.data)}" onchange="setFalta('${m.id}','${d.data}',this.value)">${Array.from({ length: d.aulas + 1 }, (_, i) => `<option value="${i}" ${i === v ? 'selected' : ''}>${i ? i + ' falta(s)' : 'Presente'}</option>`).join('')}</select>
+        <button class="ib" aria-label="Marcar aula como cancelada" title="Aula cancelada" onclick="cancelarAula('${m.id}','${d.data}')">${ic('x', 18)}</button></div>`;
+    }).join('') || '<p class="mu">Nenhuma aula até hoje.</p>'}</div></div>
+    ${m.canceladas.length ? `<p class="mu">${m.canceladas.length} aula(s) cancelada(s) · <button class="btn ghost sm" onclick="upd(()=>byId('${m.id}').canceladas=[])">restaurar</button></p>` : ''}`;
+  }
+  if (sub === 'notas') {
+    html += `<div class="card"><div class="card-h"><h3 class="sp">Avaliações</h3><button class="btn ghost sm" onclick="avSheet('${m.id}')">${ic('plus', 16)} Adicionar</button></div>
+      ${m.avaliacoes.length ? `<div class="list">${m.avaliacoes.map(a => `<div class="row"><div class="sp"><b>${esc(a.nome)}</b><div class="mu">${a.peso ? 'Peso ' + esc(a.peso) + '%' : 'Peso igual'}${a.data ? ' · ' + brD(a.data) : ''}</div></div><span class="big" style="font-size:20px">${fmt(num(a.nota))}</span>${pen(`avSheet('${m.id}','${a.id}')`)}</div>`).join('')}</div>` : '<p class="mu">Nenhuma avaliação. Adicione ou importe o plano de ensino.</p>'}</div>
+      <div class="card"><div class="between"><div><div class="mu">Média ${n.final != null ? 'final' : 'parcial'}</div><div class="big">${fmt(n.mf ?? n.parcial)}</div></div>${tag(n.sit, n.nivel)}</div>
+      ${n.final != null && n.final < MEDIA_APROV && n.final >= MEDIA_REC ? `<label class="f" style="margin-top:12px">Nota da recuperação<input inputmode="decimal" value="${esc(m.rec)}" onchange="upd(()=>byId('${m.id}').rec=this.value)"></label>` : ''}
+      <p class="mu" style="margin-top:8px">UFSC: aprovação com média ≥ 6,0 e presença ≥ 75%. Média entre 3,0 e 5,5 dá direito à recuperação; a final é (média + REC) ÷ 2.</p></div>`;
+  }
+  if (sub === 'estudos') {
+    const tp = m.topicos, fe = tp.filter(t => t.feito).length;
+    html += `<div class="card"><div class="between"><b>${fe} de ${tp.length} conteúdos</b><span class="mu">${tp.length ? Math.round(fe / tp.length * 100) : 0}%</span></div><div class="bar" style="margin-top:8px"><i style="width:${tp.length ? fe / tp.length * 100 : 0}%;background:${m.cor}"></i></div></div>
+      <div class="card">${tp.map(t => `<div class="todo ${t.feito ? 'done' : ''}"><input type="checkbox" aria-label="Concluído" ${t.feito ? 'checked' : ''} onchange="togTop('${m.id}','${t.id}')"><span class="tx sp">${esc(t.texto)}</span>${pen(`topicoSheet('${m.id}','${t.id}')`)}</div>`).join('')}
+      <form class="row" style="margin-top:10px" onsubmit="event.preventDefault();addTop('${m.id}',this.t.value)"><input name="t" placeholder="Adicionar conteúdo para estudar"><button class="btn pr" aria-label="Adicionar">${ic('plus')}</button></form></div>`;
+  }
+  return html + '</div>';
+};
+function togTop(mid_, tid) { upd(() => { const t = byId(mid_).topicos.find(x => x.id === tid); t.feito = !t.feito; }); }
+function addTop(mid_, v) { if (v.trim()) upd(() => byId(mid_).topicos.push({ id: uid(), texto: v.trim(), feito: false })); }
+
+V.historico = () => {
+  const hs = S.historico, grupos = {};
+  hs.forEach(h => (grupos[h.semestre || 'Sem semestre'] ||= []).push(h));
+  let somaN = 0, somaC = 0;
+  hs.forEach(h => { const n = num(h.nota), c = num(h.creditos) || 1; if (n != null) { somaN += n * c; somaC += c; } });
+  const cred = hs.filter(h => /aprov|valid/i.test(h.situacao)).reduce((a, h) => a + (num(h.creditos) || 0), 0);
+  let html = `<div class="stack"><div class="between"><h1>Histórico</h1><button class="btn sm" onclick="histSheet()">${ic('plus', 16)} Adicionar</button></div>`;
+  if (!hs.length) return html + vazio('hist', 'Seu histórico aparece aqui', 'Envie um print ou o PDF do histórico escolar (CAGR) e as disciplinas cursadas são lançadas automaticamente.', `<a class="btn pr" href="#/atualizar/historico">${ic('cam')} Enviar histórico</a>`) + '</div>';
+  html += `<div class="stats"><div class="stat"><div class="mu">Média geral</div><div class="v">${fmt(somaC ? somaN / somaC : null)}</div></div><div class="stat"><div class="mu">Disciplinas</div><div class="v">${hs.length}</div></div><div class="stat"><div class="mu">Créditos</div><div class="v">${cred}</div></div></div>
+    <p class="mu">Média ponderada pelos créditos — uma estimativa do IAA.</p>`;
+  html += Object.keys(grupos).sort().reverse().map(sem => `<div class="card"><h3 style="margin-bottom:6px">${esc(sem)}</h3><div class="list">${grupos[sem].map(h => `<div class="row"><div class="sp"><b>${esc(h.nome || h.codigo)}</b><div class="mu">${esc(h.codigo)}${h.creditos ? ' · ' + esc(h.creditos) + ' créd.' : ''}</div></div>
+    <div style="text-align:right"><div><b>${fmt(num(h.nota))}</b></div>${h.situacao ? tag(h.situacao, /aprov|valid/i.test(h.situacao) ? 'ok' : /reprov|\bfi\b/i.test(h.situacao) ? 'bad' : 'neu') : ''}</div>${pen(`histSheet('${h.id}')`)}</div>`).join('')}</div></div>`).join('');
+  return html + '</div>';
+};
+
+// ================= Atualizar (print / PDF / texto → IA → revisão) =================
+const TIPOS_UP = [['plano', 'Plano de ensino'], ['cronograma', 'Cronograma / calendário'], ['notas', 'Notas'], ['historico', 'Histórico escolar'], ['grade', 'Grade de horários'], ['outro', 'Outro']];
+let UP = { tipo: 'plano', arquivos: [], fase: 'enviar', mudancas: [], resumo: '', erro: '' };
+V.atualizar = () => {
+  if (R.id && TIPOS_UP.some(t => t[0] === R.id) && UP.fase === 'enviar' && !UP.arquivos.length) UP.tipo = R.id;
+  if (UP.fase === 'processando') return `<div class="card empty" style="margin-top:24px"><div class="spin"></div><h3 style="margin-top:16px">Lendo seus arquivos…</h3><p class="mu" id="up-etapa">Isso leva de 10 a 40 segundos.</p></div>`;
+  if (UP.fase === 'revisar') return revisarView();
+  const ia = cfg.aiEnabled && user;
+  return `<div class="stack"><div><h1>Atualizar</h1><p class="mu" style="margin-top:4px">Envie prints, fotos ou PDFs. ${ia ? 'A IA identifica o que mudou e você revisa antes de aplicar.' : 'Sem login com IA ativa, só PDFs de texto e texto colado de plano de ensino são lidos.'}</p></div>
+    <div><div class="mu" style="margin-bottom:8px">O que você está enviando?</div><div class="chips">${TIPOS_UP.map(([k, l]) => `<button class="chip ${UP.tipo === k ? 'on' : ''}" onclick="UP.tipo='${k}';render()">${l}</button>`).join('')}</div></div>
+    <div class="drop" id="drop" ondragover="event.preventDefault();this.classList.add('over')" ondragleave="this.classList.remove('over')" ondrop="event.preventDefault();this.classList.remove('over');addArquivos(event.dataTransfer.files)">
+      <div class="empty" style="padding:0"><div class="ic">${ic('up', 26)}</div><b>Arraste arquivos ou escolha abaixo</b><p class="mu" style="margin:4px 0 14px">PNG, JPG ou PDF · até 8 arquivos</p></div>
+      <div class="row wrap" style="justify-content:center">
+        <label class="btn pr">${ic('cam')} Tirar foto<input type="file" accept="image/*" capture="environment" hidden onchange="addArquivos(this.files);this.value=''"></label>
+        <label class="btn">${ic('file')} Escolher arquivos<input type="file" accept="image/*,application/pdf" multiple hidden onchange="addArquivos(this.files);this.value=''"></label>
+        <button class="btn ghost" onclick="colarSheet()">${ic('clip')} Colar texto</button>
+      </div>
+      ${UP.arquivos.length ? `<div class="thumbs" style="justify-content:center">${UP.arquivos.map((a, i) => `<div class="th">${a.preview ? `<img src="${a.preview}" alt="">` : `<div>${ic('file')}<br>${esc(a.name.slice(0, 18))}</div>`}<button aria-label="Remover" onclick="UP.arquivos.splice(${i},1);render()">✕</button></div>`).join('')}</div>` : ''}
+    </div>
+    ${UP.erro ? `<div class="card flat" style="border-color:var(--bad)"><div class="row" style="color:var(--bad)">${ic('alert')}<span class="sm">${esc(UP.erro)}</span></div></div>` : ''}
+    <button class="btn pr block" ${UP.arquivos.length ? '' : 'disabled'} onclick="processar()">${ic('spark')} Analisar ${UP.arquivos.length || ''} arquivo(s)</button>
+    <div class="card flat"><h3 style="margin-bottom:6px">Dicas</h3><ul class="mu" style="margin:0;padding-left:18px">
+      <li>Plano de ensino: o PDF do CAGR funciona melhor que foto.</li><li>Notas: print da tela de notas do Moodle.</li><li>Calendário: print do cronograma da disciplina ou do calendário acadêmico.</li><li>Nada é alterado sem a sua confirmação.</li></ul></div></div>`;
+};
+async function addArquivos(files) {
+  UP.erro = '';
+  for (const f of [...files].slice(0, 8 - UP.arquivos.length)) {
+    try {
+      if (f.type === 'application/pdf') {
+        if (f.size > 3.3e6) { UP.erro = `${f.name} é grande demais (máx. ~3 MB). Envie só as páginas necessárias.`; continue; }
+        UP.arquivos.push({ name: f.name, mediaType: f.type, file: f, data: await b64(f) });
+      } else if (f.type.startsWith('image/')) {
+        const { data, preview } = await comprimir(f);
+        UP.arquivos.push({ name: f.name, mediaType: 'image/jpeg', data, preview });
+      } else UP.erro = `${f.name}: formato não suportado.`;
+    } catch { UP.erro = `Não foi possível abrir ${f.name}.`; }
+  }
+  render();
+}
+const b64 = f => new Promise((ok, err) => { const r = new FileReader(); r.onload = () => ok(r.result.split(',')[1]); r.onerror = err; r.readAsDataURL(f); });
+async function comprimir(f) {
+  const img = await createImageBitmap(f), k = Math.min(1, 1800 / Math.max(img.width, img.height));
+  const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  const url = c.toDataURL('image/jpeg', .85);
+  return { data: url.split(',')[1], preview: url };
+}
+function colarSheet() {
+  sheet(`<h2>Colar texto</h2><p class="mu" style="margin:6px 0 12px">Copie o texto do plano de ensino, do Moodle ou do CAGR e cole aqui.</p><textarea id="cola" style="min-height:220px"></textarea>
+  <div class="actions"><button class="btn" onclick="closeSheet()">Cancelar</button><button class="btn pr sp" onclick="addTexto()">Adicionar</button></div>`);
+}
+function addTexto() { const t = $('#cola').value.trim(); if (!t) return; UP.arquivos.push({ name: 'Texto colado', mediaType: 'text/plain', data: t }); closeSheet(); render(); }
+async function processar() {
+  UP.erro = ''; UP.fase = 'processando'; render();
+  try {
+    let res;
+    if (cfg.aiEnabled && user) {
+      const { data: { session } } = await sb.auth.getSession();
+      const etapas = ['Enviando arquivos…', 'Identificando disciplinas…', 'Lendo datas e notas…', 'Quase lá…']; let i = 0;
+      const t = setInterval(() => { const el = $('#up-etapa'); if (el) el.textContent = etapas[Math.min(++i, etapas.length - 1)]; }, 6000);
+      const r = await fetch('/api/extract', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token },
+        body: JSON.stringify({ tipo: UP.tipo, arquivos: UP.arquivos.map(({ mediaType, data, name }) => ({ mediaType, data, name })), contexto: { ano: (S.semestre.inicio || hoje()).slice(0, 4), disciplinas: S.materias.map(m => ({ codigo: m.codigo, nome: m.nome })) } }),
+      }).finally(() => clearInterval(t));
+      res = await r.json().catch(() => ({ error: 'Resposta inválida do servidor.' }));
+      if (!r.ok) throw new Error(res.error || 'Falha ao processar.');
+    } else {
+      res = { resumo: '', semestre: { inicio: '', fim: '' }, feriados: [], disciplinas: [], eventos: [], historico: [] };
+      for (const a of UP.arquivos) {
+        if (a.mediaType.startsWith('image/')) throw new Error('Ler prints precisa de login com a IA ativa. Entre com sua conta ou envie o PDF/texto.');
+        const txt = a.mediaType === 'text/plain' ? a.data : await pdfText(a.file);
+        const m = parsePlano(txt);
+        res.disciplinas.push({ ...m, topicos: m.topicos.map(t => t.texto), faltas: [] });
+      }
+      res.resumo = `Leitura local de ${res.disciplinas.length} plano(s) de ensino.`;
+    }
+    UP.resumo = res.resumo || ''; UP.mudancas = montarMudancas(res); UP.fase = 'revisar';
+  } catch (e) { UP.fase = 'enviar'; UP.erro = e.message; }
+  render();
+}
+
+// --- cálculo das diferenças entre o que foi lido e o que já existe ---
+function acharMat(d) {
+  const c = norm(d.codigo), n = norm(d.nome);
+  return S.materias.find(m => (c && norm(m.codigo) === c) || (n && norm(m.nome) === n));
+}
+const mid = cod => (S.materias.find(m => cod && norm(m.codigo) === norm(cod)) || {}).id || '';
+const okHor = h => DIAS[h.dia] && SLOTS.includes(h.inicio);
+const okData = d => /^\d{4}-\d{2}-\d{2}$/.test(d || '');
+// "Prova 2 (P2)", "P2" e "prova 2" viram a mesma chave "p2"
+const chavesAv = n => { n = norm(n); const k = new Set(n.match(/\b[a-z]{1,3}\d\b/g) || []); const d = n.match(/\d/); if (d) k.add(n[0] + d[0]); else k.add(n); return k; };
+const mesmaAv = (x, a) => norm(x.nome) === norm(a.nome) || [...chavesAv(a.nome)].some(k => chavesAv(x.nome).has(k));
+function montarMudancas(r) {
+  const out = [], add = (grupo, titulo, detalhe, apply) => out.push({ id: uid(), grupo, titulo, detalhe, apply, on: true });
+  if (okData(r.semestre?.inicio) && r.semestre.inicio !== S.semestre.inicio) add('Semestre', 'Início das aulas', `${brD(S.semestre.inicio) || '—'} → ${brD(r.semestre.inicio)}`, () => S.semestre.inicio = r.semestre.inicio);
+  if (okData(r.semestre?.fim) && r.semestre.fim !== S.semestre.fim) add('Semestre', 'Fim das aulas', `${brD(S.semestre.fim) || '—'} → ${brD(r.semestre.fim)}`, () => S.semestre.fim = r.semestre.fim);
+  const ferAdd = (data, desc) => { if (!S.feriados.some(x => x.data === data) && !out.some(o => o.grupo === 'Feriados' && o._d === data)) { add('Feriados', desc || 'Feriado', brDL(data), () => S.feriados.push({ data, descricao: desc })); out[out.length - 1]._d = data; } };
+  (r.feriados || []).filter(f => okData(f.data)).forEach(f => ferAdd(f.data, f.descricao));
+
+  for (const d of r.disciplinas || []) {
+    const hor = (d.horarios || []).filter(okHor).map(h => ({ dia: String(h.dia), inicio: h.inicio, aulas: String(+h.aulas || 2), sala: h.sala || '' }));
+    const ex = acharMat(d), nome = d.nome || d.codigo || 'Disciplina';
+    if (!ex) {
+      add('Nova disciplina', `${d.codigo ? d.codigo + ' · ' : ''}${nome}`, [hor.length && `${hor.length} horário(s)`, d.avaliacoes?.length && `${d.avaliacoes.length} avaliação(ões)`, d.topicos?.length && `${d.topicos.length} conteúdo(s)`].filter(Boolean).join(' · ') || 'Dados básicos', () => {
+        S.materias.push(migrar({ materias: [{
+          id: uid(), codigo: (d.codigo || '').toUpperCase(), nome: d.nome || '', professor: d.professor || '', turma: d.turma || '', cargaHoraria: d.cargaHoraria || '', cor: CORES[S.materias.length % CORES.length], horarios: hor, rec: '',
+          avaliacoes: (d.avaliacoes || []).map(a => ({ id: uid(), nome: a.nome, peso: a.peso || '', data: okData(a.data) ? a.data : '', nota: a.nota || '' })),
+          topicos: (d.topicos || []).map(t => ({ id: uid(), texto: t, feito: false })),
+          faltas: Object.fromEntries((d.faltas || []).filter(f => okData(f.data) && +f.quantidade).map(f => [f.data, +f.quantidade])),
+        }] }).materias[0]);
+      });
+      continue;
+    }
+    const g = nomeM(ex);
+    for (const [k, l] of [['nome', 'Nome'], ['professor', 'Professor(a)'], ['turma', 'Turma'], ['cargaHoraria', 'Carga horária']])
+      if (d[k] && String(d[k]) !== String(ex[k] || '')) add(g, l, `${ex[k] || '—'} → ${d[k]}`, () => ex[k] = d[k]);
+    const fmtH = hs => hs.map(h => `${DIAS[h.dia]} ${hhmm(h.inicio)}${h.sala ? ' (' + h.sala + ')' : ''}`).join(', ');
+    if (hor.length && fmtH(hor) !== fmtH(ex.horarios)) add(g, 'Horários', `${fmtH(ex.horarios) || '—'} → ${fmtH(hor)}`, () => ex.horarios = hor);
+    for (const a of d.avaliacoes || []) {
+      const ea = ex.avaliacoes.find(x => mesmaAv(x, a));
+      if (!ea) { add(g, `Nova avaliação: ${a.nome}`, [a.peso && `peso ${a.peso}%`, okData(a.data) && brD(a.data), a.nota && `nota ${a.nota}`].filter(Boolean).join(' · ') || '—', () => ex.avaliacoes.push({ id: uid(), nome: a.nome, peso: a.peso || '', data: okData(a.data) ? a.data : '', nota: a.nota || '' })); continue; }
+      const ch = [];
+      if (a.nota && num(a.nota) !== num(ea.nota)) ch.push(['nota', a.nota, `nota ${ea.nota || '—'} → ${a.nota}`]);
+      if (okData(a.data) && a.data !== ea.data) ch.push(['data', a.data, `data ${brD(ea.data) || '—'} → ${brD(a.data)}`]);
+      if (a.peso && num(a.peso) !== num(ea.peso)) ch.push(['peso', a.peso, `peso ${ea.peso || '—'} → ${a.peso}%`]);
+      if (ch.length) add(g, ea.nome, ch.map(c => c[2]).join(' · '), () => ch.forEach(([k, v]) => ea[k] = v));
+    }
+    const novos = (d.topicos || []).filter(t => !ex.topicos.some(x => norm(x.texto) === norm(t)));
+    if (novos.length) add(g, `+${novos.length} conteúdo(s) para estudar`, novos.slice(0, 3).join('; ') + (novos.length > 3 ? '…' : ''), () => novos.forEach(t => ex.topicos.push({ id: uid(), texto: t, feito: false })));
+    const fl = (d.faltas || []).filter(f => okData(f.data) && (+f.quantidade || 0) !== (ex.faltas[f.data] || 0));
+    if (fl.length) add(g, `${fl.length} registro(s) de falta`, fl.map(f => `${brD(f.data)}: ${f.quantidade}`).join(', '), () => fl.forEach(f => { if (+f.quantidade) ex.faltas[f.data] = +f.quantidade; else delete ex.faltas[f.data]; }));
+  }
+  for (const e of r.eventos || []) {
+    if (!okData(e.data) || e.tipo === 'aula') continue;
+    if (e.tipo === 'feriado') { ferAdd(e.data, e.titulo); continue; }
+    const dup = todosEventos().some(x => x.data === e.data && norm(x.titulo) === norm(e.titulo)) || out.some(o => o.grupo === 'Agenda' && o.titulo === e.titulo && o._d === e.data);
+    if (!dup) { add('Agenda', e.titulo, `${brDL(e.data)}${e.codigo ? ' · ' + e.codigo : ''}`, () => S.eventos.push({ id: uid(), data: e.data, titulo: e.titulo, tipo: TIPOS_EV[e.tipo] ? e.tipo : 'outro', materiaId: mid(e.codigo) })); out[out.length - 1]._d = e.data; }
+  }
+  for (const h of r.historico || []) {
+    const ex = h.codigo && S.historico.find(x => norm(x.codigo) === norm(h.codigo) && x.semestre === h.semestre);
+    if (!ex) add('Histórico', `${h.codigo ? h.codigo + ' · ' : ''}${h.nome}`, [h.semestre, h.nota && `nota ${h.nota}`, h.situacao].filter(Boolean).join(' · '), () => S.historico.push({ id: uid(), ...h }));
+    else if ((h.nota && num(h.nota) !== num(ex.nota)) || (h.situacao && h.situacao !== ex.situacao)) add('Histórico', ex.nome || ex.codigo, `${ex.nota || '—'} → ${h.nota || ex.nota} ${h.situacao || ''}`, () => Object.assign(ex, { nota: h.nota || ex.nota, situacao: h.situacao || ex.situacao }));
+  }
+  return out;
+}
+function revisarView() {
+  const ms = UP.mudancas, grupos = [...new Set(ms.map(m => m.grupo))], n = ms.filter(m => m.on).length;
+  if (!ms.length) return `<div class="stack">${vazio('check', 'Tudo já está atualizado', esc(UP.resumo) || 'Não encontramos nada novo nesses arquivos.', `<button class="btn pr" onclick="resetUP()">Enviar outros</button>`)}</div>`;
+  return `<div class="stack"><div><h1>Revisar mudanças</h1><p class="mu" style="margin-top:4px">${esc(UP.resumo)} Desmarque o que não quiser aplicar — dá para editar tudo depois pelo ✏️.</p></div>
+    ${grupos.map(g => `<div class="card"><div class="between" style="margin-bottom:4px"><h3>${esc(g)}</h3><button class="btn ghost sm" onclick="marcarGrupo('${esc(g).replace(/'/g, "\\'")}')">Alternar</button></div>${ms.filter(m => m.grupo === g).map(m => `<label class="chg"><input type="checkbox" ${m.on ? 'checked' : ''} onchange="UP.mudancas.find(x=>x.id==='${m.id}').on=this.checked;render()"><div class="sp"><b class="sm">${esc(m.titulo)}</b><div class="mu">${esc(m.detalhe)}</div></div></label>`).join('')}</div>`).join('')}
+    <div class="row" style="position:sticky;bottom:calc(var(--nav-h) + 12px)"><button class="btn" onclick="resetUP()">Descartar</button><button class="btn pr sp" ${n ? '' : 'disabled'} onclick="aplicar()">${ic('check')} Aplicar ${n} mudança(s)</button></div></div>`;
+}
+function marcarGrupo(g) { const ms = UP.mudancas.filter(m => m.grupo === g), v = !ms.every(m => m.on); ms.forEach(m => m.on = v); render(); }
+function aplicar() {
+  const backup = JSON.stringify(S), ms = UP.mudancas.filter(m => m.on);
+  ms.filter(m => m.grupo === 'Nova disciplina').forEach(m => m.apply());
+  ms.filter(m => m.grupo !== 'Nova disciplina').forEach(m => m.apply());
+  save(); resetUP(false);
+  toast(`${ms.length} mudança(s) aplicada(s).`, () => { S = migrar(JSON.parse(backup)); save(); render(); });
+  go(ms.some(m => m.grupo === 'Histórico') && !ms.some(m => m.grupo === 'Nova disciplina') ? 'historico' : 'inicio');
+}
+function resetUP(r = true) { UP = { tipo: UP.tipo, arquivos: [], fase: 'enviar', mudancas: [], resumo: '', erro: '' }; if (r) render(); }
+
+// ================= Ações rápidas =================
+function upd(fn) { fn(); save(); render(); }
+function toggleFalta(id, d) {
+  const m = byId(id), dia = diasDeAula(m).find(x => x.data === d);
+  const aulas = dia ? dia.aulas : m.horarios.filter(h => +h.dia - 1 === parseISO(d).getDay()).reduce((a, h) => a + (+h.aulas || 0), 0) || 1;
+  const antes = m.faltas[d];
+  upd(() => { if (antes) delete m.faltas[d]; else m.faltas[d] = aulas; });
+  if (!antes) { const f = freq(m); toast(f.restam >= 0 ? `Falta registrada. Restam ${f.restam}.` : 'Falta registrada — limite ultrapassado!', () => upd(() => delete m.faltas[d])); }
+}
+function setFalta(id, d, v) { upd(() => { const m = byId(id); if (+v) m.faltas[d] = +v; else delete m.faltas[d]; }); }
+function cancelarAula(id, d) { const m = byId(id), f = m.faltas[d]; upd(() => { m.canceladas.push(d); delete m.faltas[d]; }); toast('Aula marcada como cancelada.', () => upd(() => { m.canceladas = m.canceladas.filter(x => x !== d); if (f) m.faltas[d] = f; })); }
+
+// ================= Sheets de edição (✏️) =================
+function sheet(html) { $('#layer').innerHTML = `<div class="scrim" onclick="if(event.target===this)closeSheet()"><div class="sheet" role="dialog" aria-modal="true"><div class="grip"></div>${html}</div></div>`; setTimeout(() => $('.sheet input:not([type=checkbox]):not([type=file]),.sheet textarea')?.focus(), 50); }
+function closeSheet() { $('#layer').innerHTML = ''; }
+addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
+const val = id => ($('#' + id)?.value ?? '').trim();
+const acoes = (salvar, excluir) => `<div class="actions">${excluir ? `<button class="btn danger" onclick="${excluir}" aria-label="Excluir">${ic('trash', 18)}</button>` : ''}<button class="btn" onclick="closeSheet()">Cancelar</button><button class="btn pr sp" onclick="${salvar}">Salvar</button></div>`;
+function excluirComDesfazer(msg, fn) { const b = JSON.stringify(S); closeSheet(); upd(fn); toast(msg, () => { S = migrar(JSON.parse(b)); save(); render(); }); }
+
+let draftH = [];
+function discSheet(id) {
+  const m = id ? byId(id) : { codigo: '', nome: '', professor: '', turma: '', cargaHoraria: '', cor: CORES[S.materias.length % CORES.length], horarios: [] };
+  draftH = structuredClone(m.horarios);
+  sheet(`<h2>${id ? 'Editar disciplina' : 'Nova disciplina'}</h2><div class="fields" style="margin-top:14px">
+    <div class="fields c2"><label class="f">Código<input id="d-codigo" value="${esc(m.codigo)}" placeholder="INE5408"></label><label class="f">Turma<input id="d-turma" value="${esc(m.turma)}"></label></div>
+    <label class="f">Nome<input id="d-nome" value="${esc(m.nome)}"></label>
+    <label class="f">Professor(a)<input id="d-professor" value="${esc(m.professor)}"></label>
+    <div class="fields c2"><label class="f">Carga horária (h/a)<input id="d-ch" inputmode="numeric" value="${esc(m.cargaHoraria)}" placeholder="automática"></label><label class="f">Cor<input id="d-cor" type="color" value="${m.cor}" style="padding:4px"></label></div>
+    <div><div class="between"><b>Horários</b><button class="btn ghost sm" onclick="draftH.push({dia:'2',inicio:'0820',aulas:'2',sala:''});horRender()">${ic('plus', 16)} Horário</button></div><div id="hor"></div></div>
+  </div>${acoes(`salvarDisc('${id || ''}')`, id ? `excluirComDesfazer('Disciplina excluída.',()=>S.materias=S.materias.filter(x=>x.id!=='${id}'));go('disciplinas')` : '')}`);
+  horRender();
+}
+function horRender() {
+  $('#hor').innerHTML = draftH.map((h, i) => `<div class="row" style="margin-top:8px">
+    <select aria-label="Dia" onchange="draftH[${i}].dia=this.value">${Object.entries(DIAS_L).map(([k, v]) => `<option value="${k}" ${k == h.dia ? 'selected' : ''}>${v}</option>`).join('')}</select>
+    <select aria-label="Início" onchange="draftH[${i}].inicio=this.value">${SLOTS.map(s => `<option value="${s}" ${s === h.inicio ? 'selected' : ''}>${hhmm(s)}</option>`).join('')}</select>
+    <input aria-label="Nº de aulas" style="width:56px" inputmode="numeric" value="${esc(h.aulas)}" onchange="draftH[${i}].aulas=this.value">
+    <input aria-label="Sala" placeholder="Sala" style="width:90px" value="${esc(h.sala)}" onchange="draftH[${i}].sala=this.value">
+    <button class="ib" aria-label="Remover horário" onclick="draftH.splice(${i},1);horRender()">${ic('x', 18)}</button></div>`).join('') || '<p class="mu">Nenhum horário.</p>';
+}
+function salvarDisc(id) {
+  const d = { codigo: val('d-codigo').toUpperCase(), nome: val('d-nome'), professor: val('d-professor'), turma: val('d-turma'), cargaHoraria: val('d-ch'), cor: val('d-cor'), horarios: draftH };
+  if (!d.nome && !d.codigo) return toast('Informe o nome ou o código.');
+  closeSheet();
+  if (id) upd(() => Object.assign(byId(id), d));
+  else { const m = migrar({ materias: [{ id: uid(), ...d, rec: '' }] }).materias[0]; upd(() => S.materias.push(m)); go('disc/' + m.id); }
+}
+function avSheet(mid_, aid) {
+  const m = byId(mid_), a = aid ? m.avaliacoes.find(x => x.id === aid) : { nome: '', peso: '', data: '', nota: '' };
+  sheet(`<h2>${aid ? 'Editar avaliação' : 'Nova avaliação'}</h2><p class="mu">${esc(nomeM(m))}</p><div class="fields" style="margin-top:14px">
+    <label class="f">Nome<input id="a-n" value="${esc(a.nome)}" placeholder="Prova 1"></label>
+    <div class="fields c2"><label class="f">Peso (%)<input id="a-p" inputmode="decimal" value="${esc(a.peso)}" placeholder="igual"></label><label class="f">Nota<input id="a-o" inputmode="decimal" value="${esc(a.nota)}" placeholder="0 a 10"></label></div>
+    <label class="f">Data<input id="a-d" type="date" value="${esc(a.data)}"></label></div>
+    ${acoes(`salvarAv('${mid_}','${aid || ''}')`, aid ? `excluirComDesfazer('Avaliação excluída.',()=>{const m=byId('${mid_}');m.avaliacoes=m.avaliacoes.filter(x=>x.id!=='${aid}')})` : '')}`);
+}
+function salvarAv(mid_, aid) {
+  const d = { nome: val('a-n') || 'Avaliação', peso: val('a-p').replace(',', '.'), nota: val('a-o').replace(',', '.'), data: val('a-d') };
+  if (d.nota && (num(d.nota) == null || num(d.nota) < 0 || num(d.nota) > 10)) return toast('A nota deve estar entre 0 e 10.');
+  closeSheet(); const m = byId(mid_);
+  upd(() => aid ? Object.assign(m.avaliacoes.find(x => x.id === aid), d) : m.avaliacoes.push({ id: uid(), ...d }));
+}
+function topicoSheet(mid_, tid) {
+  const t = byId(mid_).topicos.find(x => x.id === tid);
+  sheet(`<h2>Editar conteúdo</h2><div class="fields" style="margin-top:14px"><label class="f">Conteúdo<textarea id="t-x" style="min-height:80px">${esc(t.texto)}</textarea></label></div>
+    ${acoes(`salvarTop('${mid_}','${tid}')`, `excluirComDesfazer('Conteúdo removido.',()=>{const m=byId('${mid_}');m.topicos=m.topicos.filter(x=>x.id!=='${tid}')})`)}`);
+}
+function salvarTop(mid_, tid) { const v = val('t-x'); if (!v) return; closeSheet(); upd(() => byId(mid_).topicos.find(x => x.id === tid).texto = v); }
+function eventoSheet(id, data) {
+  const e = id ? S.eventos.find(x => x.id === id) : { titulo: '', data: data || hoje(), tipo: 'prova', materiaId: '' };
+  sheet(`<h2>${id ? 'Editar evento' : 'Novo evento'}</h2><div class="fields" style="margin-top:14px">
+    <label class="f">Título<input id="e-t" value="${esc(e.titulo)}" placeholder="Entrega do trabalho"></label>
+    <div class="fields c2"><label class="f">Data<input id="e-d" type="date" value="${esc(e.data)}"></label><label class="f">Tipo<select id="e-y">${Object.entries(TIPOS_EV).filter(([k]) => k !== 'feriado').map(([k, v]) => `<option value="${k}" ${k === e.tipo ? 'selected' : ''}>${v}</option>`).join('')}</select></label></div>
+    <label class="f">Disciplina<select id="e-m"><option value="">Nenhuma</option>${S.materias.map(m => `<option value="${m.id}" ${m.id === e.materiaId ? 'selected' : ''}>${esc(nomeM(m))}</option>`).join('')}</select></label></div>
+    ${acoes(`salvarEv('${id || ''}')`, id ? `excluirComDesfazer('Evento excluído.',()=>S.eventos=S.eventos.filter(x=>x.id!=='${id}'))` : '')}`);
+}
+function salvarEv(id) {
+  const d = { titulo: val('e-t'), data: val('e-d'), tipo: val('e-y'), materiaId: val('e-m') };
+  if (!d.titulo || !d.data) return toast('Preencha título e data.');
+  closeSheet(); upd(() => id ? Object.assign(S.eventos.find(x => x.id === id), d) : S.eventos.push({ id: uid(), ...d }));
+}
+function histSheet(id) {
+  const h = id ? S.historico.find(x => x.id === id) : { codigo: '', nome: '', semestre: '', nota: '', creditos: '', situacao: 'Aprovado' };
+  const sits = ['Aprovado', 'Reprovado', 'Reprovado por frequência (FI)', 'Cursando', 'Validada', 'Trancada'];
+  sheet(`<h2>${id ? 'Editar disciplina cursada' : 'Adicionar ao histórico'}</h2><div class="fields" style="margin-top:14px">
+    <div class="fields c2"><label class="f">Código<input id="h-c" value="${esc(h.codigo)}"></label><label class="f">Semestre<input id="h-s" value="${esc(h.semestre)}" placeholder="2025.2"></label></div>
+    <label class="f">Nome<input id="h-n" value="${esc(h.nome)}"></label>
+    <div class="fields c2"><label class="f">Nota<input id="h-o" inputmode="decimal" value="${esc(h.nota)}"></label><label class="f">Créditos<input id="h-r" inputmode="numeric" value="${esc(h.creditos)}"></label></div>
+    <label class="f">Situação<select id="h-x">${(sits.includes(h.situacao) || !h.situacao ? sits : [h.situacao, ...sits]).map(s => `<option ${s === h.situacao ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select></label></div>
+    ${acoes(`salvarHist('${id || ''}')`, id ? `excluirComDesfazer('Removido do histórico.',()=>S.historico=S.historico.filter(x=>x.id!=='${id}'))` : '')}`);
+}
+function salvarHist(id) {
+  const d = { codigo: val('h-c').toUpperCase(), semestre: val('h-s'), nome: val('h-n'), nota: val('h-o').replace(',', '.'), creditos: val('h-r'), situacao: val('h-x') };
+  if (!d.nome && !d.codigo) return toast('Informe o nome ou código.');
+  closeSheet(); upd(() => id ? Object.assign(S.historico.find(x => x.id === id), d) : S.historico.push({ id: uid(), ...d }));
+}
+function configSheet() {
+  sheet(`<h2>Configurações</h2>
+    <div class="card flat" style="margin:14px 0"><div class="row">${ic(user ? 'mail' : 'alert')}<div class="sp"><b class="sm">${user ? esc(user.email) : 'Sem conta — dados só neste aparelho'}</b><div class="mu">${user ? 'Sincronizado com a nuvem' : 'Entre para sincronizar entre celular e computador'}</div></div></div></div>
+    <div class="fields">
+    <label class="f">Seu nome<input id="c-nome" value="${esc(S.perfil.nome)}"></label>
+    <div class="fields c2"><label class="f">Início das aulas<input type="date" id="c-ini" value="${S.semestre.inicio}"></label><label class="f">Fim das aulas<input type="date" id="c-fim" value="${S.semestre.fim}"></label></div>
+    <label class="f">Feriados e dias sem aula <span class="mu">(dd/mm/aaaa Descrição — um por linha)</span><textarea id="c-fer">${S.feriados.map(f => f.data.split('-').reverse().join('/') + ' ' + esc(f.descricao || '')).join('\n')}</textarea></label></div>
+    <div class="actions" style="position:static"><button class="btn pr sp" onclick="salvarConfig()">Salvar</button></div>
+    <div class="divider">dados</div>
+    <div class="row wrap"><button class="btn sm" onclick="exportar()">Exportar backup</button><label class="btn sm">Importar backup<input type="file" accept="application/json" hidden onchange="importar(this)"></label>
+    <button class="btn sm" onclick="sair()">${ic('out', 16)} ${user ? 'Sair' : 'Entrar com conta'}</button>
+    <button class="btn sm danger" onclick="apagarTudo()">Apagar tudo</button></div>`);
+}
+function salvarConfig() {
+  const fer = val('c-fer').split('\n').map(l => l.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s*(.*)$/)).filter(Boolean).map(m => ({ data: `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`, descricao: m[4] || 'Sem aula' }));
+  const ini = val('c-ini'), fim = val('c-fim');
+  if (ini && fim && fim < ini) return toast('O fim deve ser depois do início.');
+  closeSheet(); upd(() => { S.perfil.nome = val('c-nome'); S.semestre = { inicio: ini, fim }; S.feriados = fer; }); toast('Configurações salvas.');
+}
+function exportar() { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' })); a.download = 'meu-semestre-backup.json'; a.click(); }
+async function importar(inp) { try { const d = JSON.parse(await inp.files[0].text()); if (!d.materias) throw 0; const b = JSON.stringify(S); S = migrar(d); save(); closeSheet(); render(); toast('Backup importado.', () => { S = migrar(JSON.parse(b)); save(); render(); }); } catch { toast('Arquivo inválido.'); } }
+function apagarTudo() {
+  sheet(`<h2>Apagar todos os dados?</h2><p class="mu" style="margin-top:8px">Disciplinas, faltas, notas, agenda e histórico serão apagados${user ? ' da sua conta e deste aparelho' : ' deste aparelho'}. Isso não pode ser desfeito. Considere exportar um backup antes.</p>
+  <div class="actions"><button class="btn" onclick="closeSheet()">Cancelar</button><button class="btn pr sp" style="background:var(--bad);border-color:var(--bad)" onclick="closeSheet();S=novoEstado();save();go('inicio');render()">Apagar tudo</button></div>`);
+}
+
+// ================= Toast =================
+let toastT;
+function toast(msg, desfazer) {
+  clearTimeout(toastT); document.querySelector('.toast')?.remove();
+  const el = document.createElement('div'); el.className = 'toast'; el.setAttribute('role', 'status');
+  el.innerHTML = `<span>${esc(msg)}</span>${desfazer ? '<button>Desfazer</button>' : ''}`;
+  if (desfazer) el.querySelector('button').onclick = () => { el.remove(); desfazer(); };
+  document.body.append(el); toastT = setTimeout(() => el.remove(), desfazer ? 6000 : 3500);
+}

@@ -1,0 +1,9 @@
+{
+  "name": "meu-semestre",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.0.0",
+    "@supabase/supabase-js": "^2.45.4"
+  }
+}
