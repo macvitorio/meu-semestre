@@ -377,3 +377,4 @@ body{min-height:100%;min-height:100dvh}
   .card{padding:18px}
 }
 @media(min-width:1400px){nav.bn{width:256px}body.app{padding-left:256px}}
+@media(min-width:900px){.nav-brand{order:-2}nav.bn a.fab{order:-1}}
