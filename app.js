@@ -737,6 +737,7 @@ document.addEventListener('click', e => { const a = e.target.closest('nav.bn a')
   let y0 = 0, x0 = 0, modo = null, dy = 0, ptr;
   addEventListener('touchstart', e => {
     const t = e.touches[0]; x0 = t.clientX; y0 = t.clientY; dy = 0; modo = null;
+    if (e.target.closest('#grade')) return; // arrastar na grade de cores não fecha o painel
     const sh = e.target.closest('.sheet');
     if (sh) { if (sh.scrollTop <= 0) modo = 'sheet'; return; }
     if (!document.body.classList.contains('app') || $('.scrim')) return;
@@ -915,7 +916,7 @@ V.config = () => {
     <div class="seg tema">${[['sistema', 'Automático'], ['claro', 'Claro'], ['escuro', 'Escuro']].map(([k, l]) => `<button class="${tema === k ? 'on' : ''}" onclick="setTema('${k}')">${l}</button>`).join('')}</div>
     <div style="padding:6px 16px 0" class="sm"><b>Cor do app</b></div>
     <div class="cores">${CORES_APP.map(c => `<button class="cor ${c === corAtual ? 'on' : ''}" style="background:${c}" aria-label="Cor ${c}" onclick="setCor('${c}')"></button>`).join('')}
-      <label class="cor custom ${!CORES_APP.includes(corAtual) ? 'on' : ''}" aria-label="Cor personalizada" title="Escolher qualquer cor"><input type="color" value="${corAtual}" oninput="aplicarTema(S.perfil.tema||'sistema',this.value)" onchange="setCor(this.value)"></label></div>
+      <button class="cor custom ${!CORES_APP.includes(corAtual) ? 'on' : ''}" aria-label="Cor personalizada" onclick="gradeCores()"></button></div>
   </div></section>
 
   <section class="grp"><h4>Semestre</h4><div class="card">
@@ -1015,4 +1016,25 @@ async function montarGoogle() {
 async function entrarComGoogle({ credential }) {
   const { error } = await sb.auth.signInWithIdToken({ provider: 'google', token: credential, nonce: gisNonce });
   if (error) toast('Não foi possível entrar com o Google: ' + error.message);
+}
+
+// ================= Grade de cores (arrastar o dedo para escolher) =================
+const hex = (h, sat, l) => { l /= 100; const a = sat * Math.min(l, 1 - l) / 100, f = n => { const k = (n + h / 30) % 12, c = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1); return Math.round(255 * c).toString(16).padStart(2, '0'); }; return '#' + f(0) + f(8) + f(4); };
+function gradeCores() {
+  const hues = [0, 15, 30, 45, 60, 90, 130, 160, 185, 205, 225, 250, 275, 300, 330], luz = [78, 66, 56, 46, 38, 30];
+  const cores = [...luz.flatMap(l => hues.map(h => hex(h, l > 70 ? 70 : 78, l))), ...[80, 64, 50, 38, 26, 16].map(l => hex(220, 8, l))];
+  let escolhida = S.perfil.cor || CORES_APP[0];
+  sheet(`<h2>Cor personalizada</h2><p class="mu" style="margin:4px 0 14px">Arraste o dedo pela grade, o app muda na hora. Solte na cor que quiser.</p>
+    <div id="grade" style="display:grid;grid-template-columns:repeat(${hues.length},1fr);border-radius:14px;overflow:hidden;touch-action:none;cursor:crosshair">
+      ${cores.map(c => `<i data-c="${c}" style="aspect-ratio:1;background:${c};outline-offset:-3px${c === escolhida ? ';outline:3px solid #fff' : ''}"></i>`).join('')}</div>
+    <div class="row" style="margin-top:14px"><span id="prev" class="avatar" style="width:40px;height:40px;font-size:15px;background:${escolhida}">Aa</span><b id="hexc" class="sp">${escolhida.toUpperCase()}</b>
+      <label class="btn sm">Outra…<input type="color" hidden value="${escolhida}" onchange="marcar(this.value);"></label></div>
+    <div class="actions"><button class="btn" onclick="aplicarTema();closeSheet()">Cancelar</button><button class="btn pr sp" id="usar">Usar esta cor</button></div>`);
+  const g = $('#grade');
+  window.marcar = c => { escolhida = c; g.querySelectorAll('i').forEach(i => i.style.outline = i.dataset.c === c ? '3px solid #fff' : ''); $('#prev').style.background = c; $('#hexc').textContent = c.toUpperCase(); aplicarTema(S.perfil.tema || 'sistema', c); };
+  let ultimo = null;
+  const em = e => { const el = document.elementFromPoint(e.clientX, e.clientY); if (el?.dataset?.c && el.dataset.c !== ultimo) { ultimo = el.dataset.c; vibrar(4); marcar(el.dataset.c); } };
+  g.addEventListener('pointerdown', e => { g.setPointerCapture(e.pointerId); em(e); });
+  g.addEventListener('pointermove', e => { if (e.buttons || e.pointerType === 'touch') em(e); });
+  $('#usar').onclick = () => { closeSheet(); setCor(escolhida); };
 }
