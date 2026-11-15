@@ -1225,11 +1225,20 @@ function admConta(id) {
       <button class="li danger" onclick="admAcao('${id}','remover')"><span class="ico" style="background:var(--bad)">${ic('x')}</span><span class="tx">Remover Premium<small>Volta para o plano grátis agora</small></span></button>
     </div></div>
     <p class="mu" style="margin-top:12px">Assinaturas mensais pagas são canceladas pelo próprio aluno ou no painel do Mercado Pago.</p>
+    ${c.id === user?.id ? '' : `<div class="grp" style="margin-top:14px"><div class="card"><button class="li danger" onclick="admApagar('${id}')"><span class="ico" style="background:var(--bad)">${ic('trash')}</span><span class="tx">Apagar conta<small>Remove a conta e todos os dados. Não pode ser desfeito.</small></span></button></div></div>`}
     <div class="actions"><button class="btn block" onclick="closeSheet()">Fechar</button></div>`);
 }
 async function admAcao(userId, acao, dias) {
   const r = await fetch('/api/admin', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + await tokenAtual() }, body: JSON.stringify({ userId, acao, dias }) });
   const d = await r.json(); closeSheet();
-  toast(r.ok ? 'Plano atualizado.' : d.error); ADM = null; render();
+  toast(r.ok ? (d.apagada ? 'Conta apagada.' : 'Plano atualizado.') : d.error); ADM = null; render();
   if (userId === user?.id) carregarPlano();
+}
+
+function admApagar(id) {
+  const c = ADM.contas.find(x => x.id === id);
+  sheet(`<div class="pw-top" style="background:var(--bad)">${ic('trash', 28)}</div><h2 style="text-align:center">Apagar esta conta?</h2>
+    <p class="mu" style="text-align:center;margin:6px 0 14px">A conta <b>${esc(c.email)}</b> e tudo dela (disciplinas, notas, faltas, agenda, histórico, plano e lembretes) serão apagados para sempre. Se houver assinatura mensal ativa, ela é cancelada no Mercado Pago.</p>
+    <label class="f">Para confirmar, digite o e-mail da conta<input id="adm-conf" autocomplete="off" placeholder="${esc(c.email)}"></label>
+    <div class="actions"><button class="btn" onclick="admConta('${id}')">Voltar</button><button class="btn pr sp" style="background:var(--bad);border-color:var(--bad)" onclick="if($('#adm-conf').value.trim().toLowerCase()!=='${esc(c.email.toLowerCase())}')return toast('O e-mail não confere.');admAcao('${id}','apagar')">Apagar definitivamente</button></div>`);
 }

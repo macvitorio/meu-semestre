@@ -1,7 +1,7 @@
 // Painel de administração (somente e-mails listados em ADMIN_EMAILS)
 // GET  → lista de contas com plano e resumo de uso
-// POST → { userId, acao: 'cortesia' | 'remover' | 'dias', dias }
-import { usuario, admin, ehAdmin, planoDe } from './_premium.js';
+// POST → { userId, acao: 'cortesia' | 'remover' | 'dias' | 'apagar', dias }
+import { usuario, admin, ehAdmin, planoDe, mp } from './_premium.js';
 
 export default async function handler(req, res) {
   const user = await usuario(req);
@@ -13,6 +13,17 @@ export default async function handler(req, res) {
     const { userId, acao, dias } = req.body || {};
     const { data: alvo } = await db.auth.admin.getUserById(userId);
     if (!alvo?.user) return res.status(404).json({ error: 'Conta não encontrada.' });
+    if (acao === 'apagar') {
+      if (userId === user.id) return res.status(400).json({ error: 'Você não pode apagar a própria conta por aqui.' });
+      const { data: a } = await db.from('assinaturas').select('mp_preapproval_id,status').eq('user_id', userId).maybeSingle();
+      if (a?.mp_preapproval_id && a.status === 'ativa' && process.env.MP_ACCESS_TOKEN) {
+        try { await mp(`/preapproval/${a.mp_preapproval_id}`, { method: 'PUT', body: JSON.stringify({ status: 'cancelled' }) }); } catch { return res.status(502).json({ error: 'Não consegui cancelar a assinatura no Mercado Pago. Cancele lá antes de apagar.' }); }
+      }
+      // dados, plano, lembretes e uso da IA são apagados junto (on delete cascade)
+      const { error } = await db.auth.admin.deleteUser(userId);
+      if (error) return res.status(500).json({ error: error.message });
+      return res.status(200).json({ ok: true, apagada: true });
+    }
     const atual = await planoDe(db, alvo.user);
     const agora = new Date().toISOString();
     let mud;
