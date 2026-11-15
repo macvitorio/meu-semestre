@@ -131,7 +131,10 @@ async function entrar(u) {
   setSync('busy');
   const { data, error } = await sb.from('user_data').select('data,updated_at').eq('user_id', u.id).maybeSingle();
   if (error) return setSync('off');
-  if (data?.data && Object.keys(data.data).length) { S = migrar(data.data); saveLocal(); setSync('ok'); }
+  if (data?.data && Object.keys(data.data).length) {
+    S = migrar(data.data);
+    if (JSON.stringify(S) !== JSON.stringify(data.data)) save(); else { saveLocal(); setSync('ok'); } // grava na nuvem a limpeza de duplicadas
+  }
   else {
     const local = loadLocal(':local');
     if (local?.materias?.length) { S = migrar(local); toast('Seus dados deste aparelho foram enviados para sua conta.'); }
