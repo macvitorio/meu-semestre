@@ -295,7 +295,7 @@ V.inicio = () => {
   const h = hoje(), ag = agendaDoDia(h), agora = new Date(), mins = agora.getHours() * 60 + agora.getMinutes();
   const nome = (S.perfil.nome || '').split(' ')[0];
   const sauda = agora.getHours() < 12 ? 'Bom dia' : agora.getHours() < 18 ? 'Boa tarde' : 'Boa noite';
-  let html = `<div class="stack"><div style="padding:6px 2px 4px"><p class="mu" style="text-transform:capitalize">${agora.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</p><h1>${sauda}${nome ? ', ' + esc(nome) : ''} 👋</h1></div>`;
+  let html = `<div class="stack"><div style="padding:6px 2px 4px"><p class="mu cap1">${agora.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</p><h1>${sauda}${nome ? ', ' + esc(nome) : ''} 👋</h1></div>`;
   if (!S.materias.length) return html + vazio('spark', 'Vamos montar seu semestre', 'Envie o PDF ou um print do plano de ensino de cada disciplina. Grade, faltas permitidas, avaliações e conteúdos são criados automaticamente — e você pode editar tudo depois.', ctaImportar) + '</div>';
   html += cardInstalar();
   if (!S.semestre.inicio) html += `<div class="card tap" onclick="configSheet()"><div class="row">${ic('alert')}<div class="sp"><b>Defina as datas do semestre</b><div class="mu">Necessário para calcular os dias de aula e as faltas.</div></div>${ic('right')}</div></div>`;
