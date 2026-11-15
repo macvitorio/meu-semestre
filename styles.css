@@ -294,3 +294,12 @@ html,body{overflow-x:hidden;max-width:100%}
 .li input[type=date]{max-width:148px;flex:none}
 @media(max-width:380px){.li input[type=date]{max-width:132px;font-size:15px}}
 .top{max-width:100vw}
+
+/* nada selecionável/arrastável fora de campos de texto; links sem prévia no toque longo */
+*:not(input):not(textarea):not(select):not([contenteditable]){-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+a,img,svg{-webkit-user-drag:none;-webkit-touch-callout:none}
+/* cabeçalho: título central não ocupa espaço; status vira só o ponto em telas pequenas */
+.top{position:sticky}
+.top .ttl{position:absolute;left:50%;transform:translate(-50%,6px);max-width:55vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none}
+.top.scrolled .ttl{transform:translate(-50%,0)}
+@media(max-width:430px){.sync span{display:none}.sync{padding:8px}}

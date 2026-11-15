@@ -785,7 +785,7 @@ function cardInstalar() {
 async function instalar() {
   if (promptInstalar) { promptInstalar.prompt(); await promptInstalar.userChoice; promptInstalar = null; render(); return; }
   sheet(`<h2>Instalar no iPhone</h2><p class="mu" style="margin-top:6px">Abra este site no <b>Safari</b> e siga:</p>
-    <ol class="ios-steps"><li>Toque em <b>Compartilhar</b> (quadrado com seta ↑) na barra do Safari</li><li>Role e toque em <b>Adicionar à Tela de Início</b></li><li>Toque em <b>Adicionar</b>. O ícone aparece na sua tela inicial</li></ol>
+    <ol class="ios-steps"><li><span>Toque em <b>Compartilhar</b> (quadrado com seta ↑) na barra do Safari</span></li><li><span>Role e toque em <b>Adicionar à Tela de Início</b></span></li><li><span>Toque em <b>Adicionar</b>. O ícone aparece na sua tela inicial</span></li></ol>
     <p class="mu" style="margin-top:12px">Se você já tinha adicionado antes, remova o ícone antigo e adicione de novo para atualizar o ícone.</p>
     <div class="actions"><button class="btn pr block" onclick="closeSheet()">Entendi</button></div>`);
 }
@@ -966,3 +966,22 @@ addEventListener('load', () => setTimeout(() => {
   try { if (localStorage.getItem(KEY + ':ios-dica')) return; localStorage.setItem(KEY + ':ios-dica', 1); } catch { return; }
   instalar();
 }, 1500));
+
+// ================= Comportamento de app nativo (sem zoom, sem seleção, sem menu de toque longo) =================
+(() => {
+  const editavel = el => el && el.closest && el.closest('input,textarea,select,[contenteditable]');
+  // iOS ignora user-scalable=no: bloqueia gesto de pinça e zoom de duplo toque
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive: false }));
+  document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+  let ultimoToque = 0;
+  document.addEventListener('touchend', e => { const agora = Date.now(); if (agora - ultimoToque < 300 && !editavel(e.target)) e.preventDefault(); ultimoToque = agora; }, { passive: false });
+  // sem menu de "copiar / abrir link" ao segurar o dedo, e sem arrastar imagens
+  document.addEventListener('contextmenu', e => { if (!editavel(e.target)) e.preventDefault(); });
+  document.addEventListener('selectstart', e => { if (!editavel(e.target)) e.preventDefault(); });
+  document.addEventListener('dragstart', e => { if (!editavel(e.target)) e.preventDefault(); });
+  // ctrl/cmd + roda do mouse ou + / - não dão zoom no app instalado
+  if (standalone()) {
+    addEventListener('wheel', e => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
+    addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && ['+', '-', '=', '0'].includes(e.key)) e.preventDefault(); });
+  }
+})();
