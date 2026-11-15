@@ -148,7 +148,7 @@ function renderAuth() {
     <h1>${authMode === 'criar' ? 'Crie sua conta' : 'Seu semestre, organizado'}</h1>
     <p class="mu" style="margin:6px 0 22px">Frequência, grade, notas e estudos — montados a partir do plano de ensino.</p>
     ${semBackend ? `<div class="card flat" style="margin-bottom:16px"><div class="row">${ic('alert')}<span class="sm">Login indisponível neste ambiente (Supabase não configurado). Você pode usar o app só neste aparelho.</span></div></div>` : `
-    <button class="btn block" onclick="loginGoogle()">${GOOGLE} Continuar com Google</button>
+    <div id="gbtn" style="min-height:44px;display:flex;justify-content:center"><button class="btn block" onclick="loginGoogle()">${GOOGLE} Continuar com Google</button></div>
     <div class="divider">ou com e-mail</div>
     <form class="fields" onsubmit="event.preventDefault();loginEmail()">
       ${authMode === 'criar' ? `<label class="f">Nome<input id="a-nome" autocomplete="name" required></label>` : ''}
@@ -164,6 +164,7 @@ function renderAuth() {
     <button class="btn ${semBackend ? 'pr' : ''} block" onclick="entrarLocal()">Usar sem conta (só neste aparelho)</button>
     <p class="mu" style="text-align:center;margin-top:18px">App independente, não oficial da UFSC.<br><a href="privacidade.html" style="color:inherit">Privacidade</a> · <a href="termos.html" style="color:inherit">Termos</a></p>
   </div></div>`;
+  montarGoogle();
 }
 async function loginGoogle() {
   const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } });
@@ -985,3 +986,33 @@ addEventListener('load', () => setTimeout(() => {
     addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && ['+', '-', '=', '0'].includes(e.key)) e.preventDefault(); });
   }
 })();
+
+// ================= Login com Google dentro do app (Google Identity Services) =================
+// Mostra "Meu Semestre" e o endereço do app na tela do Google, em vez do domínio do Supabase.
+let gisNonce = null;
+const sha256 = async t => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)))].map(b => b.toString(16).padStart(2, '0')).join('');
+function carregarGIS() {
+  return window.google?.accounts?.id ? Promise.resolve() : new Promise((ok, err) => {
+    const sc = document.createElement('script'); sc.src = 'https://accounts.google.com/gsi/client'; sc.async = true; sc.onload = ok; sc.onerror = err; document.head.append(sc);
+  });
+}
+async function montarGoogle() {
+  const box = $('#gbtn');
+  if (!box || !cfg.googleClientId || !sb) return; // sem Client ID: usa o login antigo (redirecionamento)
+  try {
+    await carregarGIS();
+    gisNonce = crypto.randomUUID();
+    google.accounts.id.initialize({
+      client_id: cfg.googleClientId, nonce: await sha256(gisNonce), callback: entrarComGoogle,
+      ux_mode: 'popup', auto_select: false, itp_support: true, use_fedcm_for_prompt: true, context: 'signin',
+    });
+    const escuro = getComputedStyle(document.body).backgroundColor.match(/\d+/g).slice(0, 3).reduce((a, n) => a + +n, 0) < 300;
+    box.innerHTML = '';
+    google.accounts.id.renderButton(box, { type: 'standard', theme: escuro ? 'filled_black' : 'outline', size: 'large', text: 'continue_with', shape: 'pill', logo_alignment: 'center', width: Math.min(400, box.clientWidth || 340), locale: 'pt-BR' });
+    google.accounts.id.prompt(); // "One Tap": cartão do Google que aparece por cima do app
+  } catch { /* mantém o botão antigo */ }
+}
+async function entrarComGoogle({ credential }) {
+  const { error } = await sb.auth.signInWithIdToken({ provider: 'google', token: credential, nonce: gisNonce });
+  if (error) toast('Não foi possível entrar com o Google: ' + error.message);
+}
