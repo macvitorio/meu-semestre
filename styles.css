@@ -379,3 +379,21 @@ body{min-height:100%;min-height:100dvh}
 @media(min-width:1400px){nav.bn{width:256px}body.app{padding-left:256px}}
 @media(min-width:900px){.nav-brand{order:-2}nav.bn a.fab{order:-1}}
 @media(max-width:899px){.kpi{padding:12px 14px}.kpi .kpi-ic{display:none}.kpi-v{font-size:22px}.kpi .sm{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
+
+/* ================= Premium e Admin ================= */
+.pw-top{width:60px;height:60px;border-radius:18px;margin:4px auto 12px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,var(--pr),#7048e8)}
+.benef{display:grid;gap:12px}
+.plano-card{display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit}
+.plano-card.on{border-color:color-mix(in srgb,var(--pr) 45%,var(--bd))}
+.prem-hero{background:linear-gradient(135deg,var(--pr),#7048e8);color:#fff;border:0;padding:24px}
+.planos{display:grid;gap:12px}
+.plano{position:relative;display:flex;flex-direction:column;gap:8px}
+.plano.destaque{border:2px solid var(--pr)}
+.plano .selo{position:absolute;top:-11px;left:16px;background:var(--pr);color:var(--pr-tx);font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px}
+.preco{font-size:30px;font-weight:700;letter-spacing:-.02em}
+.preco small{font-size:14px;font-weight:500;color:var(--tx-2);margin-left:4px}
+.adm-lista>.adm-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--bd)}
+.adm-lista>.adm-row:first-child{border-top:0}
+.adm-pl{text-align:right;flex:none}
+@media(min-width:900px){.planos{grid-template-columns:1fr 1fr;gap:16px}.prem-hero{padding:36px}}
+@media(max-width:600px){.adm-row .adm-pl .mu{display:none}}

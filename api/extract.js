@@ -2,6 +2,7 @@
 // Exige usuário logado no Supabase (token no header Authorization).
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
+import { admin, ehPremium, periodo, LIMITE_IA_GRATIS } from './_premium.js';
 
 export const config = { api: { bodyParser: { sizeLimit: '4.5mb' } } };
 
@@ -48,6 +49,19 @@ export default async function handler(req, res) {
   if (authErr || !auth?.user) return res.status(401).json({ error: 'Faça login novamente.' });
 
   const { tipo = 'outro', arquivos = [], contexto = {} } = req.body || {};
+
+  // Plano grátis: até LIMITE_IA_GRATIS leituras por semestre
+  const db = process.env.SUPABASE_SECRET_KEY ? admin() : null;
+  const per = periodo();
+  let premium = true, usos = 0;
+  if (db) {
+    premium = await ehPremium(db, auth.user);
+    if (!premium) {
+      const { data: u } = await db.from('ia_uso').select('usos').eq('user_id', auth.user.id).eq('periodo', per).maybeSingle();
+      usos = u?.usos || 0;
+      if (usos >= LIMITE_IA_GRATIS) return res.status(402).json({ error: `Você usou as ${LIMITE_IA_GRATIS} leituras grátis deste semestre. Assine o Premium para leituras ilimitadas.`, premium: true });
+    }
+  }
   if (!arquivos.length || arquivos.length > 8) return res.status(400).json({ error: 'Envie de 1 a 8 arquivos.' });
 
   const content = [];
@@ -73,7 +87,9 @@ export default async function handler(req, res) {
     if (response.stop_reason === 'refusal') return res.status(422).json({ error: 'Não foi possível processar este documento.' });
     if (response.stop_reason === 'max_tokens') return res.status(422).json({ error: 'Documento grande demais. Envie menos páginas por vez.' });
     const text = response.content.filter(b => b.type === 'text').map(b => b.text).join('');
-    return res.status(200).json(JSON.parse(text));
+    const dados = JSON.parse(text);
+    if (db && !premium) await db.from('ia_uso').upsert({ user_id: auth.user.id, periodo: per, usos: usos + 1 });
+    return res.status(200).json({ ...dados, _usos: premium ? null : { usados: usos + 1, limite: LIMITE_IA_GRATIS } });
   } catch (error) {
     if (error instanceof Anthropic.RateLimitError) return res.status(429).json({ error: 'Muitas solicitações. Tente em instantes.' });
     if (error instanceof Anthropic.BadRequestError) return res.status(400).json({ error: 'Arquivo não suportado ou corrompido.' });

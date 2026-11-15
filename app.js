@@ -131,13 +131,14 @@ async function entrar(u) {
     save();
   }
   render();
+  carregarPlano();
 }
 function entrarLocal() { modoLocal = true; user = null; try { localStorage.setItem(KEY + ':modo', 'local'); } catch { } S = migrar(loadLocal(':local')); startApp(); }
 async function sair() {
   closeSheet();
   try { localStorage.removeItem(KEY + ':modo'); } catch { }
   if (sb && user) await sb.auth.signOut();
-  user = null; modoLocal = false; renderAuth();
+  user = null; modoLocal = false; PLANO = { premium: false, plano: 'gratis', admin: false, ia: { usados: 0, limite: 3 } }; try { localStorage.removeItem(KEY + ':plano'); } catch { } renderAuth();
 }
 
 // ================= Tela de login =================
@@ -277,12 +278,12 @@ function render() {
   const cur = R.v === 'disc' ? 'disciplinas' : R.v;
   $('#nav').innerHTML = NAV.map(([k, i, l]) => k === 'atualizar'
     ? `<a href="#/atualizar" class="fab ${cur === k ? 'on' : ''}"><span class="circ">${ic(i, 24)}</span><small>${l}</small></a>`
-    : `<a href="#/${k}" class="${cur === k ? 'on' : ''}">${ic(i, 22)}${l}</a>`).join('') + `<div class="cfg-link"><a href="#/config" class="${cur === 'config' ? 'on' : ''}">${ic('gear', 22)}Configurações</a>
+    : `<a href="#/${k}" class="${cur === k ? 'on' : ''}">${ic(i, 22)}${l}</a>`).join('') + `<div class="cfg-link">${PLANO.admin ? `<a href="#/admin" class="${cur === 'admin' ? 'on' : ''}">${ic('user', 22)}Admin</a>` : ''}${!premium() && user ? `<a href="#/premium" class="${cur === 'premium' ? 'on' : ''}">${ic('spark', 22)}Seja Premium</a>` : ''}<a href="#/config" class="${cur === 'config' ? 'on' : ''}">${ic('gear', 22)}Configurações</a>
     <a href="#/config" class="eu"><span class="avatar">${esc(((S.perfil.nome || user?.email || '?').trim()[0] || '?').toUpperCase())}</span><span class="tx"><b>${esc(S.perfil.nome || 'Sem nome')}</b><small>${esc(user?.email || 'Neste aparelho')}</small></span></a></div>`;
   $('#nav').insertAdjacentHTML('afterbegin', `<a href="#/inicio" class="nav-brand">${marca()}<b>Meu Semestre</b></a>`);
   aplicarTema();
   $('#view').innerHTML = (V[R.v] || V.inicio)();
-  const t = $('#ttl'); if (t) t.textContent = R.v === 'disc' ? nomeM(byId(R.id)) : R.v === 'config' ? 'Configurações' : (NAV.find(n => n[0] === cur) || [, , ''])[2];
+  const t = $('#ttl'); if (t) t.textContent = R.v === 'disc' ? nomeM(byId(R.id)) : R.v === 'config' ? 'Configurações' : R.v === 'premium' ? 'Premium' : R.v === 'admin' ? 'Admin' : (NAV.find(n => n[0] === cur) || [, , ''])[2];
 }
 
 // ================= Componentes =================
@@ -553,7 +554,9 @@ async function processar() {
         body: JSON.stringify({ tipo: UP.tipo, arquivos: UP.arquivos.map(({ mediaType, data, name }) => ({ mediaType, data, name })), contexto: { ano: (S.semestre.inicio || hoje()).slice(0, 4), disciplinas: S.materias.map(m => ({ codigo: m.codigo, nome: m.nome, avaliacoes: m.avaliacoes.map(a => a.nome) })) } }),
       }).finally(() => clearInterval(t));
       res = await r.json().catch(() => ({ error: 'Resposta inválida do servidor.' }));
+      if (r.status === 402) { UP.fase = 'enviar'; render(); exigirPremium(res.error); return; }
       if (!r.ok) throw new Error(res.error || 'Falha ao processar.');
+      if (res._usos) { PLANO.ia = res._usos; }
     } else {
       res = { resumo: '', semestre: { inicio: '', fim: '' }, feriados: [], disciplinas: [], eventos: [], historico: [] };
       for (const a of UP.arquivos) {
@@ -643,7 +646,9 @@ function revisarView() {
 function marcarGrupo(g) { const ms = UP.mudancas.filter(m => m.grupo === g), v = !ms.every(m => m.on); ms.forEach(m => m.on = v); render(); }
 function aplicar() {
   const backup = JSON.stringify(S), ms = UP.mudancas.filter(m => m.on);
-  ms.filter(m => m.grupo === 'Nova disciplina').forEach(m => m.apply());
+  const novas = ms.filter(m => m.grupo === 'Nova disciplina');
+  if (!premium() && S.materias.length + novas.length > LIMITE_DISC) { exigirPremium(`O plano grátis permite até ${LIMITE_DISC} disciplinas. Desmarque algumas ou assine o Premium.`); return; }
+  novas.forEach(m => m.apply());
   ms.filter(m => m.grupo !== 'Nova disciplina').forEach(m => m.apply());
   S.materias.forEach(m => { m.avaliacoes = juntarDuplicadas(m.avaliacoes); }); S.eventos = limparEventos(S);
   save(); resetUP(false);
@@ -675,6 +680,7 @@ function excluirComDesfazer(msg, fn) { const b = JSON.stringify(S); closeSheet()
 
 let draftH = [];
 function discSheet(id) {
+  if (!id && S.materias.length >= LIMITE_DISC && !exigirPremium(`O plano grátis permite até ${LIMITE_DISC} disciplinas.`)) return;
   const m = id ? byId(id) : { codigo: '', nome: '', professor: '', turma: '', cargaHoraria: '', cor: CORES[S.materias.length % CORES.length], horarios: [] };
   draftH = structuredClone(m.horarios);
   sheet(`<h2>${id ? 'Editar disciplina' : 'Nova disciplina'}</h2><div class="fields" style="margin-top:14px">
@@ -844,6 +850,7 @@ async function instalar() {
 // ================= Notificações (Web Push) =================
 const b64ToU8 = b => { const p = '='.repeat((4 - b.length % 4) % 4), r = atob((b + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(r, c => c.charCodeAt(0)); };
 async function alternarNotif(on) {
+  if (on && !exigirPremium('Lembretes diários fazem parte do Premium.')) { const c = $('#c-notif'); if (c) c.checked = false; return; }
   const reverter = () => { const c = $('#c-notif'); if (c) c.checked = !on; };
   if (!user) { reverter(); return toast('Entre com sua conta para receber lembretes.'); }
   if (!cfg.vapidPublicKey) { reverter(); return toast('Lembretes ainda não configurados no servidor.'); }
@@ -870,6 +877,7 @@ async function alternarNotif(on) {
 
 // ================= Google Agenda (.ics) =================
 function exportarAgenda() {
+  if (!exigirPremium('Exportar para o Google Agenda faz parte do Premium.')) return;
   if (!S.materias.length) return toast('Cadastre disciplinas primeiro.');
   const tz = 'America/Sao_Paulo', z = s => s.replace(/-/g, ''), escI = t => String(t || '').replace(/([,;\\])/g, '\\$1').replace(/\n/g, '\\n');
   const stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
@@ -899,6 +907,7 @@ async function baixarOuCompartilhar(file) {
 
 // ================= Grade como imagem =================
 async function compartilharGrade() {
+  if (!exigirPremium('Compartilhar a grade como imagem faz parte do Premium.')) return;
   const dias = [2, 3, 4, 5, 6, 7].filter(d => d < 7 || S.materias.some(m => m.horarios.some(h => +h.dia === 7)));
   const oc = {};
   S.materias.forEach(m => m.horarios.forEach(h => { const i = SLOTS.indexOf(h.inicio); for (let k = 0; k < (+h.aulas || 1); k++) { const s = SLOTS[i + k]; if (s) oc[h.dia + s] = { m, h, first: !k }; } }));
@@ -945,7 +954,8 @@ function aplicarTema(t = S.perfil.tema || 'sistema', c = S.perfil.cor || '') {
 (() => { try { const x = JSON.parse(localStorage.getItem(KEY + ':tema')); if (x) addEventListener('DOMContentLoaded', () => aplicarTema(x.t, x.c)); } catch { } })();
 matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => aplicarTema());
 function setTema(t) { vibrar(8); S.perfil.tema = t; save(); render(); }
-function setCor(c) { vibrar(8); S.perfil.cor = c; save(); render(); }
+function setCor(c) {
+  if (!exigirPremium('Personalizar a cor do app faz parte do Premium.')) return; vibrar(8); S.perfil.cor = c; save(); render(); }
 
 // ================= Tela de Configurações =================
 const li = (icone, cor, titulo, sub, direita = '', attrs = '') => `<${attrs.startsWith('onclick') ? 'button' : attrs.startsWith('for') ? 'label' : 'div'} class="li" ${attrs}><span class="ico" style="background:${cor}">${ic(icone)}</span><span class="tx">${titulo}${sub ? `<small>${sub}</small>` : ''}</span>${direita}</${attrs.startsWith('onclick') ? 'button' : attrs.startsWith('for') ? 'label' : 'div'}>`;
@@ -956,6 +966,7 @@ V.config = () => {
   const ini = (nome || user?.email || '?').trim()[0].toUpperCase();
   return `<div class="stack"><h1>Configurações</h1><div class="cfg">
 
+  ${secaoPlano()}
   <section class="grp full"><div class="card"><div class="perfil"><div class="avatar">${esc(ini)}</div><div class="sp">
     <input class="inl" style="font-weight:600;font-size:17px;background:none;border:0;padding:0;min-height:0;box-shadow:none" value="${esc(nome)}" placeholder="Seu nome" aria-label="Seu nome" onchange="S.perfil.nome=this.value.trim();save();toast('Nome salvo.')">
     <div class="mu">${user ? esc(user.email) + ' · ' + (syncState === 'off' ? 'offline' : 'sincronizado') : 'Sem conta — dados só neste aparelho'}</div></div></div></div></section>
@@ -1070,6 +1081,7 @@ async function entrarComGoogle({ credential }) {
 // ================= Grade de cores (arrastar o dedo para escolher) =================
 const hex = (h, sat, l) => { l /= 100; const a = sat * Math.min(l, 1 - l) / 100, f = n => { const k = (n + h / 30) % 12, c = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1); return Math.round(255 * c).toString(16).padStart(2, '0'); }; return '#' + f(0) + f(8) + f(4); };
 function gradeCores() {
+  if (!exigirPremium('Personalizar a cor do app faz parte do Premium.')) return;
   const hues = [0, 15, 30, 45, 60, 90, 130, 160, 185, 205, 225, 250, 275, 300, 330], luz = [78, 66, 56, 46, 38, 30];
   const cores = [...luz.flatMap(l => hues.map(h => hex(h, l > 70 ? 70 : 78, l))), ...hues.map((_, i) => hex(220, 8, 92 - i * 6))];
   let escolhida = S.perfil.cor || CORES_APP[0];
@@ -1086,4 +1098,125 @@ function gradeCores() {
   g.addEventListener('pointerdown', e => { g.setPointerCapture(e.pointerId); em(e); });
   g.addEventListener('pointermove', e => { if (e.buttons || e.pointerType === 'touch') em(e); });
   $('#usar').onclick = () => { closeSheet(); setCor(escolhida); };
+}
+
+
+// ================= Plano / Premium =================
+const LIMITE_DISC = 3;
+let PLANO = { premium: false, plano: 'gratis', admin: false, ia: { usados: 0, limite: 3 } };
+try { const c = JSON.parse(localStorage.getItem(KEY + ':plano')); if (c) PLANO = c; } catch { }
+const premium = () => !!PLANO.premium;
+const fmtData = d => d ? new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }) : '';
+const diasRestam = d => Math.max(0, Math.ceil((new Date(d) - new Date()) / 864e5));
+async function tokenAtual() { return (await sb?.auth.getSession())?.data?.session?.access_token; }
+async function carregarPlano() {
+  if (!sb || !user) return;
+  try {
+    const r = await fetch('/api/meu-plano', { headers: { Authorization: 'Bearer ' + await tokenAtual() } });
+    if (r.ok) { PLANO = await r.json(); try { localStorage.setItem(KEY + ':plano', JSON.stringify(PLANO)); } catch { } render(); }
+  } catch { }
+}
+function exigirPremium(motivo) {
+  if (premium()) return true;
+  sheet(`<div class="pw-top">${ic('spark', 28)}</div><h2 style="text-align:center">Recurso Premium</h2><p class="mu" style="text-align:center;margin:6px 0 16px">${esc(motivo || '')}</p>
+    ${listaBeneficios()}
+    <div class="actions">${user ? `<button class="btn" onclick="closeSheet()">Agora não</button><button class="btn pr sp" onclick="closeSheet();go('premium')">Ver planos</button>` : `<button class="btn" onclick="closeSheet()">Agora não</button><button class="btn pr sp" onclick="sair()">Criar conta (30 dias grátis)</button>`}</div>`);
+  return false;
+}
+const BENEFICIOS = [['book', 'Disciplinas ilimitadas', `O grátis tem até ${LIMITE_DISC}`], ['spark', 'Leituras ilimitadas com IA', 'Prints e PDFs sem limite'], ['bell', 'Lembretes diários às 7h', 'Aulas, provas e faltas'], ['cal', 'Exportar para Google Agenda', 'Aulas, provas e feriados'], ['share', 'Grade como imagem', 'Para WhatsApp e Stories'], ['palette', 'Cores personalizadas', 'Deixe o app com a sua cara']];
+const listaBeneficios = () => `<div class="benef">${BENEFICIOS.map(([i, t, d]) => `<div class="row"><span class="kpi-ic" style="margin:0;color:var(--pr);background:var(--pr-2)">${ic(i, 18)}</span><div class="sp"><b class="sm">${t}</b><div class="mu">${d}</div></div><span style="color:var(--ok)">${ic('check', 18)}</span></div>`).join('')}</div>`;
+function secaoPlano() {
+  if (!user) return '';
+  const p = PLANO, nome = { teste: 'Teste grátis', mensal: 'Premium mensal', semestral: 'Premium semestral', cortesia: 'Premium (cortesia)', manual: 'Premium', gratis: 'Grátis' }[p.plano] || 'Grátis';
+  const sub = !p.premium ? 'Recursos básicos' : p.plano === 'cortesia' ? 'Sem data de vencimento' : p.plano === 'teste' ? `Termina em ${diasRestam(p.premium_ate)} dia(s), ${fmtData(p.premium_ate)}` : p.status === 'cancelada' ? `Cancelado · vale até ${fmtData(p.premium_ate)}` : `Válido até ${fmtData(p.premium_ate)}`;
+  return `<section class="grp full"><h4>Seu plano</h4><a class="card plano-card ${p.premium ? 'on' : ''}" href="#/premium"><span class="kpi-ic" style="margin:0;color:#fff;background:${p.premium ? 'var(--pr)' : 'var(--tx-2)'}">${ic('spark', 18)}</span><div class="sp"><b>${nome}</b><div class="mu">${sub}</div></div><span class="btn sm ${p.premium && p.plano !== 'teste' ? '' : 'pr'}">${p.premium && p.plano !== 'teste' ? 'Gerenciar' : 'Assinar'}</span></a></section>`;
+}
+V.premium = () => {
+  const p = PLANO, sub = R.id;
+  if (sub === 'ok' || sub === 'pendente') {
+    if (!p.premium || p.plano === 'teste') setTimeout(aguardarPagamento, 2500);
+    return `<div class="stack"><div class="card empty" style="margin-top:12px">${p.premium && p.plano !== 'teste' ? `<div class="ic" style="background:var(--ok-2);color:var(--ok)">${ic('check', 26)}</div><h2>Premium ativado! 🎉</h2><p class="mu" style="margin:6px 0 16px">Válido até ${fmtData(p.premium_ate)}. Obrigado por apoiar o Meu Semestre.</p><a class="btn pr" href="#/inicio">Ir para o início</a>` : `<div class="spin"></div><h2 style="margin-top:16px">${sub === 'pendente' ? 'Aguardando o pagamento' : 'Confirmando seu pagamento'}…</h2><p class="mu" style="margin:6px 0 16px">${sub === 'pendente' ? 'Pagamentos por Pix costumam cair em segundos. Assim que confirmar, o Premium libera sozinho.' : 'Só um instante, estamos liberando o Premium.'}</p><a class="btn" href="#/inicio">Voltar ao app</a>`}</div></div>`;
+  }
+  if (sub === 'erro') setTimeout(() => toast('O pagamento não foi concluído. Tente novamente.'), 300);
+  const ativo = p.premium && p.plano !== 'teste';
+  return `<div class="stack"><div class="card prem-hero"><span class="tag" style="background:rgba(255,255,255,.18);color:#fff">${ic('spark', 14)} Meu Semestre Premium</span>
+      <h1 style="color:#fff;margin:12px 0 6px">${ativo ? 'Você é Premium 💜' : 'Tudo do seu semestre, sem limites'}</h1>
+      <p style="opacity:.85;margin:0">${ativo ? (p.plano === 'cortesia' ? 'Sua conta tem Premium de cortesia.' : `Válido até ${fmtData(p.premium_ate)}${p.status === 'cancelada' ? ' · renovação cancelada' : ''}.`) : p.premium ? `Seu teste grátis termina em ${diasRestam(p.premium_ate)} dia(s). Assine para não perder nada.` : 'Seu teste grátis terminou. Assine e continue com tudo liberado.'}</p></div>
+    ${ativo ? '' : `<div class="planos">
+      <div class="card plano destaque"><span class="selo">Mais escolhido · economize 40%</span><h3>Semestral</h3><div class="preco">R$ 24,90<small>/semestre</small></div><p class="mu">Equivale a R$ 4,15 por mês. Pague com <b>Pix</b> ou cartão, sem renovação automática.</p><button class="btn pr block" onclick="assinar('semestral',this)">Assinar semestral</button></div>
+      <div class="card plano"><h3>Mensal</h3><div class="preco">R$ 6,90<small>/mês</small></div><p class="mu">Cobrança automática no cartão. Cancele quando quiser, direto pelo app.</p><button class="btn block" onclick="assinar('mensal',this)">Assinar mensal</button></div></div>`}
+    <div class="card"><h3 style="margin-bottom:10px">O que vem no Premium</h3>${listaBeneficios()}</div>
+    ${p.mensal ? `<button class="btn danger block" onclick="cancelarAssinatura()">Cancelar renovação mensal</button>` : ''}
+    <p class="mu" style="text-align:center">Pagamento processado pelo Mercado Pago. Arrependimento em até 7 dias: devolvemos o valor. <a href="termos.html">Termos</a></p></div>`;
+};
+async function assinar(plano, btn) {
+  if (!user) return exigirPremium('Crie uma conta para assinar.');
+  if (!PLANO.pagamentos) return toast('Pagamentos em breve! Por enquanto aproveite o teste grátis.');
+  btn.disabled = true; btn.textContent = 'Abrindo o Mercado Pago…';
+  try {
+    const r = await fetch('/api/assinar', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + await tokenAtual() }, body: JSON.stringify({ plano }) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error);
+    location.href = d.url;
+  } catch (e) { toast(e.message || 'Erro ao abrir o pagamento.'); btn.disabled = false; btn.textContent = 'Tentar de novo'; }
+}
+let tentativasPg = 0;
+async function aguardarPagamento() {
+  if (R.v !== 'premium' || !['ok', 'pendente'].includes(R.id) || tentativasPg++ > 40) return;
+  await carregarPlano();
+}
+function cancelarAssinatura() {
+  sheet(`<h2>Cancelar a renovação?</h2><p class="mu" style="margin:8px 0">Você não será mais cobrado. O Premium continua até ${fmtData(PLANO.premium_ate)}.</p>
+    <div class="actions"><button class="btn" onclick="closeSheet()">Manter</button><button class="btn pr sp" style="background:var(--bad);border-color:var(--bad)" id="cc">Cancelar renovação</button></div>`);
+  $('#cc').onclick = async () => {
+    const r = await fetch('/api/cancelar', { method: 'POST', headers: { Authorization: 'Bearer ' + await tokenAtual() } });
+    const d = await r.json(); closeSheet(); toast(r.ok ? 'Renovação cancelada.' : d.error); carregarPlano();
+  };
+}
+
+// ================= Admin =================
+let ADM = null, admBusca = '', admFiltro = 'todos';
+V.admin = () => {
+  if (!PLANO.admin) { setTimeout(() => go('inicio')); return ''; }
+  if (!ADM) { carregarAdmin(); return `<div class="card empty" style="margin-top:24px"><div class="spin"></div><p class="mu" style="margin-top:12px">Carregando contas…</p></div>`; }
+  const r = ADM.resumo, b = norm(admBusca);
+  const lista = ADM.contas.filter(c => (!b || norm(c.email + ' ' + c.nome).includes(b)) && (admFiltro === 'todos' || (admFiltro === 'premium' ? c.premium : admFiltro === 'gratis' ? !c.premium : c.plano === admFiltro)));
+  const pl = c => ({ teste: ['Teste', 'neu'], mensal: ['Mensal', 'ok'], semestral: ['Semestral', 'ok'], cortesia: ['Cortesia', 'ok'], manual: ['Manual', 'ok'], gratis: ['Grátis', 'neu'] }[c.plano] || [c.plano, 'neu']);
+  return `<div class="stack"><div class="pg-h"><div><p class="mu">Somente você vê esta tela</p><h1>Admin</h1></div><button class="btn" onclick="ADM=null;render()">${ic('hist', 18)} Atualizar</button></div>
+    <div class="kpis">
+      <div class="kpi card"><div class="mu">Contas</div><div class="kpi-v">${r.total}</div><div class="mu sm">${r.premium} com Premium ativo</div></div>
+      <div class="kpi card"><div class="mu">Pagantes</div><div class="kpi-v">${r.pagantes}</div><div class="mu sm">mensal ou semestral</div></div>
+      <div class="kpi card"><div class="mu">Cortesias</div><div class="kpi-v">${r.cortesias}</div><div class="mu sm">não pagam</div></div>
+      <div class="kpi card"><div class="mu">Receita (Pix/avulso)</div><div class="kpi-v">R$ ${r.receita.toFixed(2).replace('.', ',')}</div><div class="mu sm">pagamentos aprovados</div></div></div>
+    <div class="row wrap"><input style="flex:1;min-width:200px" placeholder="Buscar por nome ou e-mail" value="${esc(admBusca)}" oninput="admBusca=this.value;clearTimeout(window._ab);window._ab=setTimeout(render,250)">
+      <div class="chips">${[['todos', 'Todos'], ['premium', 'Premium'], ['gratis', 'Sem Premium'], ['teste', 'Em teste'], ['cortesia', 'Cortesia']].map(([k, l]) => `<button class="chip ${admFiltro === k ? 'on' : ''}" onclick="admFiltro='${k}';render()">${l}</button>`).join('')}</div></div>
+    <div class="card" style="padding:0"><div class="adm-lista">${lista.map(c => `<div class="adm-row">
+      <div class="avatar" style="width:38px;height:38px;font-size:14px">${esc((c.nome || c.email || '?')[0].toUpperCase())}</div>
+      <div class="sp" style="min-width:0"><b class="sm">${esc(c.nome || '(sem nome)')}</b><div class="mu" style="overflow:hidden;text-overflow:ellipsis">${esc(c.email)} · ${c.provedor === 'google' ? 'Google' : 'e-mail'}</div>
+        <div class="mu">Criada ${new Date(c.criado).toLocaleDateString('pt-BR')} · ${c.disciplinas} disciplina(s)${c.ultimo_acesso ? ' · último acesso ' + new Date(c.ultimo_acesso).toLocaleDateString('pt-BR') : ''}</div></div>
+      <div class="adm-pl">${tag(pl(c)[0], c.premium ? pl(c)[1] : 'bad')}<div class="mu">${c.plano === 'cortesia' ? 'sem vencimento' : (c.premium ? 'até ' : 'venceu ') + new Date(c.premium_ate).toLocaleDateString('pt-BR')}</div></div>
+      <button class="ib" aria-label="Gerenciar conta" onclick="admConta('${c.id}')">${ic('pen', 18)}</button></div>`).join('') || '<p class="mu" style="padding:16px">Nenhuma conta encontrada.</p>'}</div></div></div>`;
+};
+async function carregarAdmin() {
+  const r = await fetch('/api/admin', { headers: { Authorization: 'Bearer ' + await tokenAtual() } });
+  const d = await r.json();
+  if (!r.ok) { toast(d.error || 'Erro ao carregar.'); return go('inicio'); }
+  ADM = d; render();
+}
+function admConta(id) {
+  const c = ADM.contas.find(x => x.id === id);
+  sheet(`<h2>${esc(c.nome || c.email)}</h2><p class="mu" style="margin:4px 0 14px">${esc(c.email)} · plano atual: <b>${esc(c.plano)}</b>, ${c.plano === 'cortesia' ? 'sem vencimento' : (c.premium ? 'até ' : 'venceu em ') + fmtData(c.premium_ate)}</p>
+    <div class="grp"><div class="card">
+      <button class="li" onclick="admAcao('${id}','cortesia')"><span class="ico" style="background:var(--ok)">${ic('spark')}</span><span class="tx">Dar Premium de cortesia<small>Não paga, sem data de vencimento</small></span></button>
+      <div class="li"><span class="ico" style="background:#1c7ed6">${ic('cal')}</span><span class="tx">Adicionar dias de Premium<small>Soma ao período atual</small></span><select id="adm-d" style="width:auto;min-height:36px">${[7, 30, 90, 183, 365].map(n => `<option value="${n}">${n} dias</option>`).join('')}</select><button class="btn sm pr" onclick="admAcao('${id}','dias',$('#adm-d').value)">Dar</button></div>
+      <button class="li danger" onclick="admAcao('${id}','remover')"><span class="ico" style="background:var(--bad)">${ic('x')}</span><span class="tx">Remover Premium<small>Volta para o plano grátis agora</small></span></button>
+    </div></div>
+    <p class="mu" style="margin-top:12px">Assinaturas mensais pagas são canceladas pelo próprio aluno ou no painel do Mercado Pago.</p>
+    <div class="actions"><button class="btn block" onclick="closeSheet()">Fechar</button></div>`);
+}
+async function admAcao(userId, acao, dias) {
+  const r = await fetch('/api/admin', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + await tokenAtual() }, body: JSON.stringify({ userId, acao, dias }) });
+  const d = await r.json(); closeSheet();
+  toast(r.ok ? 'Plano atualizado.' : d.error); ADM = null; render();
+  if (userId === user?.id) carregarPlano();
 }

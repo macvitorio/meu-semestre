@@ -50,12 +50,17 @@ export default async function handler(req, res) {
   const { data: subs, error } = await db.from('push_subscriptions').select('endpoint,user_id,subscription');
   if (error) return res.status(500).json({ error: error.message });
   const ids = [...new Set(subs.map(s => s.user_id))];
+  // lembretes diários são do Premium
+  const { data: prem } = ids.length ? await db.from('assinaturas').select('user_id,premium_ate').in('user_id', ids) : { data: [] };
+  const premium = new Set((prem || []).filter(p => p.premium_ate && new Date(p.premium_ate) > new Date()).map(p => p.user_id));
+  const comRegistro = new Set((prem || []).map(p => p.user_id));
+  for (const id of ids) if (!comRegistro.has(id)) { const { data: u } = await db.auth.admin.getUserById(id); if (u?.user && Date.now() - new Date(u.user.created_at) < 30 * 864e5) premium.add(id); }
   const { data: rows } = ids.length ? await db.from('user_data').select('user_id,data').in('user_id', ids) : { data: [] };
   const porUser = Object.fromEntries((rows || []).map(r => [r.user_id, r.data]));
 
   let enviados = 0, removidos = 0;
   await Promise.all(subs.map(async s => {
-    const S = porUser[s.user_id]; if (!S || S.perfil?.notif === false) return;
+    const S = porUser[s.user_id]; if (!S || S.perfil?.notif === false || !premium.has(s.user_id)) return;
     const msg = resumo(S); if (!msg) return;
     try { await webpush.sendNotification(s.subscription, JSON.stringify(msg), { TTL: 6 * 3600 }); enviados++; }
     catch (e) { if (e.statusCode === 404 || e.statusCode === 410) { await db.from('push_subscriptions').delete().eq('endpoint', s.endpoint); removidos++; } }
