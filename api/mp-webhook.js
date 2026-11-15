@@ -14,7 +14,7 @@ function assinaturaValida(req, id) {
   return h.length === partes.v1.length && crypto.timingSafeEqual(Buffer.from(h), Buffer.from(partes.v1));
 }
 
-async function gravarMensal(db, pre) {
+export async function gravarMensal(db, pre) {
   const userId = pre.external_reference;
   if (!userId) return;
   const ativa = pre.status === 'authorized';

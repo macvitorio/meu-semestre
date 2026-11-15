@@ -1163,6 +1163,7 @@ V.premium = () => {
       <div class="card plano"><h3>Mensal</h3><div class="preco">R$ 6,90<small>/mês</small></div><p class="mu">Cobrança automática no cartão. Cancele quando quiser, direto pelo app.</p><button class="btn block" onclick="assinar('mensal',this)">Assinar mensal</button></div></div>`}
     <div class="card"><h3 style="margin-bottom:10px">O que vem no Premium</h3>${listaBeneficios()}</div>
     ${p.mensal ? `<button class="btn danger block" onclick="cancelarAssinatura()">Cancelar renovação mensal</button>` : ''}
+    <button class="btn ghost block" onclick="verificarPagamento(true)">${ic('hist', 18)} Já paguei, verificar agora</button>
     <p class="mu" style="text-align:center">Pagamento processado pelo Mercado Pago. Arrependimento em até 7 dias: devolvemos o valor. <a href="termos.html">Termos</a></p></div>`;
 };
 async function assinar(plano, btn) {
@@ -1179,7 +1180,15 @@ async function assinar(plano, btn) {
 let tentativasPg = 0;
 async function aguardarPagamento() {
   if (R.v !== 'premium' || !['ok', 'pendente'].includes(R.id) || tentativasPg++ > 40) return;
+  if (tentativasPg % 3 === 1) await verificarPagamento(); // a cada ~7s consulta o Mercado Pago direto
   await carregarPlano();
+}
+async function verificarPagamento(avisar) {
+  try {
+    const r = await fetch('/api/verificar', { method: 'POST', headers: { Authorization: 'Bearer ' + await tokenAtual() } });
+    const d = await r.json();
+    if (avisar) { await carregarPlano(); toast(premium() && !['teste', 'gratis'].includes(PLANO.plano) ? 'Assinatura encontrada e ativada!' : d.erro ? 'Mercado Pago: ' + d.erro : 'Nenhum pagamento aprovado encontrado ainda.'); }
+  } catch { if (avisar) toast('Sem conexão.'); }
 }
 function cancelarAssinatura() {
   sheet(`<h2>Cancelar a renovação?</h2><p class="mu" style="margin:8px 0">Você não será mais cobrado. O Premium continua até ${fmtData(PLANO.premium_ate)}.</p>
