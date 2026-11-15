@@ -60,7 +60,18 @@ function migrar(d) {
   d = Object.assign(novoEstado(), d || {});
   d.feriados = (d.feriados || []).map(f => typeof f === 'string' ? { data: f, descricao: 'Sem aula' } : f);
   d.materias.forEach(m => { m.faltas ||= {}; m.canceladas ||= []; m.avaliacoes ||= []; m.topicos ||= []; m.horarios ||= []; });
+  d.materias.forEach(m => { m.avaliacoes = juntarDuplicadas(m.avaliacoes); });
   return d;
+}
+// junta avaliações repetidas (ex.: "Prova I" com peso/data + "P1" só com a nota) numa só
+function juntarDuplicadas(avs) {
+  const out = [];
+  for (const a of avs) {
+    const x = out.find(o => mesmaAv(o, a));
+    if (!x) { out.push(a); continue; }
+    for (const k of ['peso', 'data', 'nota']) if (!x[k] && a[k]) x[k] = a[k];
+  }
+  return out;
 }
 const byId = id => S.materias.find(m => m.id === id);
 const nomeM = m => m ? (m.nome || m.codigo) : '';
@@ -490,7 +501,7 @@ async function processar() {
       const t = setInterval(() => { const el = $('#up-etapa'); if (el) el.textContent = etapas[Math.min(++i, etapas.length - 1)]; }, 6000);
       const r = await fetch('/api/extract', {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token },
-        body: JSON.stringify({ tipo: UP.tipo, arquivos: UP.arquivos.map(({ mediaType, data, name }) => ({ mediaType, data, name })), contexto: { ano: (S.semestre.inicio || hoje()).slice(0, 4), disciplinas: S.materias.map(m => ({ codigo: m.codigo, nome: m.nome })) } }),
+        body: JSON.stringify({ tipo: UP.tipo, arquivos: UP.arquivos.map(({ mediaType, data, name }) => ({ mediaType, data, name })), contexto: { ano: (S.semestre.inicio || hoje()).slice(0, 4), disciplinas: S.materias.map(m => ({ codigo: m.codigo, nome: m.nome, avaliacoes: m.avaliacoes.map(a => a.nome) })) } }),
       }).finally(() => clearInterval(t));
       res = await r.json().catch(() => ({ error: 'Resposta inválida do servidor.' }));
       if (!r.ok) throw new Error(res.error || 'Falha ao processar.');
@@ -517,8 +528,16 @@ function acharMat(d) {
 const mid = cod => (S.materias.find(m => cod && norm(m.codigo) === norm(cod)) || {}).id || '';
 const okHor = h => DIAS[h.dia] && SLOTS.includes(h.inicio);
 const okData = d => /^\d{4}-\d{2}-\d{2}$/.test(d || '');
-// "Prova 2 (P2)", "P2" e "prova 2" viram a mesma chave "p2"
-const chavesAv = n => { n = norm(n); const k = new Set(n.match(/\b[a-z]{1,3}\d\b/g) || []); const d = n.match(/\d/); if (d) k.add(n[0] + d[0]); else k.add(n); return k; };
+// "Prova II", "Prova 2 (P2)", "P2" e "2ª prova" viram a mesma chave "p2"; "Seminários" = "Seminário"
+const ROM = { i: 1, ii: 2, iii: 3, iv: 4, v: 5, vi: 6, vii: 7, viii: 8 };
+function chavesAv(nome) {
+  let n = norm(nome).replace(/\b(viii|vii|vi|iv|v|iii|ii|i)\b/g, r => ROM[r]).replace(/(\d)\s*[ºª°o]/g, '$1');
+  const k = new Set(n.match(/\b[a-z]{1,3}\d\b/g) || []);
+  const pal = n.replace(/[^a-z0-9 ]/g, ' ').split(' ').filter(w => w.length > 1 && !['de', 'da', 'do', 'e'].includes(w));
+  const d = n.match(/\d+/)?.[0], letra = (pal.find(w => /^[a-z]/.test(w)) || 'x')[0];
+  if (d) k.add(letra + d); else pal.forEach(w => k.add(w.replace(/(oes|aes|ns|s)$/, m => ({ oes: 'ao', aes: 'ao', ns: 'm', s: '' })[m])));
+  return k;
+}
 const mesmaAv = (x, a) => norm(x.nome) === norm(a.nome) || [...chavesAv(a.nome)].some(k => chavesAv(x.nome).has(k));
 function montarMudancas(r) {
   const out = [], add = (grupo, titulo, detalhe, apply) => out.push({ id: uid(), grupo, titulo, detalhe, apply, on: true });

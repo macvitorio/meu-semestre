@@ -36,6 +36,8 @@ Regras:
 - "topicos" são itens do conteúdo programático, curtos, um por item.
 - "eventos": provas, entregas, trabalhos, feriados e datas do calendário; "tipo" é um de: prova, entrega, feriado, aula, outro. "codigo" é o código da disciplina relacionada, se houver.
 - "historico": disciplinas já cursadas (histórico escolar), com situação como aparece (Aprovado, Reprovado, FI etc.).
+- Se o aluno já cadastrou a disciplina (lista no contexto), use em "avaliacoes" EXATAMENTE os nomes já existentes. Ex.: o print mostra "P1" e já existe "Prova I" → use "Prova I"; "Seminário" e já existe "Seminários" → use "Seminários". Só crie nome novo se a avaliação realmente não existir.
+- Em prints de notas, preencha só "nome" e "nota" (peso e data vazios, a menos que apareçam).
 - "resumo": uma frase em português dizendo o que foi encontrado.`;
 
 export default async function handler(req, res) {
@@ -56,7 +58,7 @@ export default async function handler(req, res) {
   }
   content.push({
     type: 'text',
-    text: `Tipo informado pelo aluno: ${tipo}.\nAno de referência: ${contexto.ano || new Date().getFullYear()}.\nDisciplinas que o aluno já cadastrou (use o mesmo código quando o documento se referir a elas): ${JSON.stringify(contexto.disciplinas || []).slice(0, 4000)}\nExtraia os dados conforme o esquema.`,
+    text: `Tipo informado pelo aluno: ${tipo}.\nAno de referência: ${contexto.ano || new Date().getFullYear()}.\nDisciplinas que o aluno já cadastrou (use o mesmo código quando o documento se referir a elas): ${JSON.stringify(contexto.disciplinas || []).slice(0, 8000)}\nExtraia os dados conforme o esquema.`,
   });
 
   try {
