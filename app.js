@@ -538,7 +538,14 @@ function chavesAv(nome) {
   if (d) k.add(letra + d); else pal.forEach(w => k.add(w.replace(/(oes|aes|ns|s)$/, m => ({ oes: 'ao', aes: 'ao', ns: 'm', s: '' })[m])));
   return k;
 }
-const mesmaAv = (x, a) => norm(x.nome) === norm(a.nome) || [...chavesAv(a.nome)].some(k => chavesAv(x.nome).has(k));
+const pal1 = n => norm(n).replace(/[^a-z0-9 ]/g, ' ').trim().split(' ')[0] || '';
+const mesmaAv = (x, a) => {
+  if (norm(x.nome) === norm(a.nome)) return true;
+  if (![...chavesAv(a.nome)].some(k => chavesAv(x.nome).has(k))) return false;
+  // "Trabalho 1" ≠ "Teste 1": com número, exige a mesma palavra ou uma sigla curta (P1, T2)
+  const p = pal1(x.nome), q = pal1(a.nome);
+  return !/\d/.test(norm(a.nome) + norm(x.nome)) || p === q || /^[a-z]{1,3}\d$/.test(p) || /^[a-z]{1,3}\d$/.test(q) || /^\d/.test(p) || /^\d/.test(q);
+};
 function montarMudancas(r) {
   const out = [], add = (grupo, titulo, detalhe, apply) => out.push({ id: uid(), grupo, titulo, detalhe, apply, on: true });
   if (okData(r.semestre?.inicio) && r.semestre.inicio !== S.semestre.inicio) add('Semestre', 'Início das aulas', `${brD(S.semestre.inicio) || '—'} → ${brD(r.semestre.inicio)}`, () => S.semestre.inicio = r.semestre.inicio);
