@@ -6,6 +6,7 @@
   // "Prova", "P", "Avaliação", "AV", "A", "Nota", "N" são o mesmo tipo: prova
   const PROVA = new Set(['p', 'prova', 'provas', 'a', 'av', 'aval', 'avaliacao', 'avaliacoes', 'n', 'nota', 'notas', 'exame']);
   const prep = nome => norm(nome)
+    .replace(/\b(primeir|segund|terceir|quart|quint|sext)[ao]s?\b/g, (_, w) => ({ primeir: 1, segund: 2, terceir: 3, quart: 4, quint: 5, sext: 6 })[w])
     .replace(/\b(viii|vii|vi|iv|v|iii|ii|i)\b/g, r => ROM[r])
     .replace(/(\d)\s*[ºª°o]\b/g, '$1')
     .replace(/\b([a-z]{1,4})\s*-?\s*(\d)\b/g, '$1$2')          // "AV 1", "P-1" → av1, p1
