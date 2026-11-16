@@ -1,18 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <rect width="512" height="512" rx="112" fill="#4f46e5"/>
-  <!-- base do chapéu -->
-  <path d="M150 196v52c0 22 48 40 106 40s106-18 106-40v-52l-106 46z" fill="#e8e6ff"/>
+  <!-- rosto amarelo (base do chapéu) -->
+  <path d="M120 196v88c0 84 61 150 136 150s136-66 136-150v-88L256 254z" fill="#ffc83d"/>
   <!-- tampo do chapéu -->
-  <path d="M256 92 446 172 256 252 66 172z" fill="#fff"/>
+  <path d="M256 66 466 154 256 242 46 154z" fill="#fff"/>
   <!-- pingente -->
-  <path d="M256 172 404 214v40" fill="none" stroke="#ffc83d" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="404" cy="262" r="18" fill="#ffc83d"/>
-  <!-- óculos escuros -->
-  <g transform="translate(0 14) rotate(-5 256 340)">
-    <path d="M118 318h276" stroke="#1b1340" stroke-width="16" stroke-linecap="round"/>
-    <path d="M128 312h102c4 0 7 3 6 7l-8 44c-3 16-17 28-34 28h-30c-17 0-31-12-34-28l-8-44c-1-4 2-7 6-7z" fill="#1b1340"/>
-    <path d="M282 312h102c4 0 7 3 6 7l-8 44c-3 16-17 28-34 28h-30c-17 0-31-12-34-28l-8-44c-1-4 2-7 6-7z" fill="#1b1340"/>
-    <path d="M152 330l26-2" stroke="#ffc83d" stroke-width="10" stroke-linecap="round"/>
-    <path d="M306 330l26-2" stroke="#ffc83d" stroke-width="10" stroke-linecap="round"/>
-  </g>
+  <path d="M256 154 420 198v58" fill="none" stroke="#fff" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="420" cy="270" r="20" fill="#fff"/>
+  <!-- óculos escuros por cima do rosto -->
+  <path d="M110 292h292" stroke="#1b1340" stroke-width="18" stroke-linecap="round"/>
+  <path d="M124 282h118l-8 52c-3 20-20 34-40 34h-24c-20 0-37-14-40-34z" fill="#1b1340"/>
+  <path d="M270 282h118l-6 52c-3 20-20 34-40 34h-24c-20 0-37-14-40-34z" fill="#1b1340"/>
+  <path d="M150 304l30-3" stroke="#fff" stroke-width="10" stroke-linecap="round"/>
+  <path d="M296 304l30-3" stroke="#fff" stroke-width="10" stroke-linecap="round"/>
+  <!-- sorriso -->
+  <path d="M212 392c26 18 62 18 88 0" fill="none" stroke="#1b1340" stroke-width="14" stroke-linecap="round"/>
 </svg>
