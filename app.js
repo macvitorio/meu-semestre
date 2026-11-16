@@ -158,6 +158,7 @@ async function entrar(u) {
   }
   render();
   carregarPlano();
+  setTimeout(checarTermos, 400);
   limparCurriculoGuardado();
 }
 function entrarLocal() { modoLocal = true; user = null; try { localStorage.setItem(KEY + ':modo', 'local'); } catch { } S = migrar(loadLocal(':local')); startApp(); }
@@ -170,6 +171,8 @@ async function sair() {
 
 // ================= Tela de login =================
 let authMode = 'entrar';
+const TERMOS_VERSAO = '2026-11-16';
+const LINKS_LEGAIS = '<a href="termos.html" target="_blank">Termos de Uso</a> e a <a href="privacidade.html" target="_blank">Política de Privacidade</a>';
 function renderAuth() {
   document.body.classList.remove('app');
   const semBackend = !sb;
@@ -180,11 +183,13 @@ function renderAuth() {
     ${convitePendente() ? `<div class="card flat convite"><span style="font-size:22px">🎁</span><div class="sp"><b class="sm">Você foi convidado!</b><div class="mu">Crie sua conta e ganhe <b>45 dias de Premium grátis</b> (15 a mais que o normal).</div></div></div>` : ''}
     ${semBackend ? `<div class="card flat" style="margin-bottom:16px"><div class="row">${ic('alert')}<span class="sm">Login indisponível neste ambiente (Supabase não configurado). Você pode usar o app só neste aparelho.</span></div></div>` : `
     <div id="gbtn" style="min-height:44px;display:flex;justify-content:center"><button class="btn block" onclick="loginGoogle()">${GOOGLE} Continuar com Google</button></div>
+    <p class="mu sm aceite-g">Ao continuar com o Google, você concorda com os ${LINKS_LEGAIS}.</p>
     <div class="divider">ou com e-mail</div>
     <form class="fields" onsubmit="event.preventDefault();loginEmail()">
       ${authMode === 'criar' ? `<label class="f">Nome<input id="a-nome" autocomplete="name" required></label>` : ''}
       <label class="f">E-mail<input id="a-email" type="email" autocomplete="email" required></label>
       <label class="f">Senha<input id="a-senha" type="password" minlength="6" autocomplete="${authMode === 'criar' ? 'new-password' : 'current-password'}" required></label>
+      ${authMode === 'criar' ? `<label class="aceite"><input type="checkbox" id="a-aceite" required> <span>Tenho 16 anos ou mais e li e aceito os ${LINKS_LEGAIS}.</span></label>` : ''}
       <button class="btn pr block" id="a-btn">${authMode === 'criar' ? 'Criar conta' : 'Entrar'}</button>
     </form>
     <div class="between" style="margin-top:12px">
@@ -206,7 +211,8 @@ async function loginEmail() {
   const email = $('#a-email').value.trim(), password = $('#a-senha').value, btn = $('#a-btn');
   btn.disabled = true; btn.textContent = 'Aguarde…';
   let r;
-  if (authMode === 'criar') r = await sb.auth.signUp({ email, password, options: { data: { full_name: $('#a-nome').value.trim() }, emailRedirectTo: location.origin + '/app' } });
+  if (authMode === 'criar' && !$('#a-aceite')?.checked) { btn.disabled = false; btn.textContent = 'Criar conta'; return toast('Para criar a conta, aceite os Termos e a Política.'); }
+  if (authMode === 'criar') r = await sb.auth.signUp({ email, password, options: { data: { full_name: $('#a-nome').value.trim(), termos_versao: TERMOS_VERSAO, termos_aceitos_em: new Date().toISOString() }, emailRedirectTo: location.origin + '/app' } });
   else r = await sb.auth.signInWithPassword({ email, password });
   btn.disabled = false; btn.textContent = authMode === 'criar' ? 'Criar conta' : 'Entrar';
   if (r.error) return toast(traduzErro(r.error.message));
@@ -865,6 +871,39 @@ function salvarHist(id) {
 function configSheet() { closeSheet(); go('config'); }
 function exportar() { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' })); a.download = 'meu-semestre-backup.json'; a.click(); }
 async function importar(inp) { try { const d = JSON.parse(await inp.files[0].text()); if (!d.materias) throw 0; const b = JSON.stringify(S); S = migrar(d); save(); closeSheet(); render(); toast('Backup importado.', () => { S = migrar(JSON.parse(b)); save(); render(); }); } catch { toast('Arquivo inválido.'); } }
+function checarTermos() {
+  if (!user || user.user_metadata?.termos_versao === TERMOS_VERSAO) return;
+  const novo = !user.user_metadata?.termos_versao;
+  $('#layer').innerHTML = `<div class="scrim"><div class="sheet" role="dialog" aria-modal="true"><h2>${novo ? 'Antes de começar 👋' : 'Atualizamos nossos termos'}</h2>
+    <p class="mu" style="margin:8px 0 14px">${novo ? 'Pra usar o Meu Semestre, confirme que leu e aceita as regras do app e como cuidamos dos seus dados.' : 'Mudamos os Termos de Uso e a Política de Privacidade. Dá uma lida e confirme pra continuar.'}</p>
+    <label class="aceite"><input type="checkbox" id="t-ok"> <span>Tenho 16 anos ou mais (ou autorização dos meus responsáveis) e li e aceito os ${LINKS_LEGAIS}.</span></label>
+    <div class="actions"><button class="btn" onclick="sair()">Sair</button><button class="btn pr sp" onclick="aceitarTermos()">Aceitar e continuar</button></div></div></div>`;
+}
+async function aceitarTermos() {
+  if (!$('#t-ok').checked) return toast('Marque a caixinha pra continuar.');
+  const { data, error } = await sb.auth.updateUser({ data: { termos_versao: TERMOS_VERSAO, termos_aceitos_em: new Date().toISOString() } });
+  if (error) return toast(traduzErro(error.message));
+  if (data?.user) user = data.user; closeSheet(); toast('Tudo certo! Bom semestre 💜');
+}
+function excluirContaSheet() {
+  sheet(`<h2>Excluir minha conta</h2><p class="mu" style="margin:8px 0">Isso apaga <b>para sempre</b> sua conta, disciplinas, notas, histórico, foto, certificados e publicações do fórum. Se você tem assinatura mensal, ela é cancelada. Não dá pra desfazer.</p>
+    <p class="mu sm">Dica: antes, exporte um backup em Configurações › Dados.</p>
+    <div class="fields" style="margin-top:12px"><label class="f">Digite seu e-mail para confirmar<input id="ex-conf" type="email" autocomplete="off" placeholder="${esc(user?.email || '')}"></label></div>
+    <div class="actions"><button class="btn" onclick="closeSheet()">Cancelar</button><button class="btn pr sp" id="ex-b" style="background:var(--bad);border-color:var(--bad)" onclick="excluirConta()">Excluir para sempre</button></div>`);
+}
+async function excluirConta() {
+  const conf = $('#ex-conf').value.trim();
+  if (conf.toLowerCase() !== String(user?.email || '').toLowerCase()) return toast('O e-mail não confere.');
+  const b = $('#ex-b'); b.disabled = true; b.textContent = 'Excluindo…';
+  try {
+    const r = await fetch('/api/excluir-conta', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + await tokenAtual() }, body: JSON.stringify({ confirmacao: conf }) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || 'Não foi possível excluir.');
+    const id = user.id; try { localStorage.removeItem(KEY + ':' + id); localStorage.removeItem(KEY + ':plano'); } catch { }
+    try { const reg = await navigator.serviceWorker?.ready; const sub = await reg?.pushManager.getSubscription(); await sub?.unsubscribe(); } catch { }
+    closeSheet(); await sb.auth.signOut().catch(() => { }); user = null; renderAuth(); toast('Sua conta foi excluída. Valeu por ter usado o Meu Semestre 💜');
+  } catch (e) { b.disabled = false; b.textContent = 'Excluir para sempre'; toast(e.message); }
+}
 function apagarTudo() {
   sheet(`<h2>Apagar todos os dados?</h2><p class="mu" style="margin-top:8px">Disciplinas, faltas, notas, agenda e histórico serão apagados${user ? ' da sua conta e deste aparelho' : ' deste aparelho'}. Isso não pode ser desfeito. Considere exportar um backup antes.</p>
   <div class="actions"><button class="btn" onclick="closeSheet()">Cancelar</button><button class="btn pr sp" style="background:var(--bad);border-color:var(--bad)" onclick="closeSheet();S=novoEstado();save();go('inicio');render()">Apagar tudo</button></div>`);
@@ -1119,7 +1158,8 @@ V.config = () => {
   <section class="grp"><h4>Conta</h4><div class="card">
     ${user ? li('lock', '#5c7cfa', temSenha() ? 'Trocar senha' : 'Criar senha', temSenha() ? '' : 'Pra entrar também com e-mail e senha', chev, `onclick="senhaSheet()"`) : ''}
     ${li('out', '#868e96', user ? 'Sair da conta' : 'Entrar com uma conta', user ? '' : 'Para sincronizar entre aparelhos', chev, `onclick="sair()"`)}
-    <button class="li danger" onclick="apagarTudo()"><span class="ico" style="background:var(--bad)">${ic('trash')}</span><span class="tx">Apagar todos os dados</span></button>
+    <button class="li danger" onclick="apagarTudo()"><span class="ico" style="background:var(--bad)">${ic('trash')}</span><span class="tx">Apagar todos os dados<small>Mantém a conta, zera o semestre</small></span></button>
+    ${user ? `<button class="li danger" onclick="excluirContaSheet()"><span class="ico" style="background:var(--bad)">${ic('user')}</span><span class="tx">Excluir minha conta<small>Apaga a conta e todos os dados para sempre</small></span></button>` : ''}
   </div></section>
 
   </div><p class="versao">Meu Semestre · projeto independente feito por estudantes, pra estudantes<br><a href="privacidade.html">Privacidade</a> · <a href="termos.html">Termos</a></p></div>`;
