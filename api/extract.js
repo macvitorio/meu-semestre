@@ -28,11 +28,11 @@ const SCHEMA = obj({
   historico: arr(obj({ codigo: S, nome: S, semestre: S, nota: S, creditos: S, situacao: S })),
 });
 
-const SYSTEM = `Você extrai dados acadêmicos de documentos de alunos da UFSC (plano de ensino, cronograma, calendário acadêmico, prints do CAGR/Moodle, histórico escolar, boletim de notas).
+const SYSTEM = `Você extrai dados acadêmicos de documentos de estudantes universitários brasileiros, de qualquer instituição (plano de ensino, cronograma, calendário acadêmico, prints de portais acadêmicos como CAGR, SIGAA, Moodle, Canvas e Google Classroom, histórico escolar, boletim de notas).
 Regras:
 - Extraia apenas o que está visível no documento. Campo desconhecido = "" (string vazia). Listas sem dados = [].
 - Datas sempre no formato AAAA-MM-DD. Se o ano não aparecer, use o ano informado no contexto.
-- Horários: "dia" é o número UFSC (2=segunda ... 7=sábado); "inicio" é HHMM entre 0730,0820,0910,1010,1100,1330,1420,1510,1620,1710,1830,1920,2020,2110; "aulas" é a quantidade de aulas de 50 min. O formato do CAGR "2.1010-2" significa dia 2, início 1010, 2 aulas.
+- Horários: "dia" é o número UFSC (2=segunda ... 7=sábado); "inicio" é HHMM entre 0730,0820,0910,1010,1100,1330,1420,1510,1620,1710,1830,1920,2020,2110; "aulas" é a quantidade de aulas de 50 min. O formato do CAGR/UFSC "2.1010-2" significa dia 2, início 1010, 2 aulas. Em outras faculdades os horários vêm como "Segunda 08:20–10:00": converta para o horário de início mais próximo da lista e calcule as aulas de 50 min.
 - Pesos das avaliações em porcentagem, sem o símbolo (ex.: "35"). Notas de 0 a 10 com ponto decimal.
 - "topicos" são itens do conteúdo programático, curtos, um por item.
 - "eventos": entregas, feriados, dias sem aula e outras datas do calendário. NÃO repita em "eventos" as provas/avaliações que já estão em "avaliacoes" da disciplina; "tipo" é um de: prova, entrega, feriado, aula, outro. "codigo" é o código da disciplina relacionada, se houver.

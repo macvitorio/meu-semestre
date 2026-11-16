@@ -17,7 +17,7 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           items: [{ id: 'premium-semestral', title: p.titulo, quantity: 1, unit_price: p.valor, currency_id: 'BRL' }],
           external_reference: `${user.id}|semestral`,
-          back_urls: { success: `${base}/#/premium/ok`, pending: `${base}/#/premium/pendente`, failure: `${base}/#/premium/erro` },
+          back_urls: { success: `${base}/app#/premium/ok`, pending: `${base}/app#/premium/pendente`, failure: `${base}/app#/premium/erro` },
           auto_return: 'approved',
           notification_url: `${base}/api/mp-webhook`,
           statement_descriptor: 'MEUSEMESTRE',
@@ -33,7 +33,7 @@ export default async function handler(req, res) {
         external_reference: user.id,
         payer_email: user.email,
         auto_recurring: { frequency: 1, frequency_type: 'months', transaction_amount: p.valor, currency_id: 'BRL' },
-        back_url: `${base}/#/premium/ok`,
+        back_url: `${base}/app#/premium/ok`,
         status: 'pending',
       }),
     });

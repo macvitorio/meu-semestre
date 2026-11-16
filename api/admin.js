@@ -65,7 +65,7 @@ export default async function handler(req, res) {
     const fimTeste = new Date(new Date(u.created_at).getTime() + 30 * 864e5);
     const premium_ate = a?.premium_ate || fimTeste.toISOString();
     return {
-      id: u.id, email: u.email, nome: u.user_metadata?.full_name || d.perfil?.nome || '',
+      id: u.id, email: u.email, nome: u.user_metadata?.full_name || d.perfil?.nome || '', foto: d.perfil?.foto && d.perfil.foto !== 'none' ? d.perfil.foto : (u.user_metadata?.avatar_url || ''),
       criado: u.created_at, ultimo_acesso: u.last_sign_in_at, atualizado: D[u.id]?.updated_at || null,
       provedor: u.app_metadata?.provider || 'email',
       plano: a?.plano || 'teste', status: a?.status || 'ativa', premium_ate,

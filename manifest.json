@@ -2,9 +2,9 @@
   "id": "/",
   "name": "Meu Semestre",
   "short_name": "Semestre",
-  "description": "Frequência, grade, notas e estudos do seu semestre na UFSC.",
+  "description": "Controle de faltas, notas, provas e grade horária da faculdade.",
   "lang": "pt-BR",
-  "start_url": "/",
+  "start_url": "/app",
   "scope": "/",
   "display": "standalone",
   "display_override": [
@@ -40,7 +40,7 @@
   "shortcuts": [
     {
       "name": "Aulas de hoje",
-      "url": "/#/inicio",
+      "url": "/app#/inicio",
       "icons": [
         {
           "src": "icons/icon-192.png",
@@ -50,7 +50,7 @@
     },
     {
       "name": "Atualizar com print",
-      "url": "/#/atualizar",
+      "url": "/app#/atualizar",
       "icons": [
         {
           "src": "icons/icon-192.png",
@@ -60,7 +60,7 @@
     },
     {
       "name": "Agenda",
-      "url": "/#/agenda",
+      "url": "/app#/agenda",
       "icons": [
         {
           "src": "icons/icon-192.png",

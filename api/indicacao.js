@@ -9,6 +9,15 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
 
   if (req.method === 'POST') {
+    if (req.body?.novoCodigo !== undefined) { // personalizar o próprio código
+      const novo = String(req.body.novoCodigo).trim().toUpperCase();
+      if (!/^[A-Z0-9]{4,16}$/.test(novo)) return res.status(400).json({ error: 'Use de 4 a 16 letras ou números, sem espaços nem acentos.' });
+      if (['ADMIN', 'MEUSEMESTRE', 'PREMIUM', 'GRATIS', 'TESTE'].includes(novo)) return res.status(400).json({ error: 'Esse código é reservado.' });
+      await codigoDe(db, user);
+      const { error } = await db.from('codigos').update({ codigo: novo }).eq('user_id', user.id);
+      if (error) return res.status(409).json({ error: 'Esse código já está em uso. Tente outro.' });
+      return res.status(200).json({ ok: true, codigo: novo });
+    }
     const codigo = String(req.body?.codigo || '').trim().toUpperCase();
     if (!codigo) return res.status(400).json({ error: 'Código vazio.' });
     if (Date.now() - new Date(user.created_at) > 3 * 864e5) return res.status(200).json({ ok: false, motivo: 'conta_antiga' });

@@ -18,7 +18,8 @@ function restam(m, S) {
       total += (m.horarios || []).filter(h => +h.dia === d.getUTCDay() + 1).reduce((a, h) => a + (+h.aulas || 0), 0);
     }
   }
-  return total ? Math.floor(total * 0.25) - totalFaltas(m) : null;
+  const pres = (parseFloat(S.perfil?.regras?.presenca) || 75) / 100;
+  return total ? Math.floor(total * (1 - pres)) - totalFaltas(m) : null;
 }
 
 export function resumo(S, hoje = hojeBR(), amanha = hojeBR(1)) {
@@ -39,7 +40,7 @@ export function resumo(S, hoje = hojeBR(), amanha = hojeBR(1)) {
   riscos.forEach(({ m, r }) => linhas.push(r < 0 ? `⚠️ ${nome(m)}: limite de faltas ultrapassado` : `⚠️ ${nome(m)}: só pode faltar mais ${r}`));
   if (!linhas.length) return null;
   const title = aulas.length ? `Hoje você tem ${aulas.length} aula${aulas.length > 1 ? 's' : ''}` : feriado ? `${feriado.descricao || 'Feriado'} — sem aula` : 'Lembrete do semestre';
-  return { title, body: linhas.join('\n'), tag: 'resumo-' + hoje, url: '/#/inicio' };
+  return { title, body: linhas.join('\n'), tag: 'resumo-' + hoje, url: '/app#/inicio' };
 }
 
 export default async function handler(req, res) {
@@ -51,8 +52,11 @@ export default async function handler(req, res) {
   if (error) return res.status(500).json({ error: error.message });
   const ids = [...new Set(subs.map(s => s.user_id))];
   // lembretes diários são do Premium
-  const { data: prem } = ids.length ? await db.from('assinaturas').select('user_id,premium_ate').in('user_id', ids) : { data: [] };
+  const { data: prem } = ids.length ? await db.from('assinaturas').select('user_id,premium_ate,plano').in('user_id', ids) : { data: [] };
   const premium = new Set((prem || []).filter(p => p.premium_ate && new Date(p.premium_ate) > new Date()).map(p => p.user_id));
+  // teste grátis acabando: aviso com 3 dias e com 1 dia de antecedência
+  const fimTeste = {};
+  for (const p of prem || []) if (p.plano === 'teste' && p.premium_ate) { const d = Math.ceil((new Date(p.premium_ate) - Date.now()) / 864e5); if (d === 3 || d === 1) fimTeste[p.user_id] = d; }
   const comRegistro = new Set((prem || []).map(p => p.user_id));
   for (const id of ids) if (!comRegistro.has(id)) { const { data: u } = await db.auth.admin.getUserById(id); if (u?.user && Date.now() - new Date(u.user.created_at) < 30 * 864e5) premium.add(id); }
   const { data: rows } = ids.length ? await db.from('user_data').select('user_id,data').in('user_id', ids) : { data: [] };
@@ -61,7 +65,10 @@ export default async function handler(req, res) {
   let enviados = 0, removidos = 0;
   await Promise.all(subs.map(async s => {
     const S = porUser[s.user_id]; if (!S || S.perfil?.notif === false || !premium.has(s.user_id)) return;
-    const msg = resumo(S); if (!msg) return;
+    let msg = resumo(S);
+    const d = fimTeste[s.user_id];
+    if (d) msg = { title: d === 1 ? 'Seu Premium grátis termina amanhã ⏳' : 'Faltam 3 dias do seu Premium grátis', body: 'Assine o semestral por R$ 24,90 (menos de R$ 5/mês) e continue com lembretes, IA e disciplinas ilimitadas.' + (msg ? '\n\n' + msg.body : ''), tag: 'fim-teste', url: '/app#/premium' };
+    if (!msg) return;
     try { await webpush.sendNotification(s.subscription, JSON.stringify(msg), { TTL: 6 * 3600 }); enviados++; }
     catch (e) { if (e.statusCode === 404 || e.statusCode === 410) { await db.from('push_subscriptions').delete().eq('endpoint', s.endpoint); removidos++; } }
   }));

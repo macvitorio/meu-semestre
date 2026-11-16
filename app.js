@@ -6,7 +6,8 @@ const DIAS = { 2: 'Seg', 3: 'Ter', 4: 'Qua', 5: 'Qui', 6: 'Sex', 7: 'Sáb' };
 const DIAS_L = { 2: 'Segunda', 3: 'Terça', 4: 'Quarta', 5: 'Quinta', 6: 'Sexta', 7: 'Sábado' };
 const SLOTS = ['0730', '0820', '0910', '1010', '1100', '1330', '1420', '1510', '1620', '1710', '1830', '1920', '2020', '2110'];
 const CORES = ['#2846d6', '#14945a', '#d6336c', '#e8590c', '#7048e8', '#0c8599', '#b08800', '#c92a2a', '#5f3dc4', '#2b8a3e'];
-const FREQ_MIN = 0.75, MEDIA_APROV = 6, MEDIA_REC = 3;
+let FREQ_MIN = 0.75, MEDIA_APROV = 6, MEDIA_REC = 3; // ajustáveis em Configurações (cada faculdade tem sua regra)
+function aplicarRegras() { const r = S.perfil.regras || {}; MEDIA_APROV = num(r.media) ?? 6; FREQ_MIN = (num(r.presenca) ?? 75) / 100; MEDIA_REC = num(r.rec) ?? 3; }
 const TIPOS_EV = { prova: 'Prova', entrega: 'Entrega', feriado: 'Feriado', aula: 'Aula', outro: 'Outro' };
 const KEY = 'meu-semestre-v2';
 
@@ -98,7 +99,7 @@ addEventListener('online', () => user && save());
 (() => { try { const c = new URLSearchParams(location.search).get('c'); if (c) { localStorage.setItem(KEY + ':convite', c.toUpperCase().slice(0, 20)); history.replaceState(null, '', location.pathname + location.hash); } } catch { } })();
 const convitePendente = () => { try { return localStorage.getItem(KEY + ':convite'); } catch { return null; } };
 async function boot() {
-  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('/sw.js').catch(() => { });
+  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => { });
   $('#root').innerHTML = `<div class="auth"><div class="spin"></div></div>`;
   try { const r = await fetch('/api/config'); if (r.ok) cfg = await r.json(); } catch { }
   // desenvolvimento local sem Vercel: lê config.local.json (fora do git)
@@ -170,7 +171,7 @@ function renderAuth() {
     <div class="divider"></div>`}
     <button class="btn ${semBackend ? 'pr' : ''} block" onclick="entrarLocal()">Usar sem conta (só neste aparelho)</button>
     ${!standalone() && (isIOS() || /android/i.test(navigator.userAgent)) ? `<button class="btn ghost block" style="margin-top:12px" onclick="instalar()">${ic('phone', 18)} Instalar o app no celular</button>` : ''}
-    <p class="mu" style="text-align:center;margin-top:18px">App independente, não oficial da UFSC.<br><a href="privacidade.html" style="color:inherit">Privacidade</a> · <a href="termos.html" style="color:inherit">Termos</a></p>
+    <p class="mu" style="text-align:center;margin-top:18px">App independente, sem vínculo com nenhuma universidade.<br><a href="privacidade.html" style="color:inherit">Privacidade</a> · <a href="termos.html" style="color:inherit">Termos</a></p>
   </div></div>`;
   montarGoogle();
 }
@@ -182,7 +183,7 @@ async function loginEmail() {
   const email = $('#a-email').value.trim(), password = $('#a-senha').value, btn = $('#a-btn');
   btn.disabled = true; btn.textContent = 'Aguarde…';
   let r;
-  if (authMode === 'criar') r = await sb.auth.signUp({ email, password, options: { data: { full_name: $('#a-nome').value.trim() }, emailRedirectTo: location.origin } });
+  if (authMode === 'criar') r = await sb.auth.signUp({ email, password, options: { data: { full_name: $('#a-nome').value.trim() }, emailRedirectTo: location.origin + '/app' } });
   else r = await sb.auth.signInWithPassword({ email, password });
   btn.disabled = false; btn.textContent = authMode === 'criar' ? 'Criar conta' : 'Entrar';
   if (r.error) return toast(traduzErro(r.error.message));
@@ -192,7 +193,7 @@ const traduzErro = m => /invalid login/i.test(m) ? 'E-mail ou senha incorretos.'
 async function esqueciSenha() {
   const email = ($('#a-email')?.value || '').trim();
   if (!email) return toast('Digite seu e-mail no campo acima.');
-  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin });
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + '/app' });
   toast(error ? traduzErro(error.message) : 'Enviamos um link para redefinir sua senha.');
 }
 function novaSenhaSheet() {
@@ -283,9 +284,9 @@ function render() {
   $('#nav').innerHTML = NAV.map(([k, i, l]) => k === 'atualizar'
     ? `<a href="#/atualizar" class="fab ${cur === k ? 'on' : ''}"><span class="circ">${ic(i, 24)}</span><small>${l}</small></a>`
     : `<a href="#/${k}" class="${cur === k ? 'on' : ''}">${ic(i, 22)}${l}</a>`).join('') + `<div class="cfg-link">${PLANO.admin ? `<a href="#/admin" class="${cur === 'admin' ? 'on' : ''}">${ic('user', 22)}Admin</a>` : ''}${user ? `<a href="#/indicar" class="${cur === 'indicar' ? 'on' : ''}">${ic('share', 22)}Indique e ganhe</a>` : ''}${user ? `<a href="#/premium" class="${cur === 'premium' ? 'on' : ''}">${ic('spark', 22)}${premium() && !['teste', 'gratis'].includes(PLANO.plano) ? 'Meu plano' : 'Seja Premium'}</a>` : ''}<a href="#/config" class="${cur === 'config' ? 'on' : ''}">${ic('gear', 22)}Configurações</a>
-    <a href="#/config" class="eu"><span class="avatar">${esc(((S.perfil.nome || user?.email || '?').trim()[0] || '?').toUpperCase())}</span><span class="tx"><b>${esc(S.perfil.nome || 'Sem nome')}</b><small>${esc(user?.email || 'Neste aparelho')}</small></span></a></div>`;
+    <a href="#/config" class="eu">${avatarHTML(34)}<span class="tx"><b>${esc(S.perfil.nome || 'Sem nome')}</b><small>${esc(user?.email || 'Neste aparelho')}</small></span></a></div>`;
   $('#nav').insertAdjacentHTML('afterbegin', `<a href="#/inicio" class="nav-brand">${marca()}<b>Meu Semestre</b></a>`);
-  aplicarTema();
+  aplicarTema(); aplicarRegras();
   $('#view').innerHTML = (V[R.v] || V.inicio)();
   const t = $('#ttl'); if (t) t.textContent = R.v === 'disc' ? nomeM(byId(R.id)) : R.v === 'config' ? 'Configurações' : R.v === 'premium' ? 'Premium' : R.v === 'indicar' ? 'Indique e ganhe' : R.v === 'admin' ? 'Admin' : (NAV.find(n => n[0] === cur) || [, , ''])[2];
 }
@@ -308,7 +309,7 @@ V.inicio = () => {
   const sauda = agora.getHours() < 12 ? 'Bom dia' : agora.getHours() < 18 ? 'Boa tarde' : 'Boa noite';
   const topo = `<div class="pg-h"><div><p class="mu cap1">${agora.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</p><h1>${sauda}${nome ? ', ' + esc(nome) : ''} 👋</h1></div>
     <div class="row pg-acoes"><button class="btn" onclick="eventoSheet()">${ic('plus', 18)} Evento</button><a class="btn pr" href="#/atualizar">${ic('up', 18)} Atualizar</a></div></div>`;
-  if (!S.materias.length) return `<div class="stack">${topo}${boasVindas()}</div>`;
+  if (!S.materias.length) return `<div class="stack">${topo}${avisoTeste()}${boasVindas()}</div>`;
 
   // indicadores
   const fs = S.materias.map(freq), ns = S.materias.map(notas).map(n => n.mf ?? n.parcial).filter(n => n != null);
@@ -360,7 +361,7 @@ V.inicio = () => {
   if (user) lado += `<a class="card tap row indica-card" href="#/indicar" style="color:inherit;text-decoration:none"><span style="font-size:26px">🎁</span><div class="sp"><b>Indique e ganhe</b><div class="mu">1 mês de Premium por amigo que assinar</div></div>${ic('right')}</a>`;
   lado += cardInstalar();
 
-  return `<div class="stack">${topo}${kpis}<div class="dash"><div class="stack">${main}</div><div class="stack">${lado}</div></div></div>`;
+  return `<div class="stack">${topo}${avisoTeste()}${kpis}<div class="dash"><div class="stack">${main}</div><div class="stack">${lado}</div></div></div>`;
 };
 function boasVindas() {
   const passo = (n, icone, t, d, acao) => `<div class="card passo"><div class="row"><span class="num">${n}</span><span class="kpi-ic" style="color:var(--pr);background:var(--pr-2)">${ic(icone, 18)}</span></div><h3 style="margin:14px 0 6px">${t}</h3><p class="mu" style="margin:0 0 16px">${d}</p>${acao}</div>`;
@@ -466,7 +467,7 @@ V.disc = () => {
       ${m.avaliacoes.length ? `<div class="list">${m.avaliacoes.map(a => `<div class="row"><div class="sp"><b>${esc(a.nome)}</b><div class="mu">${a.peso ? 'Peso ' + esc(a.peso) + '%' : 'Peso igual'}${a.data ? ' · ' + brD(a.data) : ''}</div></div><span class="big" style="font-size:20px">${fmt(num(a.nota))}</span>${pen(`avSheet('${m.id}','${a.id}')`)}</div>`).join('')}</div>` : '<p class="mu">Nenhuma avaliação. Adicione ou importe o plano de ensino.</p>'}</div>
       <div class="card"><div class="between"><div><div class="mu">Média ${n.final != null ? 'final' : 'parcial'}</div><div class="big">${fmt(n.mf ?? n.parcial)}</div></div>${tag(n.sit, n.nivel)}</div>
       ${n.final != null && n.final < MEDIA_APROV && n.final >= MEDIA_REC ? `<label class="f" style="margin-top:12px">Nota da recuperação<input inputmode="decimal" value="${esc(m.rec)}" onchange="upd(()=>byId('${m.id}').rec=this.value)"></label>` : ''}
-      <p class="mu" style="margin-top:8px">UFSC: aprovação com média ≥ 6,0 e presença ≥ 75%. Média entre 3,0 e 5,5 dá direito à recuperação; a final é (média + REC) ÷ 2.</p></div>`;
+      <p class="mu" style="margin-top:8px">Sua regra: aprovação com média ≥ ${fmt(MEDIA_APROV)} e presença ≥ ${Math.round(FREQ_MIN * 100)}%. Média a partir de ${fmt(MEDIA_REC)} dá direito à recuperação; a final é (média + REC) ÷ 2. <a href="#/config">Ajustar regras</a></p></div>`;
   }
   if (sub === 'estudos') {
     const tp = m.topicos, fe = tp.filter(t => t.feito).length;
@@ -974,9 +975,10 @@ V.config = () => {
   ${secaoPlano()}
   ${user ? `<section class="grp full"><div class="card">${li('share', '#7048e8', 'Indique e ganhe', 'Ganhe 1 mês de Premium por amigo que assinar', chev, `onclick="go('indicar')"`)}</div></section>` : ''}
   ${PLANO.admin ? `<section class="grp full"><h4>Administração</h4><div class="card">${li('user', '#495057', 'Painel Admin', 'Contas, planos e cortesias', chev, `onclick="go('admin')"`)}</div></section>` : ''}
-  <section class="grp full"><div class="card"><div class="perfil"><div class="avatar">${esc(ini)}</div><div class="sp">
+  <section class="grp full"><div class="card"><div class="perfil"><label class="avatar-edit" aria-label="Trocar foto de perfil">${avatarHTML(64)}<span class="cam">${ic('cam', 14)}</span><input type="file" accept="image/*" hidden onchange="trocarFoto(this)"></label><div class="sp">
     <input class="inl" style="font-weight:600;font-size:17px;background:none;border:0;padding:0;min-height:0;box-shadow:none" value="${esc(nome)}" placeholder="Seu nome" aria-label="Seu nome" onchange="S.perfil.nome=this.value.trim();save();toast('Nome salvo.')">
-    <div class="mu">${user ? esc(user.email) + ' · ' + (syncState === 'off' ? 'offline' : 'sincronizado') : 'Sem conta — dados só neste aparelho'}</div></div></div></div></section>
+    <div class="mu">${user ? esc(user.email) + ' · ' + (syncState === 'off' ? 'offline' : 'sincronizado') : 'Sem conta — dados só neste aparelho'}</div>
+    ${user ? `<div class="mu" style="margin-top:4px">Toque na foto para trocar${fotoPerfil() ? ` · <a href="#" onclick="event.preventDefault();removerFoto()">remover foto</a>` : ''}</div>` : ''}</div></div></div></section>
 
   <section class="grp"><h4>Aparência</h4><div class="card">
     <div style="padding:14px 16px 10px" class="sm"><b>Tema</b></div>
@@ -989,6 +991,7 @@ V.config = () => {
   <section class="grp"><h4>Semestre</h4><div class="card">
     ${li('cal', '#1c7ed6', 'Início das aulas', '', `<input type="date" value="${S.semestre.inicio}" aria-label="Início das aulas" onchange="setSemestre('inicio',this.value)">`)}
     ${li('cal', '#1c7ed6', 'Fim das aulas', '', `<input type="date" value="${S.semestre.fim}" aria-label="Fim das aulas" onchange="setSemestre('fim',this.value)">`)}
+    ${li('check', '#e8590c', 'Regras de aprovação', `Média ${fmt(MEDIA_APROV)} · presença ${Math.round(FREQ_MIN * 100)}% · recuperação a partir de ${fmt(MEDIA_REC)}`, chev, `onclick="regrasSheet()"`)}
     ${li('sun', '#2f9e44', 'Feriados e dias sem aula', S.feriados.length ? `${S.feriados.length} cadastrado(s)` : 'Nenhum cadastrado', chev, `onclick="feriadosSheet()"`)}
   </div></section>
 
@@ -1012,7 +1015,7 @@ V.config = () => {
     <button class="li danger" onclick="apagarTudo()"><span class="ico" style="background:var(--bad)">${ic('trash')}</span><span class="tx">Apagar todos os dados</span></button>
   </div></section>
 
-  </div><p class="versao">Meu Semestre · app independente, não oficial da UFSC<br><a href="privacidade.html">Privacidade</a> · <a href="termos.html">Termos</a></p></div>`;
+  </div><p class="versao">Meu Semestre · app independente, sem vínculo com universidades<br><a href="privacidade.html">Privacidade</a> · <a href="termos.html">Termos</a></p></div>`;
 };
 function setSemestre(k, v) {
   const novo = { ...S.semestre, [k]: v };
@@ -1223,7 +1226,7 @@ V.admin = () => {
     <div class="row wrap"><input style="flex:1;min-width:200px" placeholder="Buscar por nome ou e-mail" value="${esc(admBusca)}" oninput="admBusca=this.value;clearTimeout(window._ab);window._ab=setTimeout(render,250)">
       <div class="chips">${[['todos', 'Todos'], ['premium', 'Premium'], ['gratis', 'Sem Premium'], ['teste', 'Em teste'], ['cortesia', 'Cortesia'], ['indicados', 'Vieram por indicação']].map(([k, l]) => `<button class="chip ${admFiltro === k ? 'on' : ''}" onclick="admFiltro='${k}';render()">${l}</button>`).join('')}</div></div>
     <div class="card" style="padding:0"><div class="adm-lista">${lista.map(c => `<div class="adm-row">
-      <div class="avatar" style="width:38px;height:38px;font-size:14px">${esc((c.nome || c.email || '?')[0].toUpperCase())}</div>
+      ${c.foto ? `<img class="avatar" src="${esc(c.foto)}" referrerpolicy="no-referrer" alt="" style="width:38px;height:38px;object-fit:cover">` : `<div class="avatar" style="width:38px;height:38px;font-size:14px">${esc((c.nome || c.email || '?')[0].toUpperCase())}</div>`}
       <div class="sp" style="min-width:0"><b class="sm">${esc(c.nome || '(sem nome)')}</b><div class="mu" style="overflow:hidden;text-overflow:ellipsis">${esc(c.email)} · ${c.provedor === 'google' ? 'Google' : 'e-mail'}</div>
         <div class="mu">Criada ${new Date(c.criado).toLocaleDateString('pt-BR')} · ${c.disciplinas} disciplina(s)${c.ultimo_acesso ? ' · último acesso ' + new Date(c.ultimo_acesso).toLocaleDateString('pt-BR') : ''}</div>
         ${c.indicacoes?.total || c.indicadoPor ? `<div class="mu">🎁 ${c.indicacoes.total ? `${c.indicacoes.total} indicação(ões), ${c.indicacoes.assinaram} assinou(aram)` : ''}${c.indicacoes.total && c.indicadoPor ? ' · ' : ''}${c.indicadoPor ? 'indicado por ' + esc(c.indicadoPor) : ''}</div>` : ''}</div>
@@ -1281,8 +1284,8 @@ async function aplicarConvite() {
     if (r.ok) { localStorage.removeItem(KEY + ':convite'); if (d.ok) { toast(`🎁 Convite aplicado: +${d.bonus} dias de Premium grátis!`); carregarPlano(); } }
   } catch { }
 }
-const linkConvite = () => `${location.origin}/?c=${IND.codigo}`;
-const textoConvite = () => `Tô usando o Meu Semestre pra controlar faltas, notas e provas da UFSC 🎓 Você manda o plano de ensino e ele monta tudo. Entra pelo meu link e ganha 45 dias de Premium grátis: ${linkConvite()}`;
+const linkConvite = () => `${location.origin}/?c=${IND.codigo}`; // LP guarda o código e leva para o app
+const textoConvite = () => `Tô usando o Meu Semestre pra controlar faltas, notas e provas da facul 🎓 Você manda o plano de ensino e ele monta tudo. Entra pelo meu link e ganha 45 dias de Premium grátis: ${linkConvite()}`;
 V.indicar = () => {
   if (!user) { setTimeout(() => go('inicio')); return ''; }
   if (!IND) { carregarIndicacao(); return `<div class="card empty" style="margin-top:24px"><div class="spin"></div></div>`; }
@@ -1295,7 +1298,7 @@ V.indicar = () => {
       <div class="row wrap" style="margin-top:12px">
         <a class="btn pr" style="background:#25d366;border-color:#25d366;color:#fff" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(textoConvite())}">Enviar no WhatsApp</a>
         ${navigator.share ? `<button class="btn" onclick="navigator.share({title:'Meu Semestre',text:textoConvite()}).catch(()=>{})">${ic('share', 18)} Compartilhar</button>` : ''}</div>
-      <p class="mu" style="margin-top:10px">Seu código: <b>${esc(IND.codigo)}</b></p></div>
+      <div class="row" style="margin-top:10px"><span class="mu sp">Seu código: <b style="color:var(--tx)">${esc(IND.codigo)}</b></span><button class="btn ghost sm" onclick="editarCodigo()">${ic('pen', 16)} Personalizar</button></div></div>
     <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
       <div class="kpi card"><div class="mu">Amigos cadastrados</div><div class="kpi-v">${IND.cadastros}</div></div>
       <div class="kpi card"><div class="mu">Assinaram</div><div class="kpi-v">${IND.assinaram}</div></div>
@@ -1334,4 +1337,78 @@ function rankingIndicacoes() {
       <div class="mini"><span class="mu">Cadastros</span><b>${c.indicacoes.total}</b></div>
       <div class="mini"><span class="mu">Assinaram</span><b style="color:var(--ok)">${c.indicacoes.assinaram}</b></div>
       <div class="mini so-desktop"><span class="mu">Ganhou</span><b>${c.indicacoes.assinaram * 30}d</b></div></div>`).join('')}</div>` : '<p class="mu">Ninguém indicou ainda. Assim que os alunos compartilharem o link, o ranking aparece aqui.</p>'}</div>`;
+}
+
+// ================= Aviso de fim do teste grátis =================
+function avisoTeste() {
+  if (!user || PLANO.plano !== 'teste' || !PLANO.premium_ate) return '';
+  const d = diasRestam(PLANO.premium_ate);
+  if (PLANO.premium && d > 3) return '';
+  const acabou = !PLANO.premium;
+  setTimeout(popupFimTeste, 600);
+  return `<a class="card aviso-teste ${acabou ? 'fim' : ''}" href="#/premium"><span style="font-size:26px">${acabou ? '⌛' : '⏳'}</span>
+    <div class="sp"><b>${acabou ? 'Seu Premium grátis terminou' : d <= 1 ? 'Seu Premium grátis termina amanhã' : `Faltam ${d} dias do seu Premium grátis`}</b>
+    <div class="mu">${acabou ? 'Assine para voltar a ter lembretes, IA e disciplinas ilimitadas.' : 'Assine o semestral por R$ 24,90 e não perca nada.'}</div></div><span class="btn sm pr">Assinar</span></a>`;
+}
+function popupFimTeste() {
+  const hojeK = KEY + ':aviso-teste:' + hoje();
+  try { if (localStorage.getItem(hojeK) || $('.scrim')) return; localStorage.setItem(hojeK, 1); } catch { return; }
+  const acabou = !PLANO.premium, d = diasRestam(PLANO.premium_ate);
+  sheet(`<div class="pw-top">${ic('spark', 28)}</div><h2 style="text-align:center">${acabou ? 'Seu teste grátis terminou' : d <= 1 ? 'Último dia de Premium grátis' : `Faltam ${d} dias de Premium grátis`}</h2>
+    <p class="mu" style="text-align:center;margin:6px 0 16px">${acabou ? 'Sua conta voltou para o plano grátis. Seus dados continuam salvos.' : 'Depois disso a conta volta para o plano grátis. Assine para continuar com tudo:'}</p>${listaBeneficios()}
+    <div class="actions"><button class="btn" onclick="closeSheet()">Depois</button><button class="btn pr sp" onclick="closeSheet();go('premium')">Ver planos</button></div>`);
+}
+
+// ================= Foto de perfil =================
+const fotoPerfil = () => S.perfil.foto === 'none' ? '' : (S.perfil.foto || user?.user_metadata?.avatar_url || user?.user_metadata?.picture || '');
+function avatarHTML(tam = 40) {
+  const f = fotoPerfil(), ini = ((S.perfil.nome || user?.email || '?').trim()[0] || '?').toUpperCase();
+  return f ? `<img class="avatar" src="${esc(f)}" alt="" referrerpolicy="no-referrer" style="width:${tam}px;height:${tam}px;object-fit:cover" onerror="this.outerHTML='<span class=&quot;avatar&quot; style=&quot;width:${tam}px;height:${tam}px&quot;>${esc(ini)}</span>'">`
+    : `<span class="avatar" style="width:${tam}px;height:${tam}px;font-size:${Math.round(tam * .4)}px">${esc(ini)}</span>`;
+}
+async function trocarFoto(inp) {
+  const f = inp.files[0]; inp.value = '';
+  if (!f) return;
+  if (!sb || !user) return toast('Entre com uma conta para usar foto de perfil.');
+  sheet(`<h2>Foto de perfil</h2><div style="display:flex;justify-content:center;margin:16px 0"><div class="spin"></div></div><p class="mu" style="text-align:center">Enviando…</p>`);
+  try {
+    const img = await createImageBitmap(f), lado = Math.min(img.width, img.height), T = 320;
+    const c = Object.assign(document.createElement('canvas'), { width: T, height: T });
+    c.getContext('2d').drawImage(img, (img.width - lado) / 2, (img.height - lado) / 2, lado, lado, 0, 0, T, T); // recorte quadrado central
+    const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', .86));
+    const caminho = `${user.id}/avatar.jpg`;
+    const { error } = await sb.storage.from('avatares').upload(caminho, blob, { upsert: true, contentType: 'image/jpeg', cacheControl: '3600' });
+    if (error) throw error;
+    S.perfil.foto = sb.storage.from('avatares').getPublicUrl(caminho).data.publicUrl + '?v=' + Date.now();
+    save(); closeSheet(); render(); toast('Foto atualizada!');
+  } catch (e) { closeSheet(); toast('Não foi possível enviar a foto: ' + (e.message || e)); }
+}
+function removerFoto() { S.perfil.foto = 'none'; save(); render(); toast('Foto removida.'); }
+
+function editarCodigo() {
+  sheet(`<h2>Personalizar código</h2><p class="mu" style="margin:6px 0 14px">Seu link fica <b>${location.host}/?c=<span id="prev-cod">${esc(IND.codigo)}</span></b>. Use de 4 a 16 letras ou números.</p>
+    <label class="f">Novo código<input id="novo-cod" value="${esc(IND.codigo)}" maxlength="16" autocapitalize="characters" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'');$('#prev-cod').textContent=this.value"></label>
+    <p class="mu" style="margin-top:10px">⚠️ Links que você já enviou com o código antigo deixam de valer.</p>
+    <div class="actions"><button class="btn" onclick="closeSheet()">Cancelar</button><button class="btn pr sp" id="salvar-cod">Salvar</button></div>`);
+  $('#salvar-cod').onclick = async () => {
+    const r = await fetch('/api/indicacao', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + await tokenAtual() }, body: JSON.stringify({ novoCodigo: $('#novo-cod').value }) });
+    const d = await r.json();
+    if (!r.ok) return toast(d.error);
+    IND.codigo = d.codigo; closeSheet(); render(); toast('Código atualizado!');
+  };
+}
+
+function regrasSheet() {
+  const r = S.perfil.regras || {};
+  sheet(`<h2>Regras de aprovação</h2><p class="mu" style="margin:6px 0 14px">Cada faculdade tem a sua. Confira no regimento ou no plano de ensino.</p>
+    <div class="fields"><div class="fields c2"><label class="f">Média para aprovar<input id="rg-m" inputmode="decimal" value="${esc(r.media ?? '6')}"></label><label class="f">Presença mínima (%)<input id="rg-p" inputmode="numeric" value="${esc(r.presenca ?? '75')}"></label></div>
+    <label class="f">Recuperação a partir da média<input id="rg-r" inputmode="decimal" value="${esc(r.rec ?? '3')}"></label></div>
+    <div class="chips" style="margin-top:12px">${[['6', '75', '3', 'Média 6 (padrão)'], ['7', '75', '4', 'Média 7'], ['5', '75', '3', 'Média 5'], ['6', '70', '3', 'Presença 70%']].map(([m, p, rc, l]) => `<button class="chip" onclick="$('#rg-m').value='${m}';$('#rg-p').value='${p}';$('#rg-r').value='${rc}'">${l}</button>`).join('')}</div>
+    <div class="actions"><button class="btn" onclick="closeSheet()">Cancelar</button><button class="btn pr sp" onclick="salvarRegras()">Salvar</button></div>`);
+}
+function salvarRegras() {
+  const m = num(val('rg-m')), p = num(val('rg-p')), r = num(val('rg-r'));
+  if (m == null || m < 0 || m > 10 || p == null || p < 0 || p > 100 || r == null || r < 0 || r > m) return toast('Confira os valores (média 0–10, presença 0–100%).');
+  S.perfil.regras = { media: String(m), presenca: String(p), rec: String(r) };
+  closeSheet(); save(); render(); toast('Regras atualizadas.');
 }
