@@ -1513,7 +1513,7 @@ function salvarRegrasHoras() {
   closeSheet(); save(); render(); toast('Regras salvas.');
 }
 async function arquivoParaEnvio(f) {
-  if (f.type.startsWith('image/')) { const { data } = await comprimir(f); return { mediaType: 'image/jpeg', data, blob: await (await fetch('data:image/jpeg;base64,' + data)).blob(), ext: 'jpg' }; }
+  if (f.type.startsWith('image/')) { const { data } = await comprimir(f); return { mediaType: 'image/jpeg', data, blob: b64ParaBlob(data, 'image/jpeg'), ext: 'jpg' }; }
   if (f.type === 'application/pdf') { if (f.size > 3.3e6) throw new Error('PDF grande demais (máx. ~3 MB).'); return { mediaType: f.type, data: await b64(f), blob: f, ext: 'pdf' }; }
   throw new Error('Use uma foto ou um PDF.');
 }
@@ -1676,3 +1676,5 @@ async function salvarLote() {
   LOTE = []; closeSheet(); save(); render();
   toast(falhas ? `${ok} salvo(s), ${falhas} com erro no envio do arquivo. Tente esses de novo.` : `${ok} certificado(s) salvo(s)! 🎉`);
 }
+
+function b64ParaBlob(b64, tipo) { const bin = atob(b64), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i); return new Blob([u8], { type: tipo }); }
