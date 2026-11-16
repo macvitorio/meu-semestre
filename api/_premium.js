@@ -72,3 +72,15 @@ export async function recompensarIndicador(db, indicadoId) {
     mp_preapproval_id: a?.mp_preapproval_id || null, atualizado_em: new Date().toISOString(),
   });
 }
+
+// Limite de leituras com IA do plano grátis (compartilhado entre planos de ensino, certificados e regulamentos)
+export async function podeUsarIA(db, user) {
+  const premium = await ehPremium(db, user);
+  if (premium) return { ok: true, premium, usos: 0 };
+  const { data: u } = await db.from('ia_uso').select('usos').eq('user_id', user.id).eq('periodo', periodo()).maybeSingle();
+  const usos = u?.usos || 0;
+  return { ok: usos < LIMITE_IA_GRATIS, premium, usos };
+}
+export async function registrarUsoIA(db, user, q) {
+  if (!q.premium) await db.from('ia_uso').upsert({ user_id: user.id, periodo: periodo(), usos: q.usos + 1 });
+}

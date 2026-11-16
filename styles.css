@@ -428,3 +428,8 @@ nav.bn a.fab span.circ{box-shadow:0 4px 0 var(--pr-sombra),0 8px 20px color-mix(
 .empty .ic{border-radius:18px}
 .aviso-teste{border-radius:var(--r)}
 .wk .c.has .wk-nome{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.curso-chip{display:inline-flex;align-items:center;gap:6px;margin-top:6px;padding:6px 12px;border-radius:99px;border:1px solid var(--bd);background:var(--surface);font:inherit;font-size:13px;font-weight:600;color:var(--tx);cursor:pointer;max-width:100%;text-align:left}
+.curso-chip.vazio{border-style:dashed;color:var(--pr)}
+.curso-chip svg{flex:none}
+@media(max-width:899px){nav.bn .so-desktop-nav{display:none}}
+.grp .plano-card{padding:14px 16px;gap:14px}.grp .plano-card .btn{flex:none}

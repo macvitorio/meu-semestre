@@ -71,6 +71,7 @@ function migrar(d) {
   d.materias.forEach(m => { m.faltas ||= {}; m.canceladas ||= []; m.avaliacoes ||= []; m.topicos ||= []; m.horarios ||= []; });
   d.materias.forEach(m => { m.avaliacoes = juntarDuplicadas(m.avaliacoes); });
   d.eventos = limparEventos(d);
+  d.horas = Object.assign({ exigidas: '', categorias: [], atividades: [], obs: '' }, d.horas || {});
   return d;
 }
 const { mesmaAv, juntarDuplicadas, limparEventos } = Limpeza;
@@ -285,12 +286,12 @@ function render() {
   const cur = R.v === 'disc' ? 'disciplinas' : R.v;
   $('#nav').innerHTML = NAV.map(([k, i, l]) => k === 'atualizar'
     ? `<a href="#/atualizar" class="fab ${cur === k ? 'on' : ''}"><span class="circ">${ic(i, 24)}</span><small>${l}</small></a>`
-    : `<a href="#/${k}" class="${cur === k ? 'on' : ''}">${ic(i, 22)}${l}</a>`).join('') + `<div class="cfg-link">${PLANO.admin ? `<a href="#/admin" class="${cur === 'admin' ? 'on' : ''}">${ic('user', 22)}Admin</a>` : ''}${user ? `<a href="#/indicar" class="${cur === 'indicar' ? 'on' : ''}">${ic('share', 22)}Indique e ganhe</a>` : ''}${user ? `<a href="#/premium" class="${cur === 'premium' ? 'on' : ''}">${ic('spark', 22)}${premium() && !['teste', 'gratis'].includes(PLANO.plano) ? 'Meu plano' : 'Seja Premium'}</a>` : ''}<a href="#/config" class="${cur === 'config' ? 'on' : ''}">${ic('gear', 22)}Configurações</a>
+    : `<a href="#/${k}" class="${cur === k ? 'on' : ''}">${ic(i, 22)}${l}</a>`).join('') + `<a href="#/horas" class="so-desktop-nav ${cur === 'horas' ? 'on' : ''}">${ic('clip', 22)}Horas complementares</a><div class="cfg-link">${PLANO.admin ? `<a href="#/admin" class="${cur === 'admin' ? 'on' : ''}">${ic('user', 22)}Admin</a>` : ''}${user ? `<a href="#/indicar" class="${cur === 'indicar' ? 'on' : ''}">${ic('share', 22)}Indique e ganhe</a>` : ''}${user ? `<a href="#/premium" class="${cur === 'premium' ? 'on' : ''}">${ic('spark', 22)}${premium() && !['teste', 'gratis'].includes(PLANO.plano) ? 'Meu plano' : 'Seja Premium'}</a>` : ''}<a href="#/config" class="${cur === 'config' ? 'on' : ''}">${ic('gear', 22)}Configurações</a>
     <a href="#/config" class="eu">${avatarHTML(34)}<span class="tx"><b>${esc(S.perfil.nome || 'Sem nome')}</b><small>${esc(user?.email || 'Neste aparelho')}</small></span></a></div>`;
   $('#nav').insertAdjacentHTML('afterbegin', `<a href="#/inicio" class="nav-brand">${marca()}<b>Meu Semestre</b></a>`);
   aplicarTema(); aplicarRegras();
   $('#view').innerHTML = (V[R.v] || V.inicio)();
-  const t = $('#ttl'); if (t) t.textContent = R.v === 'disc' ? nomeM(byId(R.id)) : R.v === 'config' ? 'Configurações' : R.v === 'premium' ? 'Premium' : R.v === 'indicar' ? 'Indique e ganhe' : R.v === 'admin' ? 'Admin' : (NAV.find(n => n[0] === cur) || [, , ''])[2];
+  const t = $('#ttl'); if (t) t.textContent = R.v === 'disc' ? nomeM(byId(R.id)) : R.v === 'config' ? 'Configurações' : R.v === 'premium' ? 'Premium' : R.v === 'indicar' ? 'Indique e ganhe' : R.v === 'horas' ? 'Horas complementares' : R.v === 'admin' ? 'Admin' : (NAV.find(n => n[0] === cur) || [, , ''])[2];
 }
 
 // ================= Componentes =================
@@ -309,7 +310,7 @@ V.inicio = () => {
   const h = hoje(), ag = agendaDoDia(h), agora = new Date(), mins = agora.getHours() * 60 + agora.getMinutes();
   const nome = (S.perfil.nome || '').split(' ')[0];
   const sauda = agora.getHours() < 12 ? 'Bom dia' : agora.getHours() < 18 ? 'Boa tarde' : 'Boa noite';
-  const topo = `<div class="pg-h"><div><p class="mu cap1">${agora.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</p><h1>${sauda}${nome ? ', ' + esc(nome) : ''} 👋</h1></div>
+  const topo = `<div class="pg-h"><div><p class="mu cap1">${agora.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</p><h1>${sauda}${nome ? ', ' + esc(nome) : ''} 👋</h1>${linhaCurso()}</div>
     <div class="row pg-acoes"><button class="btn" onclick="eventoSheet()">${ic('plus', 18)} Evento</button><a class="btn pr" href="#/atualizar">${ic('up', 18)} Atualizar</a></div></div>`;
   if (!S.materias.length) return `<div class="stack">${topo}${avisoTeste()}${boasVindas()}</div>`;
 
@@ -360,6 +361,7 @@ V.inicio = () => {
   lado += `<div class="card"><div class="card-h"><h3 class="sp">Próximas datas</h3><button class="btn ghost sm" onclick="eventoSheet()">${ic('plus', 16)}</button></div>
     ${evs.length ? `<div class="list">${evs.map(e => `<div class="row"><div class="dia-box" style="--c:${corEv(e)}"><b>${parseISO(e.data).getDate()}</b><small>${parseISO(e.data).toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}</small></div><div class="sp"><b class="sm">${esc(e.titulo)}</b><div class="mu">${esc(nomeM(byId(e.materiaId)) || TIPOS_EV[e.tipo] || '')} · ${quando(e.data)}</div></div></div>`).join('')}</div>` : '<p class="mu">Nenhuma data cadastrada.</p>'}</div>`;
   lado += `<div class="card tap" onclick="go('disciplinas')"><div class="row">${ring(pc, 'var(--pr)', tp.length ? pc + '%' : '—')}<div class="sp"><b>Conteúdos estudados</b><div class="mu">${feitos} de ${tp.length} em ${S.materias.length} disciplina(s)</div></div>${ic('right')}</div></div>`;
+  lado += cardHoras();
   if (user) lado += `<a class="card tap row indica-card" href="#/indicar" style="color:inherit;text-decoration:none"><span style="font-size:26px">🎁</span><div class="sp"><b>Indique e ganhe</b><div class="mu">1 mês de Premium por amigo que assinar</div></div>${ic('right')}</a>`;
   lado += cardInstalar();
 
@@ -421,7 +423,7 @@ const linhaEvento = e => `<div class="row"><span class="dot" style="background:$
   ${e._av ? pen(`avSheet('${e.materiaId}','${e.id.split(':')[2]}')`) : e._fer ? pen('configSheet()') : pen(`eventoSheet('${e.id}')`)}</div>`;
 
 V.disciplinas = () => {
-  let html = `<div class="stack"><div class="between"><h1>Disciplinas</h1><button class="btn sm" onclick="discSheet()">${ic('plus', 16)} Nova</button></div>`;
+  let html = `<div class="stack"><div class="between"><h1>Disciplinas</h1><div class="row"><a class="btn sm" href="#/horas">${ic('clip', 16)} Horas compl.</a><button class="btn sm" onclick="discSheet()">${ic('plus', 16)} Nova</button></div></div>`;
   if (!S.materias.length) return html + vazio('book', 'Nenhuma disciplina ainda', 'Importe pelo plano de ensino ou crie manualmente.', `${ctaImportar}<button class="btn" onclick="discSheet()">Criar manual</button>`) + '</div>';
   html += `<div class="grid two">${S.materias.map(m => {
     const f = freq(m), n = notas(m), tp = m.topicos, fe = tp.filter(t => t.feito).length;
@@ -979,8 +981,9 @@ V.config = () => {
   ${user ? `<section class="grp full"><div class="card">${li('share', '#7048e8', 'Indique e ganhe', 'Ganhe 1 mês de Premium por amigo que assinar', chev, `onclick="go('indicar')"`)}</div></section>` : ''}
   ${PLANO.admin ? `<section class="grp full"><h4>Administração</h4><div class="card">${li('user', '#495057', 'Painel Admin', 'Contas, planos e cortesias', chev, `onclick="go('admin')"`)}</div></section>` : ''}
   <section class="grp full"><div class="card"><div class="perfil"><label class="avatar-edit" aria-label="Trocar foto de perfil">${avatarHTML(64)}<span class="cam">${ic('cam', 14)}</span><input type="file" accept="image/*" hidden onchange="trocarFoto(this)"></label><div class="sp">
-    <input class="inl" style="font-weight:600;font-size:17px;background:none;border:0;padding:0;min-height:0;box-shadow:none" value="${esc(nome)}" placeholder="Seu nome" aria-label="Seu nome" onchange="S.perfil.nome=this.value.trim();save();toast('Nome salvo.')">
+    ${''}<input class="inl" style="font-weight:600;font-size:17px;background:none;border:0;padding:0;min-height:0;box-shadow:none" value="${esc(nome)}" placeholder="Seu nome" aria-label="Seu nome" onchange="S.perfil.nome=this.value.trim();save();toast('Nome salvo.')">
     <div class="mu">${user ? esc(user.email) + ' · ' + (syncState === 'off' ? 'offline' : 'sincronizado') : 'Sem conta — dados só neste aparelho'}</div>
+    <div style="margin-top:4px">${linhaCurso(true)}</div>
     ${user ? `<div class="mu" style="margin-top:4px">Toque na foto para trocar${fotoPerfil() ? ` · <a href="#" onclick="event.preventDefault();removerFoto()">remover foto</a>` : ''}</div>` : ''}</div></div></div></section>
 
   <section class="grp"><h4>Aparência</h4><div class="card">
@@ -1414,4 +1417,165 @@ function salvarRegras() {
   if (m == null || m < 0 || m > 10 || p == null || p < 0 || p > 100 || r == null || r < 0 || r > m) return toast('Confira os valores (média 0–10, presença 0–100%).');
   S.perfil.regras = { media: String(m), presenca: String(p), rec: String(r) };
   closeSheet(); save(); render(); toast('Regras atualizadas.');
+}
+
+// ================= Curso e universidade =================
+function linhaCurso(compacto) {
+  const p = S.perfil, partes = [p.curso, p.universidade, p.fase ? p.fase + 'ª fase' : ''].filter(Boolean);
+  if (!partes.length) return `<button class="curso-chip vazio" onclick="cursoSheet()">${ic('plus', 15)} Adicionar curso e universidade</button>`;
+  return `<button class="curso-chip" onclick="cursoSheet()" aria-label="Editar curso e universidade">🎓 ${esc(partes.join(' · '))} <span class="mu">${ic('pen', 13)}</span></button>`;
+}
+function cursoSheet() {
+  const p = S.perfil;
+  sheet(`<h2>Seu curso</h2><p class="mu" style="margin:6px 0 14px">Aparece no início do app e ajuda a IA a entender seus documentos.</p>
+    <div class="fields"><label class="f">Curso<input id="cs-c" value="${esc(p.curso || '')}" placeholder="Ex.: Engenharia Civil" autocomplete="off"></label>
+    <label class="f">Universidade / faculdade<input id="cs-u" value="${esc(p.universidade || '')}" placeholder="Ex.: UFSC, USP, PUC-SP" autocomplete="off"></label>
+    <label class="f">Fase / semestre atual<input id="cs-f" inputmode="numeric" value="${esc(p.fase || '')}" placeholder="Ex.: 5"></label></div>
+    <div class="actions"><button class="btn" onclick="closeSheet()">Cancelar</button><button class="btn pr sp" onclick="salvarCurso()">Salvar</button></div>`);
+}
+function salvarCurso() {
+  S.perfil.curso = val('cs-c'); S.perfil.universidade = val('cs-u'); S.perfil.fase = val('cs-f').replace(/\D/g, '').slice(0, 2);
+  closeSheet(); save(); render(); toast('Curso salvo.');
+}
+
+
+// ================= Horas complementares =================
+function resumoHoras() {
+  const H = S.horas, porCat = {};
+  for (const a of H.atividades) { const k = a.categoria || 'Outras'; porCat[k] = (porCat[k] || 0) + (num(a.horas) || 0); }
+  const cats = [...H.categorias.map(c => c.nome), ...Object.keys(porCat).filter(k => !H.categorias.some(c => c.nome === k))];
+  const linhas = cats.map(nome => { const c = H.categorias.find(x => x.nome === nome), lim = num(c?.limite), feitas = porCat[nome] || 0; return { nome, feitas, lim, contam: lim != null ? Math.min(feitas, lim) : feitas }; });
+  const total = linhas.reduce((a, l) => a + l.contam, 0), meta = num(H.exigidas);
+  return { linhas, total, meta, pct: meta ? Math.min(100, Math.round(total / meta * 100)) : 0, faltam: meta ? Math.max(0, meta - total) : null };
+}
+const fmtH = n => (Math.round(n * 10) / 10).toString().replace('.', ',') + 'h';
+function cardHoras() {
+  const r = resumoHoras();
+  if (!r.meta && !S.horas.atividades.length) return `<a class="card tap row" href="#/horas" style="color:inherit;text-decoration:none"><span style="font-size:26px">🎓</span><div class="sp"><b>Horas complementares</b><div class="mu">Comece a contar seus certificados</div></div>${ic('right')}</a>`;
+  return `<a class="card tap row" href="#/horas" style="color:inherit;text-decoration:none">${ring(r.pct, 'var(--menta)', r.meta ? r.pct + '%' : fmtH(r.total))}<div class="sp"><b>Horas complementares</b><div class="mu">${r.meta ? `${fmtH(r.total)} de ${fmtH(r.meta)} · faltam ${fmtH(r.faltam)}` : `${fmtH(r.total)} acumuladas`}</div></div>${ic('right')}</a>`;
+}
+V.horas = () => {
+  const H = S.horas, r = resumoHoras();
+  let html = `<div class="stack"><div class="pg-h"><div><p class="mu">Atividades extracurriculares do curso</p><h1>Horas complementares</h1></div>
+    <div class="row wrap"><button class="btn" onclick="regrasHorasSheet()">${ic('gear', 18)} Regras do curso</button><button class="btn pr" onclick="atividadeSheet()">${ic('plus', 18)} Adicionar certificado</button></div></div>`;
+  if (!r.meta) html += `<div class="card"><div class="row" style="align-items:flex-start"><span style="font-size:30px">📋</span><div class="sp"><b>Quantas horas o seu curso exige?</b><div class="mu" style="margin:4px 0 12px">Digite o total ou envie o currículo / regulamento de atividades complementares que a IA lê as categorias e os limites.</div>
+      <div class="row wrap"><input id="hx" inputmode="numeric" placeholder="Ex.: 200" style="width:130px"><button class="btn" onclick="const v=num($('#hx').value);if(!v)return toast('Digite o total de horas.');S.horas.exigidas=String(v);save();render()">Salvar</button><label class="btn ghost">${ic('file', 18)} Enviar regulamento<input type="file" accept="image/*,application/pdf" hidden onchange="lerRegulamento(this)"></label></div></div></div></div>`;
+  html += `<div class="grid two"><div class="card"><div class="row">${ring(r.pct, 'var(--menta)', r.meta ? r.pct + '%' : '—')}<div class="sp"><div class="mu">Horas que contam</div><div class="big">${fmtH(r.total)}${r.meta ? `<span class="mu" style="font-size:16px;font-weight:500"> / ${fmtH(r.meta)}</span>` : ''}</div>
+      ${r.meta ? (r.faltam ? tag(`Faltam ${fmtH(r.faltam)}`, 'warn') : tag('Meta concluída 🎉', 'ok')) : '<span class="mu">Defina a meta do curso</span>'}</div></div></div>
+    <div class="card"><h3 style="margin-bottom:10px">Por categoria</h3>${r.linhas.length ? `<div class="list">${r.linhas.map(l => `<div><div class="between"><b class="sm">${esc(l.nome)}</b><span class="sm">${fmtH(l.feitas)}${l.lim != null ? ` / máx. ${fmtH(l.lim)}` : ''}</span></div>
+      ${l.lim != null ? `<div class="bar" style="margin-top:6px"><i style="width:${Math.min(100, l.feitas / (l.lim || 1) * 100)}%;background:${l.feitas > l.lim ? 'var(--warn)' : 'var(--menta)'}"></i></div>${l.feitas > l.lim ? `<div class="mu" style="font-size:12px;margin-top:2px">${fmtH(l.feitas - l.lim)} acima do limite não contam</div>` : ''}` : ''}</div>`).join('')}</div>` : '<p class="mu">Nenhuma categoria ainda. Elas aparecem conforme você adiciona certificados ou configura as regras.</p>'}</div></div>`;
+  const lista = [...H.atividades].sort((a, b) => (b.data || '').localeCompare(a.data || ''));
+  html += `<div class="card"><div class="card-h"><h3 class="sp">Certificados e atividades (${lista.length})</h3><button class="btn ghost sm" onclick="atividadeSheet()">${ic('plus', 16)} Adicionar</button></div>
+    ${lista.length ? `<div class="list">${lista.map(a => `<div class="row"><span class="kpi-ic" style="margin:0;color:var(--menta);background:color-mix(in srgb,var(--menta) 14%,transparent)">${ic(a.arquivo ? 'file' : 'clip', 18)}</span>
+      <div class="sp" style="min-width:0"><b class="sm">${esc(a.titulo || 'Atividade')}</b><div class="mu">${[a.categoria, a.data ? brD(a.data) + '/' + a.data.slice(0, 4) : '', a.instituicao].filter(Boolean).map(esc).join(' · ')}</div></div>
+      <b>${fmtH(num(a.horas) || 0)}</b>${a.arquivo ? `<button class="ib" aria-label="Ver certificado" onclick="verCertificado('${a.id}')">${ic('right', 18)}</button>` : ''}${pen(`atividadeSheet('${a.id}')`)}</div>`).join('')}</div>`
+      : `<div class="empty" style="padding:16px"><p class="mu">Tire foto ou envie o PDF de um certificado. A IA preenche horas, data e instituição para você conferir.</p><button class="btn pr" onclick="atividadeSheet()">${ic('cam', 18)} Adicionar primeiro certificado</button></div>`}</div>
+    ${H.obs ? `<p class="mu">📌 ${esc(H.obs)}</p>` : ''}</div>`;
+  return html;
+};
+function regrasHorasSheet() {
+  const H = S.horas;
+  window._cats = structuredClone(H.categorias);
+  sheet(`<h2>Regras do curso</h2><p class="mu" style="margin:6px 0 14px">Total exigido para se formar e o máximo que cada tipo de atividade pode contar.</p>
+    <label class="f">Total de horas complementares exigidas<input id="rh-t" inputmode="numeric" value="${esc(H.exigidas)}" placeholder="Ex.: 200"></label>
+    <div class="between" style="margin-top:14px"><b>Categorias</b><button class="btn ghost sm" onclick="_cats.push({id:uid(),nome:'',limite:''});catsRender()">${ic('plus', 16)} Categoria</button></div><div id="cats"></div>
+    <label class="btn block" style="margin-top:14px">${ic('file', 18)} Preencher a partir do regulamento (IA)<input type="file" accept="image/*,application/pdf" hidden onchange="lerRegulamento(this)"></label>
+    <div class="actions"><button class="btn" onclick="closeSheet()">Cancelar</button><button class="btn pr sp" onclick="salvarRegrasHoras()">Salvar</button></div>`);
+  catsRender();
+}
+function catsRender() {
+  $('#cats').innerHTML = _cats.map((c, i) => `<div class="row" style="margin-top:8px"><input placeholder="Ex.: Eventos" value="${esc(c.nome)}" oninput="_cats[${i}].nome=this.value"><input style="width:110px" inputmode="numeric" placeholder="máx. h" value="${esc(c.limite)}" oninput="_cats[${i}].limite=this.value"><button class="ib" aria-label="Remover" onclick="_cats.splice(${i},1);catsRender()">${ic('x', 18)}</button></div>`).join('') || '<p class="mu">Sem categorias: todas as horas contam no total.</p>';
+}
+function salvarRegrasHoras() {
+  S.horas.exigidas = String(num(val('rh-t')) || '');
+  S.horas.categorias = _cats.filter(c => c.nome.trim()).map(c => ({ id: c.id || uid(), nome: c.nome.trim(), limite: String(num(c.limite) ?? '') }));
+  closeSheet(); save(); render(); toast('Regras salvas.');
+}
+async function arquivoParaEnvio(f) {
+  if (f.type.startsWith('image/')) { const { data } = await comprimir(f); return { mediaType: 'image/jpeg', data, blob: await (await fetch('data:image/jpeg;base64,' + data)).blob(), ext: 'jpg' }; }
+  if (f.type === 'application/pdf') { if (f.size > 3.3e6) throw new Error('PDF grande demais (máx. ~3 MB).'); return { mediaType: f.type, data: await b64(f), blob: f, ext: 'pdf' }; }
+  throw new Error('Use uma foto ou um PDF.');
+}
+async function lerComIA(tipo, arq) {
+  if (!user) throw new Error('Entre com sua conta para usar a leitura com IA.');
+  const r = await fetch('/api/horas', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + await tokenAtual() }, body: JSON.stringify({ tipo, arquivo: { mediaType: arq.mediaType, data: arq.data }, categorias: S.horas.categorias.map(c => c.nome) }) });
+  const d = await r.json().catch(() => ({}));
+  if (r.status === 402) { closeSheet(); exigirPremium(d.error); throw Object.assign(new Error(''), { silencioso: true }); }
+  if (!r.ok) throw new Error(d.error || 'Não foi possível ler.');
+  return d;
+}
+async function lerRegulamento(inp) {
+  const f = inp.files[0]; inp.value = ''; if (!f) return;
+  sheet(`<h2>Lendo o regulamento…</h2><div style="display:flex;justify-content:center;margin:20px 0"><div class="spin"></div></div><p class="mu" style="text-align:center">Isso leva alguns segundos.</p>`);
+  try {
+    const d = await lerComIA('regulamento', await arquivoParaEnvio(f));
+    const cats = (d.categorias || []).filter(c => c.nome).map(c => ({ id: uid(), nome: c.nome, limite: c.limiteHoras ? String(num(c.limiteHoras) ?? '') : '' }));
+    sheet(`<h2>Confira as regras encontradas</h2>
+      <p style="margin:10px 0"><b>Total exigido:</b> ${d.horasExigidas ? esc(d.horasExigidas) + 'h' : 'não encontrado'}</p>
+      ${cats.length ? `<div class="list">${cats.map(c => `<div class="between"><span>${esc(c.nome)}</span><span class="mu">${c.limite ? 'máx. ' + esc(c.limite) + 'h' : 'sem limite'}</span></div>`).join('')}</div>` : '<p class="mu">Nenhuma categoria encontrada.</p>'}
+      ${d.observacoes ? `<p class="mu" style="margin-top:12px">📌 ${esc(d.observacoes)}</p>` : ''}
+      <div class="actions"><button class="btn" onclick="closeSheet()">Descartar</button><button class="btn pr sp" id="ok-reg">Usar estas regras</button></div>`);
+    $('#ok-reg').onclick = () => { if (d.horasExigidas) S.horas.exigidas = String(num(d.horasExigidas)); if (cats.length) S.horas.categorias = cats; S.horas.obs = d.observacoes || ''; closeSheet(); save(); render(); toast('Regras aplicadas. Você pode editar em "Regras do curso".'); };
+  } catch (e) { if (!e.silencioso) { closeSheet(); toast(e.message); } }
+}
+let novoArq = null;
+function atividadeSheet(id) {
+  const a = id ? S.horas.atividades.find(x => x.id === id) : { titulo: '', categoria: '', horas: '', data: '', instituicao: '', arquivo: null };
+  novoArq = null;
+  const cats = [...new Set([...S.horas.categorias.map(c => c.nome), ...S.horas.atividades.map(x => x.categoria).filter(Boolean)])];
+  sheet(`<h2>${id ? 'Editar atividade' : 'Adicionar certificado'}</h2>
+    <label class="drop" style="display:block;padding:16px;margin:12px 0;cursor:pointer" id="cert-drop">${ic('cam', 22)}<div><b>${a.arquivo ? '📎 ' + esc(a.arquivo.nome) : 'Foto ou PDF do certificado'}</b></div><div class="mu" id="cert-st">${user ? 'A IA preenche os campos para você conferir' : 'Entre com uma conta para anexar e ler com IA'}</div>
+      <input type="file" accept="image/*,application/pdf" hidden onchange="anexarCertificado(this)"></label>
+    <div class="fields"><label class="f">Atividade<input id="at-t" value="${esc(a.titulo)}" placeholder="Ex.: Semana Acadêmica de Engenharia"></label>
+      <div class="fields c2"><label class="f">Horas<input id="at-h" inputmode="decimal" value="${esc(a.horas)}" placeholder="Ex.: 20"></label><label class="f">Data<input id="at-d" type="date" value="${esc(a.data)}"></label></div>
+      <label class="f">Categoria<input id="at-c" list="cats-l" value="${esc(a.categoria)}" placeholder="Ex.: Eventos"><datalist id="cats-l">${cats.map(c => `<option value="${esc(c)}">`).join('')}</datalist></label>
+      <label class="f">Instituição<input id="at-i" value="${esc(a.instituicao)}" placeholder="Quem emitiu o certificado"></label></div>
+    <div class="actions">${id ? `<button class="btn danger" aria-label="Excluir" onclick="excluirAtividade('${id}')">${ic('trash', 18)}</button>` : ''}<button class="btn" onclick="closeSheet()">Cancelar</button><button class="btn pr sp" id="at-salvar" onclick="salvarAtividade('${id || ''}')">Salvar</button></div>`);
+}
+async function anexarCertificado(inp) {
+  const f = inp.files[0]; inp.value = ''; if (!f) return;
+  try {
+    novoArq = { ...(await arquivoParaEnvio(f)), nome: f.name };
+    $('#cert-drop b').textContent = '📎 ' + f.name;
+    if (!user) return;
+    $('#cert-st').innerHTML = '<span class="spin" style="width:18px;height:18px;display:inline-block;vertical-align:middle;border-width:2px"></span> Lendo o certificado…';
+    const d = await lerComIA('certificado', novoArq);
+    const set = (id, v) => { const el = $('#' + id); if (el && v && !el.value) el.value = v; };
+    set('at-t', d.titulo); set('at-h', d.horas && String(num(d.horas) ?? '')); set('at-d', /^\d{4}-\d{2}-\d{2}$/.test(d.data) ? d.data : ''); set('at-c', d.categoria); set('at-i', d.instituicao);
+    $('#cert-st').textContent = '✓ Campos preenchidos pela IA. Confira antes de salvar.';
+  } catch (e) { if (!e.silencioso && $('#cert-st')) $('#cert-st').textContent = e.message; }
+}
+async function salvarAtividade(id) {
+  const dados = { titulo: val('at-t'), horas: String(num(val('at-h')) ?? ''), data: val('at-d'), categoria: val('at-c'), instituicao: val('at-i') };
+  if (!dados.titulo || !num(dados.horas)) return toast('Preencha a atividade e as horas.');
+  const btn = $('#at-salvar'); btn.disabled = true; btn.textContent = 'Salvando…';
+  const a = id ? S.horas.atividades.find(x => x.id === id) : { id: uid(), arquivo: null };
+  try {
+    if (novoArq && sb && user) {
+      const path = `${user.id}/${a.id}.${novoArq.ext}`;
+      const { error } = await sb.storage.from('certificados').upload(path, novoArq.blob, { upsert: true, contentType: novoArq.ext === 'pdf' ? 'application/pdf' : 'image/jpeg' });
+      if (error) throw error;
+      a.arquivo = { path, nome: novoArq.nome, tipo: novoArq.ext };
+    }
+  } catch (e) { btn.disabled = false; btn.textContent = 'Salvar'; return toast('Não foi possível enviar o certificado: ' + (e.message || e)); }
+  Object.assign(a, dados);
+  if (!id) S.horas.atividades.push(a);
+  novoArq = null; closeSheet(); save(); render(); toast('Atividade salva.');
+}
+async function verCertificado(id) {
+  const a = S.horas.atividades.find(x => x.id === id);
+  if (!a?.arquivo || !sb) return;
+  const w = window.open('', '_blank');
+  const { data, error } = await sb.storage.from('certificados').createSignedUrl(a.arquivo.path, 600);
+  if (error) { w?.close(); return toast('Não foi possível abrir o certificado.'); }
+  if (w) w.location = data.signedUrl; else location.href = data.signedUrl;
+}
+function excluirAtividade(id) {
+  const a = S.horas.atividades.find(x => x.id === id);
+  sheet(`<h2>Excluir atividade?</h2><p class="mu" style="margin:8px 0">"${esc(a.titulo)}"${a.arquivo ? ' e o certificado anexado serão apagados.' : ' será removida.'}</p>
+    <div class="actions"><button class="btn" onclick="atividadeSheet('${id}')">Voltar</button><button class="btn pr sp" style="background:var(--bad);border-color:var(--bad)" id="ex-at">Excluir</button></div>`);
+  $('#ex-at').onclick = async () => {
+    if (a.arquivo && sb) await sb.storage.from('certificados').remove([a.arquivo.path]);
+    S.horas.atividades = S.horas.atividades.filter(x => x.id !== id); closeSheet(); save(); render(); toast('Atividade excluída.');
+  };
 }

@@ -1,5 +1,5 @@
 // Service worker: app shell offline (rede primeiro, cache como reserva) + notificações push
-const C = 'semestre-v8';
+const C = 'semestre-v9';
 const SHELL = ['/', '/app', '/limpeza.js', '/app.js', '/parser.js', '/styles.css', '/manifest.json', '/icon.svg', '/icons/icon-192.png'];
 
 self.addEventListener('install', e => { self.skipWaiting(); e.waitUntil(caches.open(C).then(c => c.addAll(SHELL))); });
