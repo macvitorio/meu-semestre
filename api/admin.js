@@ -1,7 +1,7 @@
 // Painel de administração (somente e-mails listados em ADMIN_EMAILS)
 // GET  → lista de contas com plano e resumo de uso
 // POST → { userId, acao: 'cortesia' | 'remover' | 'dias' | 'apagar', dias }
-import { usuario, admin, ehAdmin, planoDe, mp } from './_premium.js';
+import { usuario, admin, ehAdmin, planoDe, mp, enviarPush } from './_premium.js';
 
 export default async function handler(req, res) {
   const user = await usuario(req);
@@ -11,6 +11,30 @@ export default async function handler(req, res) {
 
   if (req.method === 'POST') {
     const { userId, acao, dias } = req.body || {};
+    if (acao === 'notificar') { // envia push: para mim (teste), para todos ou só Premium
+      const { title, body, url, alvo } = req.body;
+      const t = String(title || '').trim().slice(0, 80), b = String(body || '').trim().slice(0, 300);
+      if (!t) return res.status(400).json({ error: 'Escreva um título.' });
+      const destino = /^\/app(#\/[a-z]*)?$/.test(url || '') ? url : '/app#/inicio';
+      let q = db.from('push_subscriptions').select('endpoint,user_id,subscription');
+      if (alvo === 'eu') q = q.eq('user_id', user.id);
+      const { data: subs, error } = await q;
+      if (error) return res.status(500).json({ error: error.message });
+      let lista = subs || [];
+      if (alvo !== 'eu') {
+        const ids = [...new Set(lista.map(s => s.user_id))];
+        const { data: dados } = ids.length ? await db.from('user_data').select('user_id,data').in('user_id', ids) : { data: [] };
+        const desligou = new Set((dados || []).filter(d => d.data?.perfil?.notif === false).map(d => d.user_id));
+        lista = lista.filter(s => !desligou.has(s.user_id));
+        if (alvo === 'premium') {
+          const { data: ass } = ids.length ? await db.from('assinaturas').select('user_id,premium_ate').in('user_id', ids) : { data: [] };
+          const prem = new Set((ass || []).filter(a => a.premium_ate && new Date(a.premium_ate) > new Date()).map(a => a.user_id));
+          lista = lista.filter(s => prem.has(s.user_id));
+        }
+      }
+      const r = await enviarPush(db, lista, { title: t, body: b, tag: 'aviso-' + Date.now(), url: destino });
+      return res.status(200).json({ ok: true, aparelhos: lista.length, pessoas: new Set(lista.map(s => s.user_id)).size, ...r });
+    }
     if (acao === 'forum') { // moderação: restaurar (volta ao ar) ou apagar
       const { alvo, id, op } = req.body; const tab = { post: 'forum_posts', resposta: 'forum_respostas', comentario: 'forum_comentarios' }[alvo] || null;
       if (!tab || !Number.isInteger(id) || !['restaurar', 'apagar'].includes(op)) return res.status(400).json({ error: 'Pedido inválido.' });

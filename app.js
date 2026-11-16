@@ -358,7 +358,8 @@ function render() {
   $('#nav').insertAdjacentHTML('afterbegin', `<a href="#/inicio" class="nav-brand">${marca()}<b>Meu Semestre</b></a>`);
   aplicarTema(); aplicarRegras();
   $('#view').innerHTML = (V[R.v] || V.inicio)();
-  const t = $('#ttl'); if (t) t.textContent = R.v === 'disc' ? nomeM(byId(R.id)) : R.v === 'config' ? 'Configurações' : R.v === 'premium' ? 'Premium' : R.v === 'indicar' ? 'Indique e ganhe' : R.v === 'horas' ? 'Horas complementares' : R.v === 'admin' ? 'Admin' : R.v === 'feedbacks' ? 'Feedbacks' : R.v === 'forum' ? 'Fórum' : (NAV.find(n => n[0] === cur) || [, , ''])[2];
+  if (R.v === 'avisos') avPrev();
+  const t = $('#ttl'); if (t) t.textContent = R.v === 'disc' ? nomeM(byId(R.id)) : R.v === 'config' ? 'Configurações' : R.v === 'premium' ? 'Premium' : R.v === 'indicar' ? 'Indique e ganhe' : R.v === 'horas' ? 'Horas complementares' : R.v === 'admin' ? 'Admin' : R.v === 'feedbacks' ? 'Feedbacks' : R.v === 'forum' ? 'Fórum' : R.v === 'avisos' ? 'Notificações' : (NAV.find(n => n[0] === cur) || [, , ''])[2];
 }
 
 // ================= Componentes =================
@@ -1322,7 +1323,7 @@ V.admin = () => {
   const r = ADM.resumo, b = norm(admBusca);
   const lista = ADM.contas.filter(c => (!b || norm(c.email + ' ' + c.nome).includes(b)) && (admFiltro === 'todos' || (admFiltro === 'premium' ? c.premium : admFiltro === 'gratis' ? !c.premium : admFiltro === 'indicados' ? !!c.indicadoPor : c.plano === admFiltro)));
   const pl = c => ({ teste: ['Teste', 'neu'], mensal: ['Mensal', 'ok'], semestral: ['Semestral', 'ok'], cortesia: ['Cortesia', 'ok'], manual: ['Manual', 'ok'], gratis: ['Grátis', 'neu'] }[c.plano] || [c.plano, 'neu']);
-  return `<div class="stack"><div class="pg-h"><div><p class="mu">Somente você vê esta tela</p><h1>Admin</h1></div><div class="row"><button class="btn" onclick="admZerar()">${ic('trash', 18)} Zerar pagamentos de teste</button><button class="btn" onclick="ADM=null;render()">${ic('hist', 18)} Atualizar</button></div></div>
+  return `<div class="stack"><div class="pg-h"><div><p class="mu">Somente você vê esta tela</p><h1>Admin</h1></div><div class="row"><button class="btn pr" onclick="go('avisos')">${ic('bell', 18)} Notificações</button><button class="btn" onclick="admZerar()">${ic('trash', 18)} Zerar pagamentos de teste</button><button class="btn" onclick="ADM=null;render()">${ic('hist', 18)} Atualizar</button></div></div>
     <div class="kpis">
       <div class="kpi card"><div class="mu">Contas</div><div class="kpi-v">${r.total}</div><div class="mu sm">${r.premium} com Premium ativo</div></div>
       <div class="kpi card"><div class="mu">Pagantes</div><div class="kpi-v">${r.pagantes}</div><div class="mu sm">mensal ou semestral</div></div>
@@ -1434,6 +1435,39 @@ async function copiarConvite() {
 let rankPor = 'total';
 const FB_ST = { nova: ['🆕', 'Novas'], planejada: ['📌', 'Planejadas'], fazendo: ['🛠️', 'Fazendo'], feito: ['✅', 'Feitas'], descartada: ['🗑️', 'Descartadas'] };
 const FB_TP = { ideia: '💡 Ideia', problema: '🐞 Problema', elogio: '💜 Elogio' };
+// ===== Admin: enviar notificações =====
+let AV = { title: '', body: '', url: '/app#/inicio', alvo: 'todos', aqui: null };
+const AV_TELAS = [['/app#/inicio', 'Início'], ['/app#/agenda', 'Agenda'], ['/app#/atualizar', 'Atualizar'], ['/app#/forum', 'Fórum'], ['/app#/premium', 'Premium'], ['/app#/indicar', 'Indique e ganhe']];
+async function avChecar() { try { const r = await navigator.serviceWorker?.ready; AV.aqui = !!(r && await r.pushManager.getSubscription()); } catch { AV.aqui = false; } if (R.v === 'avisos') render(); }
+V.avisos = () => {
+  if (!PLANO.admin) { setTimeout(() => go('inicio')); return ''; }
+  if (AV.aqui === null) setTimeout(avChecar);
+  return `<div class="stack"><div class="pg-h"><div><p class="mu"><a href="#/admin" style="color:inherit">← Admin</a></p><h1>Notificações</h1></div></div>
+    <div class="card row" style="gap:12px;${AV.aqui ? '' : 'border-color:var(--warn)'}"><span style="font-size:26px">${AV.aqui ? '🔔' : '🔕'}</span><div class="sp"><b>${AV.aqui ? 'Este aparelho recebe os avisos de admin' : 'Este aparelho não recebe notificações'}</b><div class="mu sm">Você é avisado quando alguém cria conta ou assina. Ative em cada aparelho onde quer receber.</div></div>${AV.aqui ? '' : `<button class="btn pr sm" onclick="alternarNotif(true).then(()=>{AV.aqui=null;render()})">Ativar</button>`}</div>
+    <div class="card"><h3 style="margin-bottom:12px">Mandar aviso pra galera</h3><div class="fields">
+      <label class="f">Título<input id="av-t" maxlength="80" value="${esc(AV.title)}" placeholder="Ex.: Fórum da galera no ar 💬" oninput="AV.title=this.value;avPrev()"></label>
+      <label class="f">Mensagem<textarea id="av-b" maxlength="300" style="min-height:90px" placeholder="Ex.: agora dá pra tirar dúvida e trocar resumo com outros estudantes" oninput="AV.body=this.value;avPrev()">${esc(AV.body)}</textarea></label>
+      <div class="fields c2"><label class="f">Ao tocar, abre<select onchange="AV.url=this.value">${AV_TELAS.map(([u, n]) => `<option value="${u}" ${AV.url === u ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+      <label class="f">Quem recebe<select onchange="AV.alvo=this.value">${[['todos', 'Todos'], ['premium', 'Só Premium']].map(([k, n]) => `<option value="${k}" ${AV.alvo === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label></div></div>
+      <div class="mu sm" style="margin:14px 0 6px">Prévia</div>
+      <div class="av-prev" id="av-prev"></div>
+      <div class="actions" style="margin-top:14px"><button class="btn" onclick="avEnviar('eu')">Testar em mim</button><button class="btn pr sp" onclick="avConfirmar()">${ic('bell', 18)} Enviar</button></div>
+      <p class="mu sm" style="margin:8px 0 0">Só chega em quem ativou as notificações no app (e não desligou os lembretes).</p></div>
+  </div>`;
+};
+function avPrev() { const el = $('#av-prev'); if (el) el.innerHTML = `<img src="/icon.svg" alt=""><div style="min-width:0"><b>${esc(AV.title || 'Título do aviso')}</b><div>${esc(AV.body || 'Sua mensagem aparece aqui.')}</div></div><span class="mu sm">agora</span>`; }
+function avConfirmar() {
+  if (!AV.title.trim()) return toast('Escreva um título.');
+  sheet(`<h2>Enviar para ${AV.alvo === 'premium' ? 'quem é Premium' : 'todo mundo'}?</h2><p class="mu" style="margin:8px 0">“${esc(AV.title)}” vai para todos os aparelhos com notificações ativas. Não dá pra desfazer.</p>
+    <div class="actions"><button class="btn" onclick="closeSheet()">Cancelar</button><button class="btn pr sp" onclick="closeSheet();avEnviar(AV.alvo)">Enviar agora</button></div>`);
+}
+async function avEnviar(alvo) {
+  if (!AV.title.trim()) return toast('Escreva um título.');
+  const r = await fetch('/api/admin', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + await tokenAtual() }, body: JSON.stringify({ acao: 'notificar', alvo, title: AV.title, body: AV.body, url: AV.url }) });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) return toast(d.error || 'Não deu para enviar.');
+  toast(alvo === 'eu' ? (d.enviados ? 'Teste enviado! Olha a notificação 🔔' : 'Nenhum aparelho seu com notificação ativa.') : `Enviado para ${d.pessoas} pessoa(s), ${d.enviados} aparelho(s) ✅`);
+}
 function moderacaoAdmin() {
   const m = ADM.moderacao || [];
   return `<div class="card"><div class="card-h"><h3 class="sp">🚩 Denúncias do fórum</h3><span class="mu sm">${m.length}</span></div>

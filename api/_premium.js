@@ -16,7 +16,13 @@ export async function planoDe(db, user) {
   if (data) return data;
   const fim = new Date(new Date(user.created_at || Date.now()).getTime() + DIAS_TESTE * 864e5);
   const novo = { user_id: user.id, plano: 'teste', status: 'ativa', premium_ate: fim.toISOString(), atualizado_em: new Date().toISOString() };
-  await db.from('assinaturas').upsert(novo);
+  const { error } = await db.from('assinaturas').insert(novo);
+  if (error) { const { data: d2 } = await db.from('assinaturas').select('*').eq('user_id', user.id).maybeSingle(); return d2 || novo; }
+  // conta realmente nova (criada nas últimas 48h): avisa os admins
+  if (Date.now() - new Date(user.created_at || 0) < 2 * 864e5) {
+    const { count } = await db.from('assinaturas').select('user_id', { count: 'exact', head: true });
+    await avisarAdmins(db, { title: '🎉 Novo usuário no Meu Semestre', body: `${user.user_metadata?.full_name || user.email} acabou de entrar.${count ? ` Agora são ${count} contas.` : ''}`, tag: 'novo-' + user.id, url: '/app#/admin' }).catch(() => { });
+  }
   return novo;
 }
 export const periodo = (d = new Date()) => `${d.getFullYear()}.${d.getMonth() < 6 ? 1 : 2}`;
@@ -92,4 +98,33 @@ export async function registrarUsoIA(db, user, q) {
 export function segredoConfere(recebido, esperado) {
   const a = Buffer.from(String(recebido || '')), b = Buffer.from('Bearer ' + String(esperado || ''));
   return !!esperado && a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+// ===== Notificações push =====
+import webpush from 'web-push';
+let vapidOk = false;
+function vapid() { if (!vapidOk) { webpush.setVapidDetails(process.env.VAPID_SUBJECT || 'mailto:suporte@meusemestre.app', process.env.VAPID_PUBLIC_KEY, process.env.VAPID_PRIVATE_KEY); vapidOk = true; } }
+export async function enviarPush(db, subs, msg) {
+  if (!process.env.VAPID_PRIVATE_KEY) return { enviados: 0, removidos: 0 };
+  vapid(); let enviados = 0, removidos = 0;
+  await Promise.all(subs.map(async s => {
+    try { await webpush.sendNotification(s.subscription, JSON.stringify(msg), { TTL: 24 * 3600 }); enviados++; }
+    catch (e) { if (e.statusCode === 404 || e.statusCode === 410) { await db.from('push_subscriptions').delete().eq('endpoint', s.endpoint); removidos++; } }
+  }));
+  return { enviados, removidos };
+}
+export async function idsAdmins(db) {
+  const emails = (process.env.ADMIN_EMAILS || '').toLowerCase().split(',').map(e => e.trim()).filter(Boolean);
+  const ids = [];
+  for (let page = 1; page <= 20 && ids.length < emails.length; page++) {
+    const { data } = await db.auth.admin.listUsers({ page, perPage: 200 });
+    for (const u of data?.users || []) if (u.email && emails.includes(u.email.toLowerCase())) ids.push(u.id);
+    if ((data?.users || []).length < 200) break;
+  }
+  return ids;
+}
+export async function avisarAdmins(db, msg) {
+  const ids = await idsAdmins(db); if (!ids.length) return { enviados: 0 };
+  const { data: subs } = await db.from('push_subscriptions').select('endpoint,subscription').in('user_id', ids);
+  return enviarPush(db, subs || [], msg);
 }
