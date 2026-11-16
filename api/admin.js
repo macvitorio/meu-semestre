@@ -12,10 +12,10 @@ export default async function handler(req, res) {
   if (req.method === 'POST') {
     const { userId, acao, dias } = req.body || {};
     if (acao === 'forum') { // moderação: restaurar (volta ao ar) ou apagar
-      const { alvo, id, op } = req.body; const tab = alvo === 'post' ? 'forum_posts' : alvo === 'resposta' ? 'forum_respostas' : null;
+      const { alvo, id, op } = req.body; const tab = { post: 'forum_posts', resposta: 'forum_respostas', comentario: 'forum_comentarios' }[alvo] || null;
       if (!tab || !Number.isInteger(id) || !['restaurar', 'apagar'].includes(op)) return res.status(400).json({ error: 'Pedido inválido.' });
       if (op === 'apagar') {
-        const { data: it } = await db.from(tab).select('arquivos').eq('id', id).maybeSingle();
+        const { data: it } = tab === 'forum_comentarios' ? { data: null } : await db.from(tab).select('arquivos').eq('id', id).maybeSingle();
         const paths = (it?.arquivos || []).map(a => a.path).filter(Boolean);
         if (paths.length) await db.storage.from('forum').remove(paths);
         await db.from(tab).delete().eq('id', id);
@@ -99,10 +99,10 @@ export default async function handler(req, res) {
   const { data: fb } = await db.from('feedback').select('*').order('criado_em', { ascending: false }).limit(100);
   const { data: den } = await db.from('forum_denuncias').select('alvo,alvo_id,motivo').eq('resolvida', false).limit(300);
   const mod = [];
-  for (const alvo of ['post', 'resposta']) {
+  for (const alvo of ['post', 'resposta', 'comentario']) {
     const ids = [...new Set((den || []).filter(d => d.alvo === alvo).map(d => d.alvo_id))];
     if (!ids.length) continue;
-    const { data: itens } = await db.from(alvo === 'post' ? 'forum_posts' : 'forum_respostas').select(alvo === 'post' ? 'id,titulo,texto,autor_nome,oculto,denuncias' : 'id,post_id,texto,autor_nome,oculto,denuncias').in('id', ids);
+    const { data: itens } = await db.from({ post: 'forum_posts', resposta: 'forum_respostas', comentario: 'forum_comentarios' }[alvo]).select(alvo === 'post' ? 'id,titulo,texto,autor_nome,oculto,denuncias' : 'id,post_id,texto,autor_nome,oculto,denuncias').in('id', ids);
     for (const it of itens || []) mod.push({ alvo, ...it, motivos: [...new Set(den.filter(d => d.alvo === alvo && d.alvo_id === it.id).map(d => d.motivo))] });
   }
   const receita = (pags || []).filter(p => p.status === 'approved').reduce((s, p) => s + Number(p.valor || 0), 0);

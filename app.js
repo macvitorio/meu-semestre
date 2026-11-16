@@ -1420,7 +1420,7 @@ const FB_TP = { ideia: '💡 Ideia', problema: '🐞 Problema', elogio: '💜 El
 function moderacaoAdmin() {
   const m = ADM.moderacao || [];
   return `<div class="card"><div class="card-h"><h3 class="sp">🚩 Denúncias do fórum</h3><span class="mu sm">${m.length}</span></div>
-    ${m.length ? `<div class="list">${m.map(x => `<div style="min-width:0"><div class="row wrap" style="gap:6px"><span class="forum-tag" style="--c:${x.oculto ? 'var(--bad)' : 'var(--warn)'}">${x.oculto ? 'Fora do ar' : 'No ar'} · ${x.denuncias} denúncia(s)</span><span class="mu sm">${x.alvo === 'post' ? 'Publicação' : 'Resposta'} de ${esc(x.autor_nome || '?')}</span></div>
+    ${m.length ? `<div class="list">${m.map(x => `<div style="min-width:0"><div class="row wrap" style="gap:6px"><span class="forum-tag" style="--c:${x.oculto ? 'var(--bad)' : 'var(--warn)'}">${x.oculto ? 'Fora do ar' : 'No ar'} · ${x.denuncias} denúncia(s)</span><span class="mu sm">${x.alvo === 'post' ? 'Publicação' : x.alvo === 'resposta' ? 'Resposta' : 'Comentário'} de ${esc(x.autor_nome || '?')}</span></div>
       <div style="margin:6px 0;overflow-wrap:anywhere">${x.titulo ? `<b>${esc(x.titulo)}</b><br>` : ''}<span class="mu">${esc((x.texto || '').slice(0, 240))}</span></div>
       <div class="mu sm">Motivos: ${x.motivos.map(esc).join(', ')}</div>
       <div class="row wrap" style="gap:8px;margin-top:8px">${x.oculto ? '' : `<a class="btn sm" href="#/forum/${x.alvo === 'post' ? x.id : x.post_id}">Ver</a>`}<button class="btn sm" onclick="modForum('${x.alvo}',${x.id},'restaurar')">✅ Manter no ar</button><button class="btn sm" style="color:var(--bad)" onclick="modForum('${x.alvo}',${x.id},'apagar')">${ic('trash', 16)} Apagar</button></div></div>`).join('')}</div>` : '<p class="mu">Nenhuma denúncia pendente. Comunidade de boa 😎</p>'}</div>`;
@@ -1867,7 +1867,7 @@ function marcarLote(i, on) { LOTE[i].on = on; $('#lt-' + i)?.classList.toggle('o
 
 // ================= Fórum da galera =================
 const FT = { duvida: ['❓', 'Dúvida', '#e8590c'], material: ['📚', 'Material', '#0ca678'], discussao: ['💬', 'Discussão', '#7048e8'] };
-let FORUM = { lista: null, chave: '', post: null, resp: [], votos: new Set(), carregando: false }, fQ = '', fTipo = 'todos', fOrdem = 'recentes', fCurso = false;
+let FORUM = { lista: null, chave: '', post: null, resp: [], com: [], comAberto: null, votos: new Set(), carregando: false }, fQ = '', fTipo = 'todos', fOrdem = 'recentes', fCurso = false;
 const fLimpa = q => q.replace(/[%,()*\\]/g, ' ').trim();
 const tempoAtras = d => { const s = (Date.now() - new Date(d)) / 1000; return s < 60 ? 'agora' : s < 3600 ? Math.floor(s / 60) + ' min' : s < 86400 ? Math.floor(s / 3600) + ' h' : s < 2592000 ? Math.floor(s / 86400) + ' d' : new Date(d).toLocaleDateString('pt-BR'); };
 const fAvatar = (nome, foto, t = 34) => foto && /^https:\/\//.test(foto) ? `<img class="avatar" src="${esc(foto)}" referrerpolicy="no-referrer" alt="" style="width:${t}px;height:${t}px;object-fit:cover" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'avatar',textContent:'${esc((nome || '?')[0].toUpperCase())}'}))">` : `<div class="avatar" style="width:${t}px;height:${t}px;font-size:${Math.round(t * .4)}px">${esc((nome || '?')[0].toUpperCase())}</div>`;
@@ -1897,11 +1897,12 @@ async function forumMeusVotos(alvo, ids) {
 async function forumAbrir(id) {
   if (FORUM.carregando) return; FORUM.carregando = true;
   try {
-    const [{ data: p, error }, { data: r }] = await Promise.all([
+    const [{ data: p, error }, { data: r }, { data: c }] = await Promise.all([
       sb.from('forum_posts').select('*').eq('id', id).maybeSingle(),
-      sb.from('forum_respostas').select('*').eq('post_id', id).order('criado_em')]);
+      sb.from('forum_respostas').select('*').eq('post_id', id).order('criado_em'),
+      sb.from('forum_comentarios').select('*').eq('post_id', id).order('criado_em')]);
     if (error) throw error;
-    FORUM.post = p; FORUM.resp = r || [];
+    FORUM.post = p; FORUM.resp = r || []; FORUM.com = c || [];
     if (p) { await forumMeusVotos('post', [p.id]); await forumMeusVotos('resposta', FORUM.resp.map(x => x.id)); }
   } catch { FORUM.post = false; }
   FORUM.carregando = false; if (R.v === 'forum' && R.id == id) render();
@@ -1951,6 +1952,7 @@ function forumPostView(id) {
       ${forumArquivos(p.arquivos)}
       <div class="row wrap" style="justify-content:space-between;margin-top:14px;gap:10px">${autor(p.autor_nome, p.autor_curso, p.autor_foto, p.criado_em)}
         <div class="row" style="gap:6px">${votar('post', p)}${meu ? `<button class="btn sm" onclick="forumApagar('post',${p.id})">${ic('trash', 16)}</button>` : `<button class="btn sm" onclick="forumDenunciar('post',${p.id})" aria-label="Denunciar">🚩</button>`}</div></div>
+      ${forumComentarios(p.id, null)}
     </div>
     <h3 style="margin:8px 2px 0">${resp.length ? `${resp.length} resposta${resp.length > 1 ? 's' : ''}` : 'Nenhuma resposta ainda'}</h3>
     ${resp.map(r => `<div class="card ${r.id === p.melhor_resposta ? 'forum-melhor' : ''}" style="min-width:0">
@@ -1958,12 +1960,34 @@ function forumPostView(id) {
       <div class="forum-txt">${forumTexto(r.texto)}</div>${forumArquivos(r.arquivos)}
       <div class="row wrap" style="justify-content:space-between;margin-top:12px;gap:10px">${autor(r.autor_nome, r.autor_curso, r.autor_foto, r.criado_em)}
         <div class="row" style="gap:6px">${meu && r.user_id !== user.id ? `<button class="btn sm" onclick="forumMelhor(${r.id})">${r.id === p.melhor_resposta ? 'Desmarcar' : '✅ Melhor'}</button>` : ''}${votar('resposta', r)}${r.user_id === user.id ? `<button class="btn sm" onclick="forumApagar('resposta',${r.id})">${ic('trash', 16)}</button>` : `<button class="btn sm" onclick="forumDenunciar('resposta',${r.id})" aria-label="Denunciar">🚩</button>`}</div></div>
+      ${forumComentarios(p.id, r.id)}
     </div>`).join('')}
     <div class="card"><label class="f">Sua resposta<textarea id="fr-t" maxlength="5000" placeholder="Explica do seu jeito, manda o passo a passo ou anexa um material 😉"></textarea></label>
       <div id="fr-arq" class="forum-anexos"></div>
       <div class="actions" style="margin-top:10px"><label class="btn">📎 Anexar<input type="file" hidden multiple accept="application/pdf,image/*" onchange="forumAnexar(this,'fr')"></label><button class="btn pr sp" id="fr-b" onclick="forumResponder(${p.id})">Responder</button></div>
       <p class="mu sm" style="margin:8px 0 0">Seja gentil e não compartilhe provas sigilosas ou material com direitos autorais.</p></div>
   </div>`;
+}
+function forumComentarios(pid, rid) {
+  const cs = FORUM.com.filter(c => (c.resposta_id || null) === rid), k = rid ? 'r' + rid : 'p' + pid, aberto = FORUM.comAberto === k;
+  return `<div class="forum-coms">${cs.map(c => `<div class="forum-com"><b>${esc((c.autor_nome || 'Estudante').split(' ')[0])}</b>${c.autor_curso ? `<span class="mu"> · ${esc(c.autor_curso)}</span>` : ''} <span class="mu">· ${tempoAtras(c.criado_em)}</span>
+      <div style="overflow-wrap:anywhere">${forumTexto(c.texto)}</div>
+      <div class="forum-com-ac">${c.user_id === user.id ? `<button onclick="forumApagarCom(${c.id})">Apagar</button>` : `<button onclick="forumComAbrir('${k}','${esc((c.autor_nome || '').split(' ')[0])}')">Responder</button><button onclick="forumDenunciar('comentario',${c.id})">Denunciar</button>`}</div></div>`).join('')}
+    ${aberto ? `<div class="forum-com-novo"><input id="fc-${k}" maxlength="600" placeholder="Escreva um comentário…" onkeydown="if(event.key==='Enter')forumComentar(${pid},${rid})"><button class="btn sm pr" onclick="forumComentar(${pid},${rid})">Enviar</button></div>`
+      : `<button class="forum-com-btn" onclick="forumComAbrir('${k}')">💬 ${cs.length ? 'Comentar' : 'Comentar ou tirar dúvida'}</button>`}</div>`;
+}
+function forumComAbrir(k, quem) { FORUM.comAberto = k; render(); const i = $('#fc-' + k); if (i) { if (quem) i.value = '@' + quem + ' '; i.focus(); } }
+async function forumComentar(pid, rid) {
+  const k = rid ? 'r' + rid : 'p' + pid, i = $('#fc-' + k), texto = (i?.value || '').trim();
+  if (!texto) return; i.disabled = true;
+  const { data, error } = await sb.from('forum_comentarios').insert({ post_id: pid, resposta_id: rid, texto }).select('*').single();
+  if (error) { i.disabled = false; return toast(/relation|does not exist/i.test(error.message) ? 'Comentários ainda não ativados no banco.' : traduzErro(error.message)); }
+  FORUM.com.push(data); FORUM.comAberto = null; FORUM.lista = null; render();
+}
+async function forumApagarCom(id) {
+  const { error } = await sb.from('forum_comentarios').delete().eq('id', id);
+  if (error) return toast('Não deu para apagar.');
+  FORUM.com = FORUM.com.filter(c => c.id !== id); render();
 }
 const forumTexto = t => esc(t).replace(/(https:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener nofollow ugc">$1</a>').replace(/\n/g, '<br>');
 const forumArquivos = a => (a || []).length ? `<div class="forum-anexos">${a.map((x, i) => `<button class="chip" onclick='forumBaixar(${JSON.stringify(x.path).replace(/'/g, '&#39;')})'>${x.tipo === 'pdf' ? '📄' : '🖼️'} ${esc(x.nome || 'arquivo ' + (i + 1))}</button>`).join('')}</div>` : '';
@@ -1983,7 +2007,7 @@ async function forumAnexar(inp, k) {
       let blob = f, ext = 'pdf';
       if (f.type.startsWith('image/')) { const { data } = await comprimir(f); blob = b64ParaBlob(data, 'image/jpeg'); ext = 'jpg'; }
       else if (f.type !== 'application/pdf') throw new Error('Use PDF ou imagem.');
-      else if (f.size > 10e6) throw new Error('PDF grande demais (máx. 10 MB).');
+      else if (f.size > 5e6) throw new Error('PDF grande demais (máx. 5 MB). Dá pra comprimir em ilovepdf.com.');
       ANEXOS[k].push({ blob, ext, nome: f.name.slice(0, 80) });
     } catch (e) { toast(e.message); }
   }
@@ -2018,7 +2042,7 @@ function forumNovo(tipo = 'duvida') {
 async function forumPublicar() {
   const tipo = document.querySelector('#fp-seg .on')?.dataset.k || 'duvida', titulo = val('fp-t'), disciplina = val('fp-d'), texto = $('#fp-x').value.trim();
   if (titulo.length < 5) return toast('Capricha no título (pelo menos 5 letras).');
-  if (tipo === 'material' && !ANEXOS.fp.length && !/https?:\/\//.test(texto)) return toast('Anexe o material ou cole um link nos detalhes.');
+  if (tipo === 'material' && !ANEXOS.fp.length && !/https?:\/\//.test(texto)) return toast('Anexe o material ou cole um link (Drive, por ex.) nos detalhes.');
   const b = $('#fp-b'); b.disabled = true; b.textContent = 'Publicando…';
   try {
     const arquivos = await forumSubir('fp');

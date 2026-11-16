@@ -465,3 +465,8 @@ input[type=date]::-webkit-date-and-time-value{text-align:left}
 .forum-anexos .chip{max-width:100%;overflow:hidden;text-overflow:ellipsis;display:inline-flex;align-items:center;gap:6px}
 .forum-up.on{background:var(--pr-2);border-color:var(--pr);color:var(--pr)}
 .forum-melhor{border-color:color-mix(in srgb,var(--ok) 55%,var(--bd))}
+.forum-coms{margin-top:12px;padding-top:10px;border-top:1px dashed var(--bd);display:grid;gap:10px}
+.forum-com{font-size:14px;padding-left:10px;border-left:3px solid var(--bd);min-width:0}
+.forum-com-ac{display:flex;gap:12px;margin-top:2px}.forum-com-ac button,.forum-com-btn{background:none;border:0;padding:0;font:inherit;font-size:13px;font-weight:600;color:var(--tx-2);cursor:pointer;text-align:left}
+.forum-com-btn{color:var(--pr)}
+.forum-com-novo{display:flex;gap:8px;min-width:0}.forum-com-novo input{flex:1;min-width:0;min-height:38px}
