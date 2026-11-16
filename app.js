@@ -357,7 +357,7 @@ function render() {
   $('#nav').insertAdjacentHTML('afterbegin', `<a href="#/inicio" class="nav-brand">${marca()}<b>Meu Semestre</b></a>`);
   aplicarTema(); aplicarRegras();
   $('#view').innerHTML = (V[R.v] || V.inicio)();
-  const t = $('#ttl'); if (t) t.textContent = R.v === 'disc' ? nomeM(byId(R.id)) : R.v === 'config' ? 'Configurações' : R.v === 'premium' ? 'Premium' : R.v === 'indicar' ? 'Indique e ganhe' : R.v === 'horas' ? 'Horas complementares' : R.v === 'admin' ? 'Admin' : (NAV.find(n => n[0] === cur) || [, , ''])[2];
+  const t = $('#ttl'); if (t) t.textContent = R.v === 'disc' ? nomeM(byId(R.id)) : R.v === 'config' ? 'Configurações' : R.v === 'premium' ? 'Premium' : R.v === 'indicar' ? 'Indique e ganhe' : R.v === 'horas' ? 'Horas complementares' : R.v === 'admin' ? 'Admin' : R.v === 'feedbacks' ? 'Feedbacks' : (NAV.find(n => n[0] === cur) || [, , ''])[2];
 }
 
 // ================= Componentes =================
@@ -1412,11 +1412,39 @@ async function copiarConvite() {
 
 // Ranking de quem mais indica (Admin)
 let rankPor = 'total';
+const FB_ST = { nova: ['🆕', 'Novas'], planejada: ['📌', 'Planejadas'], fazendo: ['🛠️', 'Fazendo'], feito: ['✅', 'Feitas'], descartada: ['🗑️', 'Descartadas'] };
+const FB_TP = { ideia: '💡 Ideia', problema: '🐞 Problema', elogio: '💜 Elogio' };
 function feedbackAdmin() {
-  const f = ADM.feedback || [], em = { ideia: '💡', problema: '🐞', elogio: '💜' };
-  return `<div class="card"><div class="card-h"><h3 class="sp">💬 Ideias e feedback</h3><span class="mu sm">${f.length}</span></div>
-    ${f.length ? `<div class="list">${f.map(x => `<div style="min-width:0"><div class="mu sm">${em[x.tipo] || ''} ${esc(x.email || 'anônimo')} · ${new Date(x.criado_em).toLocaleDateString('pt-BR')}</div><div style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(x.texto)}</div></div>`).join('')}</div>` : '<p class="mu">Nenhuma mensagem ainda.</p>'}</div>`;
+  const f = ADM.feedback || [], n = k => f.filter(x => (x.status || 'nova') === k).length;
+  return `<div class="card tap" onclick="go('feedbacks')" style="cursor:pointer"><div class="card-h"><h3 class="sp">💬 Ideias e feedback</h3><span class="mu sm">Gerenciar ›</span></div>
+    <div class="row wrap" style="gap:8px">${Object.entries(FB_ST).slice(0, 4).map(([k, [e, l]]) => `<span class="chip">${e} ${l}: <b>${n(k)}</b></span>`).join('')}</div></div>`;
 }
+let fbFiltro = 'nova', fbTipoF = 'todos';
+V.feedbacks = () => {
+  if (!PLANO.admin) { setTimeout(() => go('inicio')); return ''; }
+  if (!ADM) { carregarAdmin(); return `<div class="card empty" style="margin-top:24px"><div class="spin"></div></div>`; }
+  const f = ADM.feedback || [], st = x => x.status || 'nova';
+  const lista = f.filter(x => (fbFiltro === 'todos' || st(x) === fbFiltro) && (fbTipoF === 'todos' || x.tipo === fbTipoF));
+  const cont = k => f.filter(x => st(x) === k).length;
+  return `<div class="stack"><div class="pg-h"><div><p class="mu"><a href="#/admin" style="color:inherit">← Admin</a></p><h1>Ideias e feedback</h1></div><div class="row"><button class="btn" onclick="ADM=null;render()">${ic('hist', 18)} Atualizar</button></div></div>
+    <div class="kpis">${['nova', 'planejada', 'fazendo', 'feito'].map(k => `<button class="kpi card" style="text-align:left;font:inherit;cursor:pointer;${fbFiltro === k ? 'border-color:var(--pr)' : ''}" onclick="fbFiltro='${k}';render()"><div class="mu">${FB_ST[k][0]} ${FB_ST[k][1]}</div><div class="kpi-v">${cont(k)}</div></button>`).join('')}</div>
+    <div class="chips">${[['todos', 'Todas'], ...Object.entries(FB_ST).map(([k, [e, l]]) => [k, e + ' ' + l])].map(([k, l]) => `<button class="chip ${fbFiltro === k ? 'on' : ''}" onclick="fbFiltro='${k}';render()">${l}</button>`).join('')}</div>
+    <div class="chips">${[['todos', 'Todos os tipos'], ...Object.entries(FB_TP)].map(([k, l]) => `<button class="chip ${fbTipoF === k ? 'on' : ''}" onclick="fbTipoF='${k}';render()">${l}</button>`).join('')}</div>
+    ${lista.length ? lista.map(x => `<div class="card" style="min-width:0">
+      <div class="row wrap" style="gap:6px;margin-bottom:6px"><span class="chip" style="padding:4px 10px">${FB_TP[x.tipo] || x.tipo}</span><span class="mu sm" style="overflow-wrap:anywhere">${esc(x.email || 'anônimo')} · ${new Date(x.criado_em).toLocaleDateString('pt-BR')}</span></div>
+      <div style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px">${esc(x.texto)}</div>
+      <div class="seg" style="margin-top:12px;overflow-x:auto">${Object.entries(FB_ST).map(([k, [e, l]]) => `<button class="${st(x) === k ? 'on' : ''}" style="white-space:nowrap" onclick="fbStatus(${x.id},'${k}')">${e} ${l.replace(/s$/, '')}</button>`).join('')}</div>
+      <label class="f" style="margin-top:10px">Anotação<input value="${esc(x.nota || '')}" placeholder="Ex.: entra na próxima versão" onchange="fbNota(${x.id},this.value)"></label>
+    </div>`).join('') : `<div class="card empty"><p class="mu">Nada aqui ${fbFiltro === 'feito' ? 'ainda. Bora tirar umas ideias do papel 🚀' : 'por enquanto 🎉'}</p></div>`}
+  </div>`;
+};
+async function fbSalvar(id, mud) {
+  const it = ADM.feedback.find(x => x.id === id), antes = { ...it }; Object.assign(it, mud); render();
+  const r = await fetch('/api/admin', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + await tokenAtual() }, body: JSON.stringify({ acao: 'feedback', id, ...mud }) });
+  if (!r.ok) { Object.assign(it, antes); render(); toast((await r.json().catch(() => ({}))).error || 'Não deu para salvar.'); }
+}
+const fbStatus = (id, status) => { fbSalvar(id, { status }); toast(FB_ST[status][0] + ' Movido para ' + FB_ST[status][1]); };
+const fbNota = (id, nota) => fbSalvar(id, { nota }).then(() => toast('Anotação salva.'));
 function rankingIndicacoes() {
   const top = ADM.contas.filter(c => c.indicacoes?.total).sort((a, b) => (b.indicacoes[rankPor] - a.indicacoes[rankPor]) || (b.indicacoes.total - a.indicacoes.total)).slice(0, 10);
   const conv = ADM.resumo.indicacoes ? Math.round(ADM.resumo.indicacoesAssinaram / ADM.resumo.indicacoes * 100) : 0;

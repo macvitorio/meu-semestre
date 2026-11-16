@@ -11,6 +11,15 @@ export default async function handler(req, res) {
 
   if (req.method === 'POST') {
     const { userId, acao, dias } = req.body || {};
+    if (acao === 'feedback') { // gestão das ideias: status e anotação
+      const { id, status, nota } = req.body;
+      if (!Number.isInteger(id)) return res.status(400).json({ error: 'Item inválido.' });
+      const mud = { atualizado_em: new Date().toISOString() };
+      if (status !== undefined) { if (!['nova', 'planejada', 'fazendo', 'feito', 'descartada'].includes(status)) return res.status(400).json({ error: 'Status inválido.' }); mud.status = status; }
+      if (nota !== undefined) mud.nota = String(nota).slice(0, 2000);
+      const { error } = await db.from('feedback').update(mud).eq('id', id);
+      return error ? res.status(500).json({ error: error.message }) : res.status(200).json({ ok: true });
+    }
     if (acao !== 'zerar_pagamentos' && !/^[0-9a-f-]{36}$/i.test(String(userId || ''))) return res.status(400).json({ error: 'Conta inválida.' });
     if (acao === 'zerar_pagamentos') { // limpa registros de pagamentos de teste (receita volta a zero)
       const { data, error } = await db.from('pagamentos').delete().neq('id', '').select('id');
@@ -75,7 +84,7 @@ export default async function handler(req, res) {
       indicacoes: porIndicador[u.id] || { total: 0, assinaram: 0 }, indicadoPor: indicadoPor[u.id] ? (usuarios.find(x => x.id === indicadoPor[u.id])?.email || 'conta apagada') : null,
     };
   }).sort((x, y) => (y.criado || '').localeCompare(x.criado || ''));
-  const { data: fb } = await db.from('feedback').select('id,email,tipo,texto,criado_em').order('criado_em', { ascending: false }).limit(100);
+  const { data: fb } = await db.from('feedback').select('*').order('criado_em', { ascending: false }).limit(100);
   const receita = (pags || []).filter(p => p.status === 'approved').reduce((s, p) => s + Number(p.valor || 0), 0);
   res.status(200).json({ contas, feedback: fb || [], resumo: { total: contas.length, premium: contas.filter(c => c.premium).length, pagantes: contas.filter(c => ['mensal', 'semestral'].includes(c.plano) && c.premium).length, cortesias: contas.filter(c => c.plano === 'cortesia').length, receita, indicacoes: (inds || []).length, indicacoesAssinaram: (inds || []).filter(i => i.convertida).length } });
 }
