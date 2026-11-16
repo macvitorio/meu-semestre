@@ -43,3 +43,32 @@ export async function mp(caminho, opts = {}) {
   return corpo;
 }
 export const baseUrl = req => process.env.APP_URL || `https://${req.headers['x-forwarded-host'] || req.headers.host}`;
+
+// ---------- Indicação ----------
+export const BONUS_INDICADO = 15, BONUS_INDICADOR = 30;
+const ALFA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+export async function codigoDe(db, user) {
+  const { data } = await db.from('codigos').select('codigo').eq('user_id', user.id).maybeSingle();
+  if (data) return data.codigo;
+  const base = (user.user_metadata?.full_name || user.email || 'ALUNO').normalize('NFD').replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 6) || 'ALUNO';
+  for (let i = 0; i < 6; i++) {
+    const cod = base + Array.from({ length: 3 }, () => ALFA[Math.floor(Math.random() * ALFA.length)]).join('');
+    const { error } = await db.from('codigos').insert({ user_id: user.id, codigo: cod });
+    if (!error) return cod;
+  }
+  throw new Error('não foi possível gerar o código');
+}
+// chamado quando um aluno passa a pagar: recompensa quem indicou (uma vez só)
+export async function recompensarIndicador(db, indicadoId) {
+  const { data: ind } = await db.from('indicacoes').update({ convertida: true, recompensado_em: new Date().toISOString() })
+    .eq('indicado_id', indicadoId).eq('convertida', false).select('indicador_id').maybeSingle();
+  if (!ind) return;
+  const { data: a } = await db.from('assinaturas').select('*').eq('user_id', ind.indicador_id).maybeSingle();
+  if (a?.plano === 'cortesia') return;
+  const base = Math.max(Date.now(), a?.premium_ate ? new Date(a.premium_ate).getTime() : 0);
+  await db.from('assinaturas').upsert({
+    user_id: ind.indicador_id, plano: a?.plano && !['gratis'].includes(a.plano) ? a.plano : 'manual', status: 'ativa',
+    premium_ate: new Date(base + BONUS_INDICADOR * 864e5).toISOString(), dias_bonus: (a?.dias_bonus || 0) + BONUS_INDICADOR,
+    mp_preapproval_id: a?.mp_preapproval_id || null, atualizado_em: new Date().toISOString(),
+  });
+}

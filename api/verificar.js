@@ -1,6 +1,6 @@
 // Confere direto no Mercado Pago se o aluno tem assinatura/pagamento aprovado
 // (não depende do webhook chegar). Chamado pela tela de retorno do pagamento.
-import { usuario, admin, mp, PLANOS } from './_premium.js';
+import { usuario, admin, mp, PLANOS, recompensarIndicador } from './_premium.js';
 import { gravarMensal } from './mp-webhook.js';
 
 export default async function handler(req, res) {
@@ -22,6 +22,7 @@ export default async function handler(req, res) {
       const inicio = Math.max(Date.now(), atual?.premium_ate ? new Date(atual.premium_ate).getTime() : 0);
       await db.from('assinaturas').upsert({ user_id: user.id, plano: 'semestral', status: 'ativa', premium_ate: new Date(inicio + PLANOS.semestral.dias * 864e5).toISOString(), ultimo_pagamento: String(pg.id), atualizado_em: new Date().toISOString() });
       achados.semestral = 'approved';
+      await recompensarIndicador(db, user.id);
     }
     res.status(200).json({ ok: true, achados });
   } catch (e) {

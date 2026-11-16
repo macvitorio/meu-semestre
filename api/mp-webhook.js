@@ -1,7 +1,7 @@
 // Recebe avisos do Mercado Pago e libera/renova/encerra o Premium.
 // Sempre consulta o Mercado Pago de novo (fonte da verdade) antes de gravar.
 import crypto from 'node:crypto';
-import { PLANOS, admin, mp } from './_premium.js';
+import { PLANOS, admin, mp, recompensarIndicador } from './_premium.js';
 
 function assinaturaValida(req, id) {
   const segredo = process.env.MP_WEBHOOK_SECRET;
@@ -19,9 +19,11 @@ export async function gravarMensal(db, pre) {
   if (!userId) return;
   const ativa = pre.status === 'authorized';
   const prox = pre.next_payment_date ? new Date(pre.next_payment_date) : new Date(Date.now() + 31 * 864e5);
-  const { data: atual } = await db.from('assinaturas').select('premium_ate').eq('user_id', userId).maybeSingle();
-  const premium_ate = ativa ? new Date(prox.getTime() + 2 * 864e5).toISOString() : atual?.premium_ate || null; // cancelada: vale até o fim do período pago
+  const { data: atual } = await db.from('assinaturas').select('premium_ate,dias_bonus').eq('user_id', userId).maybeSingle();
+  const bonus = (atual?.dias_bonus || 0) * 864e5; // dias ganhos por indicação continuam valendo
+  const premium_ate = ativa ? new Date(prox.getTime() + 2 * 864e5 + bonus).toISOString() : atual?.premium_ate || null; // cancelada: vale até o fim do período pago
   await db.from('assinaturas').upsert({ user_id: userId, plano: 'mensal', status: ativa ? 'ativa' : pre.status === 'pending' ? 'pendente' : 'cancelada', premium_ate, mp_preapproval_id: pre.id, atualizado_em: new Date().toISOString() });
+  if (ativa) await recompensarIndicador(db, userId);
 }
 
 export default async function handler(req, res) {
@@ -40,6 +42,7 @@ export default async function handler(req, res) {
           const { data: atual } = await db.from('assinaturas').select('premium_ate').eq('user_id', userId).maybeSingle();
           const inicio = Math.max(Date.now(), atual?.premium_ate ? new Date(atual.premium_ate).getTime() : 0);
           await db.from('assinaturas').upsert({ user_id: userId, plano: 'semestral', status: 'ativa', premium_ate: new Date(inicio + PLANOS.semestral.dias * 864e5).toISOString(), ultimo_pagamento: String(pg.id), atualizado_em: new Date().toISOString() });
+          await recompensarIndicador(db, userId);
         }
       }
     } else if (tipo === 'subscription_preapproval' || tipo === 'preapproval') {

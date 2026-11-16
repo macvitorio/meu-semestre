@@ -397,3 +397,8 @@ body{min-height:100%;min-height:100dvh}
 .adm-pl{text-align:right;flex:none}
 @media(min-width:900px){.planos{grid-template-columns:1fr 1fr;gap:16px}.prem-hero{padding:36px}}
 @media(max-width:600px){.adm-row .adm-pl .mu{display:none}}
+.convite{display:flex;align-items:center;gap:12px;margin-bottom:16px;border-color:color-mix(in srgb,var(--pr) 40%,var(--bd));background:var(--pr-2)}
+.link-box{display:flex;align-items:center;gap:10px;background:var(--surface-2);border-radius:12px;padding:8px 8px 8px 14px}
+.link-box span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;-webkit-user-select:all;user-select:all}
+.num-c{width:30px;height:30px;border-radius:50%;flex:none;display:grid;place-items:center;background:var(--pr-2);color:var(--pr);font-weight:700}
+.indica-card{background:linear-gradient(135deg,color-mix(in srgb,#7048e8 12%,var(--surface)),var(--surface))}

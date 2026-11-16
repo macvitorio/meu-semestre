@@ -55,6 +55,9 @@ export default async function handler(req, res) {
     db.from('user_data').select('user_id,data,updated_at').in('user_id', ids),
     db.from('pagamentos').select('user_id,valor,status'),
   ]);
+  const { data: inds } = await db.from('indicacoes').select('indicador_id,indicado_id,convertida');
+  const porIndicador = {}, indicadoPor = {};
+  for (const i of inds || []) { (porIndicador[i.indicador_id] ||= { total: 0, assinaram: 0 }).total++; if (i.convertida) porIndicador[i.indicador_id].assinaram++; indicadoPor[i.indicado_id] = i.indicador_id; }
   const A = Object.fromEntries((ass || []).map(a => [a.user_id, a])), D = Object.fromEntries((dados || []).map(d => [d.user_id, d]));
   const agora = new Date();
   const contas = usuarios.map(u => {
@@ -68,8 +71,9 @@ export default async function handler(req, res) {
       plano: a?.plano || 'teste', status: a?.status || 'ativa', premium_ate,
       premium: new Date(premium_ate) > agora,
       disciplinas: (d.materias || []).length,
+      indicacoes: porIndicador[u.id] || { total: 0, assinaram: 0 }, indicadoPor: indicadoPor[u.id] ? (usuarios.find(x => x.id === indicadoPor[u.id])?.email || 'conta apagada') : null,
     };
   }).sort((x, y) => (y.criado || '').localeCompare(x.criado || ''));
   const receita = (pags || []).filter(p => p.status === 'approved').reduce((s, p) => s + Number(p.valor || 0), 0);
-  res.status(200).json({ contas, resumo: { total: contas.length, premium: contas.filter(c => c.premium).length, pagantes: contas.filter(c => ['mensal', 'semestral'].includes(c.plano) && c.premium).length, cortesias: contas.filter(c => c.plano === 'cortesia').length, receita } });
+  res.status(200).json({ contas, resumo: { total: contas.length, premium: contas.filter(c => c.premium).length, pagantes: contas.filter(c => ['mensal', 'semestral'].includes(c.plano) && c.premium).length, cortesias: contas.filter(c => c.plano === 'cortesia').length, receita, indicacoes: (inds || []).length, indicacoesAssinaram: (inds || []).filter(i => i.convertida).length } });
 }

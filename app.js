@@ -94,6 +94,9 @@ function save() {
 function setSync(s) { syncState = s; const el = $('#sync'); if (el) { el.className = 'sync ' + s; el.lastChild.textContent = s === 'busy' ? 'Salvando…' : s === 'off' ? 'Offline' : user ? 'Sincronizado' : 'Neste aparelho'; } }
 addEventListener('online', () => user && save());
 
+// link de convite: www.meusemestre.com.br/?c=CODIGO
+(() => { try { const c = new URLSearchParams(location.search).get('c'); if (c) { localStorage.setItem(KEY + ':convite', c.toUpperCase().slice(0, 20)); history.replaceState(null, '', location.pathname + location.hash); } } catch { } })();
+const convitePendente = () => { try { return localStorage.getItem(KEY + ':convite'); } catch { return null; } };
 async function boot() {
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('/sw.js').catch(() => { });
   $('#root').innerHTML = `<div class="auth"><div class="spin"></div></div>`;
@@ -150,6 +153,7 @@ function renderAuth() {
     <img class="logo" src="icon.svg" alt="">
     <h1>${authMode === 'criar' ? 'Crie sua conta' : 'Seu semestre, organizado'}</h1>
     <p class="mu" style="margin:6px 0 22px">Frequência, grade, notas e estudos — montados a partir do plano de ensino.</p>
+    ${convitePendente() ? `<div class="card flat convite"><span style="font-size:22px">🎁</span><div class="sp"><b class="sm">Você foi convidado!</b><div class="mu">Crie sua conta e ganhe <b>45 dias de Premium grátis</b> (15 a mais que o normal).</div></div></div>` : ''}
     ${semBackend ? `<div class="card flat" style="margin-bottom:16px"><div class="row">${ic('alert')}<span class="sm">Login indisponível neste ambiente (Supabase não configurado). Você pode usar o app só neste aparelho.</span></div></div>` : `
     <div id="gbtn" style="min-height:44px;display:flex;justify-content:center"><button class="btn block" onclick="loginGoogle()">${GOOGLE} Continuar com Google</button></div>
     <div class="divider">ou com e-mail</div>
@@ -278,12 +282,12 @@ function render() {
   const cur = R.v === 'disc' ? 'disciplinas' : R.v;
   $('#nav').innerHTML = NAV.map(([k, i, l]) => k === 'atualizar'
     ? `<a href="#/atualizar" class="fab ${cur === k ? 'on' : ''}"><span class="circ">${ic(i, 24)}</span><small>${l}</small></a>`
-    : `<a href="#/${k}" class="${cur === k ? 'on' : ''}">${ic(i, 22)}${l}</a>`).join('') + `<div class="cfg-link">${PLANO.admin ? `<a href="#/admin" class="${cur === 'admin' ? 'on' : ''}">${ic('user', 22)}Admin</a>` : ''}${user ? `<a href="#/premium" class="${cur === 'premium' ? 'on' : ''}">${ic('spark', 22)}${premium() && !['teste', 'gratis'].includes(PLANO.plano) ? 'Meu plano' : 'Seja Premium'}</a>` : ''}<a href="#/config" class="${cur === 'config' ? 'on' : ''}">${ic('gear', 22)}Configurações</a>
+    : `<a href="#/${k}" class="${cur === k ? 'on' : ''}">${ic(i, 22)}${l}</a>`).join('') + `<div class="cfg-link">${PLANO.admin ? `<a href="#/admin" class="${cur === 'admin' ? 'on' : ''}">${ic('user', 22)}Admin</a>` : ''}${user ? `<a href="#/indicar" class="${cur === 'indicar' ? 'on' : ''}">${ic('share', 22)}Indique e ganhe</a>` : ''}${user ? `<a href="#/premium" class="${cur === 'premium' ? 'on' : ''}">${ic('spark', 22)}${premium() && !['teste', 'gratis'].includes(PLANO.plano) ? 'Meu plano' : 'Seja Premium'}</a>` : ''}<a href="#/config" class="${cur === 'config' ? 'on' : ''}">${ic('gear', 22)}Configurações</a>
     <a href="#/config" class="eu"><span class="avatar">${esc(((S.perfil.nome || user?.email || '?').trim()[0] || '?').toUpperCase())}</span><span class="tx"><b>${esc(S.perfil.nome || 'Sem nome')}</b><small>${esc(user?.email || 'Neste aparelho')}</small></span></a></div>`;
   $('#nav').insertAdjacentHTML('afterbegin', `<a href="#/inicio" class="nav-brand">${marca()}<b>Meu Semestre</b></a>`);
   aplicarTema();
   $('#view').innerHTML = (V[R.v] || V.inicio)();
-  const t = $('#ttl'); if (t) t.textContent = R.v === 'disc' ? nomeM(byId(R.id)) : R.v === 'config' ? 'Configurações' : R.v === 'premium' ? 'Premium' : R.v === 'admin' ? 'Admin' : (NAV.find(n => n[0] === cur) || [, , ''])[2];
+  const t = $('#ttl'); if (t) t.textContent = R.v === 'disc' ? nomeM(byId(R.id)) : R.v === 'config' ? 'Configurações' : R.v === 'premium' ? 'Premium' : R.v === 'indicar' ? 'Indique e ganhe' : R.v === 'admin' ? 'Admin' : (NAV.find(n => n[0] === cur) || [, , ''])[2];
 }
 
 // ================= Componentes =================
@@ -353,6 +357,7 @@ V.inicio = () => {
   lado += `<div class="card"><div class="card-h"><h3 class="sp">Próximas datas</h3><button class="btn ghost sm" onclick="eventoSheet()">${ic('plus', 16)}</button></div>
     ${evs.length ? `<div class="list">${evs.map(e => `<div class="row"><div class="dia-box" style="--c:${corEv(e)}"><b>${parseISO(e.data).getDate()}</b><small>${parseISO(e.data).toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}</small></div><div class="sp"><b class="sm">${esc(e.titulo)}</b><div class="mu">${esc(nomeM(byId(e.materiaId)) || TIPOS_EV[e.tipo] || '')} · ${quando(e.data)}</div></div></div>`).join('')}</div>` : '<p class="mu">Nenhuma data cadastrada.</p>'}</div>`;
   lado += `<div class="card tap" onclick="go('disciplinas')"><div class="row">${ring(pc, 'var(--pr)', tp.length ? pc + '%' : '—')}<div class="sp"><b>Conteúdos estudados</b><div class="mu">${feitos} de ${tp.length} em ${S.materias.length} disciplina(s)</div></div>${ic('right')}</div></div>`;
+  if (user) lado += `<a class="card tap row indica-card" href="#/indicar" style="color:inherit;text-decoration:none"><span style="font-size:26px">🎁</span><div class="sp"><b>Indique e ganhe</b><div class="mu">1 mês de Premium por amigo que assinar</div></div>${ic('right')}</a>`;
   lado += cardInstalar();
 
   return `<div class="stack">${topo}${kpis}<div class="dash"><div class="stack">${main}</div><div class="stack">${lado}</div></div></div>`;
@@ -967,6 +972,7 @@ V.config = () => {
   return `<div class="stack"><h1>Configurações</h1><div class="cfg">
 
   ${secaoPlano()}
+  ${user ? `<section class="grp full"><div class="card">${li('share', '#7048e8', 'Indique e ganhe', 'Ganhe 1 mês de Premium por amigo que assinar', chev, `onclick="go('indicar')"`)}</div></section>` : ''}
   ${PLANO.admin ? `<section class="grp full"><h4>Administração</h4><div class="card">${li('user', '#495057', 'Painel Admin', 'Contas, planos e cortesias', chev, `onclick="go('admin')"`)}</div></section>` : ''}
   <section class="grp full"><div class="card"><div class="perfil"><div class="avatar">${esc(ini)}</div><div class="sp">
     <input class="inl" style="font-weight:600;font-size:17px;background:none;border:0;padding:0;min-height:0;box-shadow:none" value="${esc(nome)}" placeholder="Seu nome" aria-label="Seu nome" onchange="S.perfil.nome=this.value.trim();save();toast('Nome salvo.')">
@@ -1128,7 +1134,7 @@ async function carregarPlano() {
   if (!sb || !user) return;
   try {
     const r = await fetch('/api/meu-plano', { headers: { Authorization: 'Bearer ' + await tokenAtual() } });
-    if (r.ok) { PLANO = await r.json(); try { localStorage.setItem(KEY + ':plano', JSON.stringify(PLANO)); } catch { } render(); }
+    if (r.ok) { PLANO = await r.json(); try { localStorage.setItem(KEY + ':plano', JSON.stringify(PLANO)); } catch { } render(); aplicarConvite(); }
   } catch { }
 }
 function exigirPremium(motivo) {
@@ -1211,14 +1217,15 @@ V.admin = () => {
     <div class="kpis">
       <div class="kpi card"><div class="mu">Contas</div><div class="kpi-v">${r.total}</div><div class="mu sm">${r.premium} com Premium ativo</div></div>
       <div class="kpi card"><div class="mu">Pagantes</div><div class="kpi-v">${r.pagantes}</div><div class="mu sm">mensal ou semestral</div></div>
-      <div class="kpi card"><div class="mu">Cortesias</div><div class="kpi-v">${r.cortesias}</div><div class="mu sm">não pagam</div></div>
+      <div class="kpi card"><div class="mu">Cortesias · Indicações</div><div class="kpi-v">${r.cortesias} · ${r.indicacoes || 0}</div><div class="mu sm">${r.indicacoesAssinaram || 0} indicação(ões) viraram assinatura</div></div>
       <div class="kpi card"><div class="mu">Receita (Pix/avulso)</div><div class="kpi-v">R$ ${r.receita.toFixed(2).replace('.', ',')}</div><div class="mu sm">pagamentos aprovados</div></div></div>
     <div class="row wrap"><input style="flex:1;min-width:200px" placeholder="Buscar por nome ou e-mail" value="${esc(admBusca)}" oninput="admBusca=this.value;clearTimeout(window._ab);window._ab=setTimeout(render,250)">
       <div class="chips">${[['todos', 'Todos'], ['premium', 'Premium'], ['gratis', 'Sem Premium'], ['teste', 'Em teste'], ['cortesia', 'Cortesia']].map(([k, l]) => `<button class="chip ${admFiltro === k ? 'on' : ''}" onclick="admFiltro='${k}';render()">${l}</button>`).join('')}</div></div>
     <div class="card" style="padding:0"><div class="adm-lista">${lista.map(c => `<div class="adm-row">
       <div class="avatar" style="width:38px;height:38px;font-size:14px">${esc((c.nome || c.email || '?')[0].toUpperCase())}</div>
       <div class="sp" style="min-width:0"><b class="sm">${esc(c.nome || '(sem nome)')}</b><div class="mu" style="overflow:hidden;text-overflow:ellipsis">${esc(c.email)} · ${c.provedor === 'google' ? 'Google' : 'e-mail'}</div>
-        <div class="mu">Criada ${new Date(c.criado).toLocaleDateString('pt-BR')} · ${c.disciplinas} disciplina(s)${c.ultimo_acesso ? ' · último acesso ' + new Date(c.ultimo_acesso).toLocaleDateString('pt-BR') : ''}</div></div>
+        <div class="mu">Criada ${new Date(c.criado).toLocaleDateString('pt-BR')} · ${c.disciplinas} disciplina(s)${c.ultimo_acesso ? ' · último acesso ' + new Date(c.ultimo_acesso).toLocaleDateString('pt-BR') : ''}</div>
+        ${c.indicacoes?.total || c.indicadoPor ? `<div class="mu">🎁 ${c.indicacoes.total ? `${c.indicacoes.total} indicação(ões), ${c.indicacoes.assinaram} assinou(aram)` : ''}${c.indicacoes.total && c.indicadoPor ? ' · ' : ''}${c.indicadoPor ? 'indicado por ' + esc(c.indicadoPor) : ''}</div>` : ''}</div>
       <div class="adm-pl">${tag(pl(c)[0], c.premium ? pl(c)[1] : 'bad')}<div class="mu">${c.plano === 'cortesia' ? 'sem vencimento' : (c.premium ? 'até ' : 'venceu ') + new Date(c.premium_ate).toLocaleDateString('pt-BR')}</div></div>
       <button class="ib" aria-label="Gerenciar conta" onclick="admConta('${c.id}')">${ic('pen', 18)}</button></div>`).join('') || '<p class="mu" style="padding:16px">Nenhuma conta encontrada.</p>'}</div></div></div>`;
 };
@@ -1259,4 +1266,54 @@ function admApagar(id) {
 function admZerar() {
   sheet(`<h2>Zerar pagamentos de teste?</h2><p class="mu" style="margin:8px 0">Apaga os registros de pagamento usados para calcular a receita no Admin. Use só para limpar os testes antes de começar a vender. Não mexe nos planos das contas nem no Mercado Pago.</p>
     <div class="actions"><button class="btn" onclick="closeSheet()">Cancelar</button><button class="btn pr sp" style="background:var(--bad);border-color:var(--bad)" onclick="admAcao(null,'zerar_pagamentos')">Zerar receita</button></div>`);
+}
+
+
+// ================= Indicação =================
+let IND = null;
+async function aplicarConvite() {
+  const c = convitePendente();
+  if (!c || !user) return;
+  try {
+    const r = await fetch('/api/indicacao', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + await tokenAtual() }, body: JSON.stringify({ codigo: c }) });
+    const d = await r.json();
+    if (r.ok) { localStorage.removeItem(KEY + ':convite'); if (d.ok) { toast(`🎁 Convite aplicado: +${d.bonus} dias de Premium grátis!`); carregarPlano(); } }
+  } catch { }
+}
+const linkConvite = () => `${location.origin}/?c=${IND.codigo}`;
+const textoConvite = () => `Tô usando o Meu Semestre pra controlar faltas, notas e provas da UFSC 🎓 Você manda o plano de ensino e ele monta tudo. Entra pelo meu link e ganha 45 dias de Premium grátis: ${linkConvite()}`;
+V.indicar = () => {
+  if (!user) { setTimeout(() => go('inicio')); return ''; }
+  if (!IND) { carregarIndicacao(); return `<div class="card empty" style="margin-top:24px"><div class="spin"></div></div>`; }
+  return `<div class="stack">
+    <div class="card prem-hero" style="background:linear-gradient(135deg,#7048e8,var(--pr))"><span style="font-size:34px">🎁</span>
+      <h1 style="color:#fff;margin:8px 0 6px">Indique e ganhe</h1>
+      <p style="opacity:.9;margin:0">Cada amigo que <b>assinar</b> pelo seu link te dá <b>1 mês de Premium</b>. E ele ganha <b>${IND.bonusIndicado} dias extras</b> de teste grátis.</p></div>
+    <div class="card"><div class="mu" style="margin-bottom:8px">Seu link de convite</div>
+      <div class="link-box"><span>${esc(linkConvite().replace(/^https?:\/\//, ''))}</span><button class="btn sm" onclick="copiarConvite()">${ic('clip', 16)} Copiar</button></div>
+      <div class="row wrap" style="margin-top:12px">
+        <a class="btn pr" style="background:#25d366;border-color:#25d366;color:#fff" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(textoConvite())}">Enviar no WhatsApp</a>
+        ${navigator.share ? `<button class="btn" onclick="navigator.share({title:'Meu Semestre',text:textoConvite()}).catch(()=>{})">${ic('share', 18)} Compartilhar</button>` : ''}</div>
+      <p class="mu" style="margin-top:10px">Seu código: <b>${esc(IND.codigo)}</b></p></div>
+    <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+      <div class="kpi card"><div class="mu">Amigos cadastrados</div><div class="kpi-v">${IND.cadastros}</div></div>
+      <div class="kpi card"><div class="mu">Assinaram</div><div class="kpi-v">${IND.assinaram}</div></div>
+      <div class="kpi card"><div class="mu">Dias ganhos</div><div class="kpi-v">${IND.diasGanhos}</div></div></div>
+    <div class="card"><h3 style="margin-bottom:10px">Como funciona</h3><div class="benef">
+      <div class="row"><span class="num-c">1</span><div class="sp"><b class="sm">Envie seu link</b><div class="mu">Para colegas de turma, grupo do curso ou centro acadêmico.</div></div></div>
+      <div class="row"><span class="num-c">2</span><div class="sp"><b class="sm">Seu amigo cria a conta</b><div class="mu">Ele ganha ${30 + IND.bonusIndicado} dias de Premium grátis em vez de 30.</div></div></div>
+      <div class="row"><span class="num-c">3</span><div class="sp"><b class="sm">Ele assina, você ganha</b><div class="mu">+${IND.bonusIndicador} dias de Premium na hora, sem limite de amigos.</div></div></div></div></div>
+    <p class="mu" style="text-align:center">O convite vale para contas novas, criadas a partir do seu link.</p></div>`;
+};
+async function carregarIndicacao() {
+  try {
+    const r = await fetch('/api/indicacao', { headers: { Authorization: 'Bearer ' + await tokenAtual() } });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error);
+    IND = d; if (R.v === 'indicar') render();
+  } catch (e) { toast(e.message || 'Erro ao carregar.'); }
+}
+async function copiarConvite() {
+  try { await navigator.clipboard.writeText(textoConvite()); toast('Convite copiado! Cole no WhatsApp ou onde quiser.'); }
+  catch { prompt('Copie o convite:', textoConvite()); }
 }
