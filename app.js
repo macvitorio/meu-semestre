@@ -38,6 +38,8 @@ const P = {
   left: '<path d="M15 18l-6-6 6-6"/>', right: '<path d="M9 18l6-6-6-6"/>',
   alert: '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
   spark: '<path d="M12 3l1.9 5.8L20 10l-6.1 1.2L12 17l-1.9-5.8L4 10l6.1-1.2z"/>',
+  lock: '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+  bulb: '<path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V16h8v-1.3A7 7 0 0 0 12 2z"/>',
   clip: '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
   mail: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/>',
   out: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>',
@@ -197,7 +199,7 @@ function renderAuth() {
 }
 async function loginGoogle() {
   const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } });
-  if (error) toast('Não foi possível abrir o Google: ' + error.message);
+  if (error) toast('Não foi possível abrir o Google: ' + traduzErro(error.message));
 }
 async function loginEmail() {
   const email = $('#a-email').value.trim(), password = $('#a-senha').value, btn = $('#a-btn');
@@ -209,7 +211,23 @@ async function loginEmail() {
   if (r.error) return toast(traduzErro(r.error.message));
   if (authMode === 'criar' && !r.data.session) toast('Conta criada! Confirme pelo link enviado ao seu e-mail.');
 }
-const traduzErro = m => /invalid login/i.test(m) ? 'E-mail ou senha incorretos.' : /already registered/i.test(m) ? 'Este e-mail já tem conta. Entre com ele.' : /not confirmed/i.test(m) ? 'Confirme seu e-mail antes de entrar.' : m;
+const traduzErro = (m = '') => {
+  const seg = /after (\d+) seconds?/i.exec(m);
+  if (seg) return `Por segurança, espere ${seg[1]} segundos e tente de novo.`;
+  if (/invalid login/i.test(m)) return 'E-mail ou senha incorretos.';
+  if (/already registered|already been registered/i.test(m)) return 'Este e-mail já tem conta. Entre com ele.';
+  if (/not confirmed/i.test(m)) return 'Confirme seu e-mail antes de entrar.';
+  if (/should be different|same password/i.test(m)) return 'A nova senha precisa ser diferente da atual.';
+  if (/password should be at least|at least \d+ char/i.test(m)) return 'A senha precisa ter pelo menos 6 caracteres.';
+  if (/weak|pwned/i.test(m)) return 'Essa senha é fraca demais. Tente outra.';
+  if (/rate limit|too many/i.test(m)) return 'Muitas tentativas. Espere um pouco e tente de novo.';
+  if (/invalid email|unable to validate email/i.test(m)) return 'Esse e-mail não parece válido.';
+  if (/signups not allowed/i.test(m)) return 'Cadastro desativado no momento.';
+  if (/failed to fetch|network/i.test(m)) return 'Sem conexão. Confira sua internet.';
+  if (/expired|invalid.*(token|link)/i.test(m)) return 'Esse link expirou. Peça um novo.';
+  if (/reauthentication|recent login/i.test(m)) return 'Por segurança, saia e entre de novo antes de mudar a senha.';
+  return m || 'Algo deu errado. Tente de novo.';
+};
 async function esqueciSenha() {
   const email = ($('#a-email')?.value || '').trim();
   if (!email) return toast('Digite seu e-mail no campo acima.');
@@ -220,7 +238,38 @@ function novaSenhaSheet() {
   sheet(`<h2>Nova senha</h2><div class="fields" style="margin-top:14px"><label class="f">Nova senha<input id="ns" type="password" minlength="6"></label></div>
   <div class="actions"><button class="btn pr block" onclick="trocarSenha()">Salvar</button></div>`);
 }
-async function trocarSenha() { const { error } = await sb.auth.updateUser({ password: $('#ns').value }); toast(error ? error.message : 'Senha alterada.'); if (!error) closeSheet(); }
+async function trocarSenha() {
+  const a = $('#ns').value, b = $('#ns2') ? $('#ns2').value : a;
+  if (a.length < 6) return toast('A senha precisa ter pelo menos 6 caracteres.');
+  if (a !== b) return toast('As senhas não são iguais.');
+  const { error } = await sb.auth.updateUser({ password: a });
+  if (error) return toast(traduzErro(error.message));
+  closeSheet(); toast(temSenha() ? 'Senha alterada. ✅' : 'Senha criada! Agora dá pra entrar com e-mail e senha também. ✅');
+  try { localStorage.setItem(KEY + ':senha', '1'); } catch { } render();
+}
+const temSenha = () => { try { if (localStorage.getItem(KEY + ':senha')) return true; } catch { } return (user?.app_metadata?.providers || [user?.app_metadata?.provider]).includes('email'); };
+function senhaSheet() {
+  const criar = !temSenha();
+  sheet(`<h2>${criar ? 'Criar senha' : 'Trocar senha'}</h2><p class="mu" style="margin:4px 0 0">${criar ? `Assim você entra também com <b>${esc(user?.email || '')}</b> + senha, sem precisar do Google.` : 'Escolha uma senha nova com pelo menos 6 caracteres.'}</p>
+  <div class="fields" style="margin-top:14px"><label class="f">Nova senha<input id="ns" type="password" minlength="6" autocomplete="new-password"></label><label class="f">Repita a senha<input id="ns2" type="password" minlength="6" autocomplete="new-password"></label></div>
+  <div class="actions"><button class="btn" onclick="closeSheet()">Cancelar</button><button class="btn pr sp" onclick="trocarSenha()">Salvar</button></div>`);
+}
+let fbTipo = 'ideia';
+function feedbackSheet() {
+  sheet(`<h2>Dar ideia 💡</h2><p class="mu" style="margin:4px 0 12px">O Meu Semestre é feito por estudantes. Conta pra gente o que falta, o que tá chato ou o que você amou: a gente lê tudo.</p>
+  <div class="seg" id="fb-seg">${[['ideia', '💡 Ideia'], ['problema', '🐞 Problema'], ['elogio', '💜 Elogio']].map(([k, l]) => `<button class="${fbTipo === k ? 'on' : ''}" onclick="fbTipo='${k}';document.querySelectorAll('#fb-seg button').forEach(b=>b.classList.toggle('on',b===this))">${l}</button>`).join('')}</div>
+  <div class="fields" style="margin-top:12px"><label class="f">Sua mensagem<textarea id="fb-t" maxlength="2000" placeholder="Seria massa se o app..."></textarea></label></div>
+  <div class="actions"><button class="btn" onclick="closeSheet()">Cancelar</button><button class="btn pr sp" id="fb-b" onclick="enviarFeedback()">Enviar</button></div>`);
+}
+async function enviarFeedback() {
+  const texto = $('#fb-t').value.trim();
+  if (texto.length < 3) return toast('Escreve um pouquinho mais 🙂');
+  if (!user || !sb) return toast('Entre com uma conta para enviar.');
+  const b = $('#fb-b'); b.disabled = true; b.textContent = 'Enviando…';
+  const { error } = await sb.from('feedback').insert({ user_id: user.id, email: user.email, tipo: fbTipo, texto });
+  if (error) { b.disabled = false; b.textContent = 'Enviar'; return toast('Não deu para enviar agora. Tente de novo.'); }
+  closeSheet(); toast('Valeu demais! Recebemos sua mensagem 💜');
+}
 
 // ================= Cálculos =================
 function diasDeAula(m) {
@@ -1043,7 +1092,12 @@ V.config = () => {
     ${li('up', '#495057', 'Importar backup', '', `<input type="file" accept="application/json" hidden id="imp" onchange="importar(this)">` + chev, `for="imp"`)}
   </div></section>
 
+  <section class="grp"><h4>Fale com a gente</h4><div class="card">
+    ${li('bulb', '#f59f00', 'Dar ideia ou feedback', 'Sugestões, problemas ou elogios', chev, `onclick="feedbackSheet()"`)}
+  </div></section>
+
   <section class="grp"><h4>Conta</h4><div class="card">
+    ${user ? li('lock', '#5c7cfa', temSenha() ? 'Trocar senha' : 'Criar senha', temSenha() ? '' : 'Pra entrar também com e-mail e senha', chev, `onclick="senhaSheet()"`) : ''}
     ${li('out', '#868e96', user ? 'Sair da conta' : 'Entrar com uma conta', user ? '' : 'Para sincronizar entre aparelhos', chev, `onclick="sair()"`)}
     <button class="li danger" onclick="apagarTudo()"><span class="ico" style="background:var(--bad)">${ic('trash')}</span><span class="tx">Apagar todos os dados</span></button>
   </div></section>
@@ -1256,6 +1310,7 @@ V.admin = () => {
       <div class="kpi card"><div class="mu">Cortesias · Indicações</div><div class="kpi-v">${r.cortesias} · ${r.indicacoes || 0}</div><div class="mu sm">${r.indicacoesAssinaram || 0} indicação(ões) viraram assinatura</div></div>
       <div class="kpi card"><div class="mu">Receita (Pix/avulso)</div><div class="kpi-v">R$ ${r.receita.toFixed(2).replace('.', ',')}</div><div class="mu sm">pagamentos aprovados</div></div></div>
     ${rankingIndicacoes()}
+    ${feedbackAdmin()}
     <div class="row wrap"><input style="flex:1;min-width:200px" placeholder="Buscar por nome ou e-mail" value="${esc(admBusca)}" oninput="admBusca=this.value;clearTimeout(window._ab);window._ab=setTimeout(render,250)">
       <div class="chips">${[['todos', 'Todos'], ['premium', 'Premium'], ['gratis', 'Sem Premium'], ['teste', 'Em teste'], ['cortesia', 'Cortesia'], ['indicados', 'Vieram por indicação']].map(([k, l]) => `<button class="chip ${admFiltro === k ? 'on' : ''}" onclick="admFiltro='${k}';render()">${l}</button>`).join('')}</div></div>
     <div class="card" style="padding:0"><div class="adm-lista">${lista.map(c => `<div class="adm-row">
@@ -1318,7 +1373,7 @@ async function aplicarConvite() {
   } catch { }
 }
 const linkConvite = () => `${location.origin}/?c=${IND.codigo}`; // LP guarda o código e leva para o app
-const textoConvite = () => `Tô usando o Meu Semestre pra controlar faltas, notas e provas da facul 🎓 Você manda o plano de ensino e ele monta tudo. Entra pelo meu link e ganha 45 dias de Premium grátis: ${linkConvite()}`;
+const textoConvite = () => `achei um app que organiza a facul inteira 🤯 faltas, notas e provas num lugar só. vc manda o plano de ensino e ele monta tudo sozinho\n\nentra pelo meu link e ganha 45 dias de premium de graça 🎁\n${linkConvite()}`;
 V.indicar = () => {
   if (!user) { setTimeout(() => go('inicio')); return ''; }
   if (!IND) { carregarIndicacao(); return `<div class="card empty" style="margin-top:24px"><div class="spin"></div></div>`; }
@@ -1357,6 +1412,11 @@ async function copiarConvite() {
 
 // Ranking de quem mais indica (Admin)
 let rankPor = 'total';
+function feedbackAdmin() {
+  const f = ADM.feedback || [], em = { ideia: '💡', problema: '🐞', elogio: '💜' };
+  return `<div class="card"><div class="card-h"><h3 class="sp">💬 Ideias e feedback</h3><span class="mu sm">${f.length}</span></div>
+    ${f.length ? `<div class="list">${f.map(x => `<div style="min-width:0"><div class="mu sm">${em[x.tipo] || ''} ${esc(x.email || 'anônimo')} · ${new Date(x.criado_em).toLocaleDateString('pt-BR')}</div><div style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(x.texto)}</div></div>`).join('')}</div>` : '<p class="mu">Nenhuma mensagem ainda.</p>'}</div>`;
+}
 function rankingIndicacoes() {
   const top = ADM.contas.filter(c => c.indicacoes?.total).sort((a, b) => (b.indicacoes[rankPor] - a.indicacoes[rankPor]) || (b.indicacoes.total - a.indicacoes.total)).slice(0, 10);
   const conv = ADM.resumo.indicacoes ? Math.round(ADM.resumo.indicacoesAssinaram / ADM.resumo.indicacoes * 100) : 0;

@@ -75,6 +75,7 @@ export default async function handler(req, res) {
       indicacoes: porIndicador[u.id] || { total: 0, assinaram: 0 }, indicadoPor: indicadoPor[u.id] ? (usuarios.find(x => x.id === indicadoPor[u.id])?.email || 'conta apagada') : null,
     };
   }).sort((x, y) => (y.criado || '').localeCompare(x.criado || ''));
+  const { data: fb } = await db.from('feedback').select('id,email,tipo,texto,criado_em').order('criado_em', { ascending: false }).limit(100);
   const receita = (pags || []).filter(p => p.status === 'approved').reduce((s, p) => s + Number(p.valor || 0), 0);
-  res.status(200).json({ contas, resumo: { total: contas.length, premium: contas.filter(c => c.premium).length, pagantes: contas.filter(c => ['mensal', 'semestral'].includes(c.plano) && c.premium).length, cortesias: contas.filter(c => c.plano === 'cortesia').length, receita, indicacoes: (inds || []).length, indicacoesAssinaram: (inds || []).filter(i => i.convertida).length } });
+  res.status(200).json({ contas, feedback: fb || [], resumo: { total: contas.length, premium: contas.filter(c => c.premium).length, pagantes: contas.filter(c => ['mensal', 'semestral'].includes(c.plano) && c.premium).length, cortesias: contas.filter(c => c.plano === 'cortesia').length, receita, indicacoes: (inds || []).length, indicacoesAssinaram: (inds || []).filter(i => i.convertida).length } });
 }
