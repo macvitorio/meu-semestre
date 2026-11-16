@@ -580,10 +580,11 @@ V.atualizar = () => {
   return `<div class="stack"><div><h1>Atualizar</h1><p class="mu" style="margin-top:4px">Envie prints, fotos ou PDFs. ${ia ? 'A IA identifica o que mudou e você revisa antes de aplicar.' : 'Sem login com IA ativa, só PDFs de texto e texto colado de plano de ensino são lidos.'}</p></div>
     <div><div class="mu" style="margin-bottom:8px">O que você está enviando?</div><div class="chips">${TIPOS_UP.map(([k, l]) => `<button class="chip ${UP.tipo === k ? 'on' : ''}" onclick="UP.tipo='${k}';render()">${l}</button>`).join('')}</div></div>
     <div class="drop" id="drop" ondragover="event.preventDefault();this.classList.add('over')" ondragleave="this.classList.remove('over')" ondrop="event.preventDefault();this.classList.remove('over');addArquivos(event.dataTransfer.files)">
-      <div class="empty" style="padding:0"><div class="ic">${ic('up', 26)}</div><b>Arraste arquivos ou escolha abaixo</b><p class="mu" style="margin:4px 0 14px">PNG, JPG ou PDF · até 8 arquivos</p></div>
+      <div class="empty" style="padding:0"><div class="ic">${ic('up', 26)}</div><b>Arraste, cole ou escolha abaixo</b><p class="mu" style="margin:4px 0 14px">PNG, JPG ou PDF · até 8 arquivos · dá pra colar print com ${/Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl'}+V</p></div>
       <div class="row wrap" style="justify-content:center">
         <label class="btn pr">${ic('cam')} Tirar foto<input type="file" accept="image/*" capture="environment" hidden onchange="addArquivos(this.files);this.value=''"></label>
         <label class="btn">${ic('file')} Escolher arquivos<input type="file" accept="image/*,application/pdf" multiple hidden onchange="addArquivos(this.files);this.value=''"></label>
+        <button class="btn" onclick="colarImagem()">${ic('clip')} Colar print</button>
         <button class="btn ghost" onclick="colarSheet()">${ic('clip')} Colar texto</button>
       </div>
       ${UP.arquivos.length ? `<div class="thumbs" style="justify-content:center">${UP.arquivos.map((a, i) => `<div class="th">${a.preview ? `<img src="${a.preview}" alt="">` : `<div>${ic('file')}<br>${esc(a.name.slice(0, 18))}</div>`}<button aria-label="Remover" onclick="UP.arquivos.splice(${i},1);render()">✕</button></div>`).join('')}</div>` : ''}
@@ -593,6 +594,22 @@ V.atualizar = () => {
     <div class="card flat"><h3 style="margin-bottom:6px">Dicas</h3><ul class="mu" style="margin:0;padding-left:18px">
       <li>Plano de ensino: o PDF do CAGR funciona melhor que foto.</li><li>Notas: print da tela de notas do Moodle.</li><li>Calendário: print do cronograma da disciplina ou do calendário acadêmico.</li><li>Nada é alterado sem a sua confirmação.</li></ul></div></div>`;
 };
+// Colar print: Ctrl/⌘+V em qualquer lugar da tela Atualizar, ou botão "Colar print" (celular)
+document.addEventListener('paste', e => {
+  if (R?.v !== 'atualizar' || UP.fase !== 'enviar' || e.target.closest?.('textarea,input')) return;
+  const fs = [...(e.clipboardData?.files || [])].filter(f => f.type.startsWith('image/') || f.type === 'application/pdf');
+  if (!fs.length) return;
+  e.preventDefault(); addArquivos(fs.map((f, i) => new File([f], f.name && f.name !== 'image.png' ? f.name : `print-colado-${Date.now()}-${i}.png`, { type: f.type }))); toast('Print colado! 📋');
+});
+async function colarImagem() {
+  try {
+    if (!navigator.clipboard?.read) throw 0;
+    const itens = await navigator.clipboard.read(), fs = [];
+    for (const it of itens) { const t = it.types.find(x => x.startsWith('image/')); if (t) fs.push(new File([await it.getType(t)], `print-colado-${Date.now()}.${t.split('/')[1]}`, { type: t })); }
+    if (!fs.length) return toast('Não achei imagem copiada. Copie o print e tente de novo.');
+    await addArquivos(fs); toast('Print colado! 📋');
+  } catch (e) { toast(/denied|NotAllowed/i.test(String(e?.name || e)) ? 'Permita o acesso à área de transferência pra colar.' : `Use ${/Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl'}+V aqui na tela, ou "Escolher arquivos".`); }
+}
 async function addArquivos(files) {
   UP.erro = '';
   for (const f of [...files].slice(0, 8 - UP.arquivos.length)) {
