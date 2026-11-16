@@ -1207,12 +1207,12 @@ V.admin = () => {
   const r = ADM.resumo, b = norm(admBusca);
   const lista = ADM.contas.filter(c => (!b || norm(c.email + ' ' + c.nome).includes(b)) && (admFiltro === 'todos' || (admFiltro === 'premium' ? c.premium : admFiltro === 'gratis' ? !c.premium : c.plano === admFiltro)));
   const pl = c => ({ teste: ['Teste', 'neu'], mensal: ['Mensal', 'ok'], semestral: ['Semestral', 'ok'], cortesia: ['Cortesia', 'ok'], manual: ['Manual', 'ok'], gratis: ['Grátis', 'neu'] }[c.plano] || [c.plano, 'neu']);
-  return `<div class="stack"><div class="pg-h"><div><p class="mu">Somente você vê esta tela</p><h1>Admin</h1></div><button class="btn" onclick="ADM=null;render()">${ic('hist', 18)} Atualizar</button></div>
+  return `<div class="stack"><div class="pg-h"><div><p class="mu">Somente você vê esta tela</p><h1>Admin</h1></div><div class="row"><button class="btn" onclick="admZerar()">${ic('trash', 18)} Zerar pagamentos de teste</button><button class="btn" onclick="ADM=null;render()">${ic('hist', 18)} Atualizar</button></div></div>
     <div class="kpis">
       <div class="kpi card"><div class="mu">Contas</div><div class="kpi-v">${r.total}</div><div class="mu sm">${r.premium} com Premium ativo</div></div>
       <div class="kpi card"><div class="mu">Pagantes</div><div class="kpi-v">${r.pagantes}</div><div class="mu sm">mensal ou semestral</div></div>
       <div class="kpi card"><div class="mu">Cortesias</div><div class="kpi-v">${r.cortesias}</div><div class="mu sm">não pagam</div></div>
-      <div class="kpi card"><div class="mu">Receita (Pix/avulso)</div><div class="kpi-v">R$ ${r.receita.toFixed(2).replace('.', ',')}</div><div class="mu sm">pagamentos aprovados${r.receita ? ` · <a href="#" onclick="event.preventDefault();admZerar()">zerar testes</a>` : ''}</div></div></div>
+      <div class="kpi card"><div class="mu">Receita (Pix/avulso)</div><div class="kpi-v">R$ ${r.receita.toFixed(2).replace('.', ',')}</div><div class="mu sm">pagamentos aprovados</div></div></div>
     <div class="row wrap"><input style="flex:1;min-width:200px" placeholder="Buscar por nome ou e-mail" value="${esc(admBusca)}" oninput="admBusca=this.value;clearTimeout(window._ab);window._ab=setTimeout(render,250)">
       <div class="chips">${[['todos', 'Todos'], ['premium', 'Premium'], ['gratis', 'Sem Premium'], ['teste', 'Em teste'], ['cortesia', 'Cortesia']].map(([k, l]) => `<button class="chip ${admFiltro === k ? 'on' : ''}" onclick="admFiltro='${k}';render()">${l}</button>`).join('')}</div></div>
     <div class="card" style="padding:0"><div class="adm-lista">${lista.map(c => `<div class="adm-row">
