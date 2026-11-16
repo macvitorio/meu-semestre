@@ -1,19 +1,20 @@
 :root{
-  --bg:#f4f6fb;--surface:#fff;--surface-2:#eef1f8;--tx:#0e1530;--tx-2:#5a6482;--bd:#e3e7f1;
-  --pr:var(--pr-base,#2846d6);--pr-2:color-mix(in srgb,var(--pr-base,#2846d6) 12%,#fff);--pr-tx:#fff;
+  --bg:#fffaf3;--surface:#fff;--surface-2:#fbf3e8;--tx:#1b1340;--tx-2:#5b5677;--bd:#efe6da;
+  --pr:var(--pr-base,#4f46e5);--pr-2:color-mix(in srgb,var(--pr-base,#4f46e5) 12%,#fff);--pr-tx:#fff;
   --ok:#14945a;--ok-2:#e3f6ec;--warn:#c27803;--warn-2:#fdf3dc;--bad:#d63a3a;--bad-2:#fde8e8;
-  --r:14px;--shadow:0 1px 2px rgba(14,21,48,.06),0 4px 16px rgba(14,21,48,.05);
+  --r:20px;--shadow:0 1px 2px rgba(27,19,64,.05),0 8px 24px rgba(27,19,64,.07);
+  --coral:#ff6b4a;--sol:#ffc83d;--rosa:#e8488f;--menta:#16a36a;--pr-sombra:color-mix(in srgb,var(--pr) 62%,#000);
   --nav-h:68px;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme=light]){
-  --bg:#0b1020;--surface:#141a2e;--surface-2:#1c2340;--tx:#e8ebf6;--tx-2:#97a0bf;--bd:#262e4d;
-  --pr:color-mix(in srgb,var(--pr-base,#2846d6) 62%,#fff);--pr-2:color-mix(in srgb,var(--pr-base,#2846d6) 30%,#141a2e);--pr-tx:#0b1020;
+  --bg:#120e24;--surface:#1c1736;--surface-2:#262046;--tx:#f1eefc;--tx-2:#a7a1c4;--bd:#332c57;
+  --pr:color-mix(in srgb,var(--pr-base,#4f46e5) 62%,#fff);--pr-2:color-mix(in srgb,var(--pr-base,#4f46e5) 30%,#141a2e);--pr-tx:#0b1020;
   --ok:#3ccf8e;--ok-2:#0f3326;--warn:#f1b24a;--warn-2:#3a2c0d;--bad:#ff7474;--bad-2:#3d1616;
   --shadow:0 1px 2px rgba(0,0,0,.3);
 }}
 :root[data-theme=dark]{
-  --bg:#0b1020;--surface:#141a2e;--surface-2:#1c2340;--tx:#e8ebf6;--tx-2:#97a0bf;--bd:#262e4d;
-  --pr:color-mix(in srgb,var(--pr-base,#2846d6) 62%,#fff);--pr-2:color-mix(in srgb,var(--pr-base,#2846d6) 30%,#141a2e);--pr-tx:#0b1020;
+  --bg:#120e24;--surface:#1c1736;--surface-2:#262046;--tx:#f1eefc;--tx-2:#a7a1c4;--bd:#332c57;
+  --pr:color-mix(in srgb,var(--pr-base,#4f46e5) 62%,#fff);--pr-2:color-mix(in srgb,var(--pr-base,#4f46e5) 30%,#141a2e);--pr-tx:#0b1020;
   --ok:#3ccf8e;--ok-2:#0f3326;--warn:#f1b24a;--warn-2:#3a2c0d;--bad:#ff7474;--bad-2:#3d1616;
   --shadow:0 1px 2px rgba(0,0,0,.3);
 }
@@ -408,3 +409,21 @@ body{min-height:100%;min-height:100dvh}
 img.avatar{display:block}
 .avatar-edit{position:relative;cursor:pointer;flex:none}
 .avatar-edit .cam{position:absolute;right:-2px;bottom:-2px;width:24px;height:24px;border-radius:50%;background:var(--surface);border:1px solid var(--bd);display:grid;place-items:center;color:var(--tx)}
+
+/* ================= Identidade visual da LP aplicada ao app ================= */
+h1,h2,h3,.brand,.big,.kpi-v,.preco,.stat .v,.nav-brand b{font-family:"Plus Jakarta Sans",Inter,system-ui,sans-serif;letter-spacing:-.025em}
+h1{font-weight:800}h2,h3{font-weight:700}
+.card{border-radius:var(--r)}
+.btn{border-radius:14px;font-family:"Plus Jakarta Sans",Inter,sans-serif;font-weight:700;transition:transform .12s,box-shadow .12s}
+.btn.pr{box-shadow:0 4px 0 var(--pr-sombra)}
+.btn.pr:active{transform:translateY(2px);box-shadow:0 2px 0 var(--pr-sombra)}
+.btn.sm.pr{box-shadow:0 3px 0 var(--pr-sombra)}
+.marca{box-shadow:0 3px 0 var(--pr-sombra)}
+.hero{background:linear-gradient(135deg,var(--pr),var(--rosa) 120%)}
+.prem-hero{background:linear-gradient(135deg,var(--coral),var(--rosa) 55%,var(--pr))!important}
+.kpi-ic{border-radius:12px}
+.seg button.on{font-weight:700}
+nav.bn a.fab span.circ{box-shadow:0 4px 0 var(--pr-sombra),0 8px 20px color-mix(in srgb,var(--pr) 35%,transparent)}
+@media(min-width:900px){nav.bn a.fab{box-shadow:0 4px 0 var(--pr-sombra)}}
+.empty .ic{border-radius:18px}
+.aviso-teste{border-radius:var(--r)}

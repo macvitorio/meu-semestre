@@ -5,7 +5,7 @@
 const DIAS = { 2: 'Seg', 3: 'Ter', 4: 'Qua', 5: 'Qui', 6: 'Sex', 7: 'Sáb' };
 const DIAS_L = { 2: 'Segunda', 3: 'Terça', 4: 'Quarta', 5: 'Quinta', 6: 'Sexta', 7: 'Sábado' };
 const SLOTS = ['0730', '0820', '0910', '1010', '1100', '1330', '1420', '1510', '1620', '1710', '1830', '1920', '2020', '2110'];
-const CORES = ['#2846d6', '#14945a', '#d6336c', '#e8590c', '#7048e8', '#0c8599', '#b08800', '#c92a2a', '#5f3dc4', '#2b8a3e'];
+const CORES = ['#4f46e5', '#14945a', '#d6336c', '#e8590c', '#7048e8', '#0c8599', '#b08800', '#c92a2a', '#5f3dc4', '#2b8a3e'];
 let FREQ_MIN = 0.75, MEDIA_APROV = 6, MEDIA_REC = 3; // ajustáveis em Configurações (cada faculdade tem sua regra)
 function aplicarRegras() { const r = S.perfil.regras || {}; MEDIA_APROV = num(r.media) ?? 6; FREQ_MIN = (num(r.presenca) ?? 75) / 100; MEDIA_REC = num(r.rec) ?? 3; }
 const TIPOS_EV = { prova: 'Prova', entrega: 'Entrega', feriado: 'Feriado', aula: 'Aula', outro: 'Outro' };
@@ -948,7 +948,7 @@ async function compartilharGrade() {
 }
 
 // ================= Tema (claro / escuro / sistema + cor) =================
-const CORES_APP = ['#2846d6', '#7048e8', '#d6336c', '#e03131', '#e8590c', '#f59f00', '#2f9e44', '#0ca678', '#1098ad', '#1c7ed6', '#495057'];
+const CORES_APP = ['#4f46e5', '#7048e8', '#d6336c', '#e03131', '#e8590c', '#f59f00', '#2f9e44', '#0ca678', '#1098ad', '#1c7ed6', '#495057'];
 function aplicarTema(t = S.perfil.tema || 'sistema', c = S.perfil.cor || '') {
   const r = document.documentElement;
   if (t === 'sistema') delete r.dataset.theme; else r.dataset.theme = t === 'claro' ? 'light' : 'dark';
