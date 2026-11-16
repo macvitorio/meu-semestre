@@ -449,3 +449,19 @@ input[type=date]::-webkit-date-and-time-value{text-align:left}
 .pg-h>.row{flex-wrap:wrap}
 @media(max-width:600px){.pg-h>.row{width:100%}.pg-h>.row .btn{flex:1}}
 .view,.stack{max-width:100%;min-width:0}
+
+/* Fórum */
+.forum-ban{display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit;background:linear-gradient(135deg,color-mix(in srgb,var(--pr) 10%,var(--surface)),var(--surface))}
+.forum-card{display:flex;gap:12px;text-decoration:none;color:inherit;min-width:0}
+.forum-votos{flex:none;width:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:12px;background:var(--surface-2);padding:8px 0;align-self:flex-start}
+.forum-votos b{font-size:17px}.forum-votos small{font-size:10px;color:var(--tx-2)}.forum-votos.on{background:var(--pr-2);color:var(--pr)}
+.forum-meta{display:flex;flex-wrap:wrap;gap:6px}
+.forum-tag{--c:var(--tx-2);display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;padding:3px 9px;border-radius:99px;color:var(--c);background:color-mix(in srgb,var(--c) 12%,transparent);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.forum-tit{display:block;margin:6px 0 2px;font-size:16px;overflow-wrap:anywhere}
+.forum-prev{font-size:14px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.forum-rod{margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.forum-txt{white-space:normal;overflow-wrap:anywhere;font-size:15px;line-height:1.6}
+.forum-anexos{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.forum-anexos:empty{display:none}
+.forum-anexos .chip{max-width:100%;overflow:hidden;text-overflow:ellipsis;display:inline-flex;align-items:center;gap:6px}
+.forum-up.on{background:var(--pr-2);border-color:var(--pr);color:var(--pr)}
+.forum-melhor{border-color:color-mix(in srgb,var(--ok) 55%,var(--bd))}

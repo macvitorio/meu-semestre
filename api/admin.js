@@ -11,6 +11,18 @@ export default async function handler(req, res) {
 
   if (req.method === 'POST') {
     const { userId, acao, dias } = req.body || {};
+    if (acao === 'forum') { // moderação: restaurar (volta ao ar) ou apagar
+      const { alvo, id, op } = req.body; const tab = alvo === 'post' ? 'forum_posts' : alvo === 'resposta' ? 'forum_respostas' : null;
+      if (!tab || !Number.isInteger(id) || !['restaurar', 'apagar'].includes(op)) return res.status(400).json({ error: 'Pedido inválido.' });
+      if (op === 'apagar') {
+        const { data: it } = await db.from(tab).select('arquivos').eq('id', id).maybeSingle();
+        const paths = (it?.arquivos || []).map(a => a.path).filter(Boolean);
+        if (paths.length) await db.storage.from('forum').remove(paths);
+        await db.from(tab).delete().eq('id', id);
+      } else await db.from(tab).update({ oculto: false, denuncias: 0 }).eq('id', id);
+      await db.from('forum_denuncias').update({ resolvida: true }).eq('alvo', alvo).eq('alvo_id', id);
+      return res.status(200).json({ ok: true });
+    }
     if (acao === 'feedback') { // gestão das ideias: status e anotação
       const { id, status, nota } = req.body;
       if (!Number.isInteger(id)) return res.status(400).json({ error: 'Item inválido.' });
@@ -85,6 +97,14 @@ export default async function handler(req, res) {
     };
   }).sort((x, y) => (y.criado || '').localeCompare(x.criado || ''));
   const { data: fb } = await db.from('feedback').select('*').order('criado_em', { ascending: false }).limit(100);
+  const { data: den } = await db.from('forum_denuncias').select('alvo,alvo_id,motivo').eq('resolvida', false).limit(300);
+  const mod = [];
+  for (const alvo of ['post', 'resposta']) {
+    const ids = [...new Set((den || []).filter(d => d.alvo === alvo).map(d => d.alvo_id))];
+    if (!ids.length) continue;
+    const { data: itens } = await db.from(alvo === 'post' ? 'forum_posts' : 'forum_respostas').select(alvo === 'post' ? 'id,titulo,texto,autor_nome,oculto,denuncias' : 'id,post_id,texto,autor_nome,oculto,denuncias').in('id', ids);
+    for (const it of itens || []) mod.push({ alvo, ...it, motivos: [...new Set(den.filter(d => d.alvo === alvo && d.alvo_id === it.id).map(d => d.motivo))] });
+  }
   const receita = (pags || []).filter(p => p.status === 'approved').reduce((s, p) => s + Number(p.valor || 0), 0);
-  res.status(200).json({ contas, feedback: fb || [], resumo: { total: contas.length, premium: contas.filter(c => c.premium).length, pagantes: contas.filter(c => ['mensal', 'semestral'].includes(c.plano) && c.premium).length, cortesias: contas.filter(c => c.plano === 'cortesia').length, receita, indicacoes: (inds || []).length, indicacoesAssinaram: (inds || []).filter(i => i.convertida).length } });
+  res.status(200).json({ contas, feedback: fb || [], moderacao: mod, resumo: { total: contas.length, premium: contas.filter(c => c.premium).length, pagantes: contas.filter(c => ['mensal', 'semestral'].includes(c.plano) && c.premium).length, cortesias: contas.filter(c => c.plano === 'cortesia').length, receita, indicacoes: (inds || []).length, indicacoesAssinaram: (inds || []).filter(i => i.convertida).length } });
 }

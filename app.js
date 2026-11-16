@@ -39,6 +39,7 @@ const P = {
   alert: '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
   spark: '<path d="M12 3l1.9 5.8L20 10l-6.1 1.2L12 17l-1.9-5.8L4 10l6.1-1.2z"/>',
   lock: '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+  chat: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 21l1.9-5.4A8 8 0 1 1 21 12z"/>',
   bulb: '<path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V16h8v-1.3A7 7 0 0 0 12 2z"/>',
   clip: '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
   mail: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/>',
@@ -352,12 +353,12 @@ function render() {
   const cur = R.v === 'disc' ? 'disciplinas' : R.v;
   $('#nav').innerHTML = NAV.map(([k, i, l]) => k === 'atualizar'
     ? `<a href="#/atualizar" class="fab ${cur === k ? 'on' : ''}"><span class="circ">${ic(i, 24)}</span><small>${l}</small></a>`
-    : `<a href="#/${k}" class="${cur === k ? 'on' : ''}">${ic(i, 22)}${l}</a>`).join('') + `<a href="#/horas" class="so-desktop-nav ${cur === 'horas' ? 'on' : ''}">${ic('clip', 22)}Horas complementares</a><div class="cfg-link">${PLANO.admin ? `<a href="#/admin" class="${cur === 'admin' ? 'on' : ''}">${ic('user', 22)}Admin</a>` : ''}${user ? `<a href="#/indicar" class="${cur === 'indicar' ? 'on' : ''}">${ic('share', 22)}Indique e ganhe</a>` : ''}${user ? `<a href="#/premium" class="${cur === 'premium' ? 'on' : ''}">${ic('spark', 22)}${premium() && !['teste', 'gratis'].includes(PLANO.plano) ? 'Meu plano' : 'Seja Premium'}</a>` : ''}<a href="#/config" class="${cur === 'config' ? 'on' : ''}">${ic('gear', 22)}Configurações</a>
+    : `<a href="#/${k}" class="${cur === k ? 'on' : ''}">${ic(i, 22)}${l}</a>`).join('') + `<a href="#/forum" class="so-desktop-nav ${cur === 'forum' ? 'on' : ''}">${ic('chat', 22)}Fórum da galera</a><a href="#/horas" class="so-desktop-nav ${cur === 'horas' ? 'on' : ''}">${ic('clip', 22)}Horas complementares</a><div class="cfg-link">${PLANO.admin ? `<a href="#/admin" class="${cur === 'admin' ? 'on' : ''}">${ic('user', 22)}Admin</a>` : ''}${user ? `<a href="#/indicar" class="${cur === 'indicar' ? 'on' : ''}">${ic('share', 22)}Indique e ganhe</a>` : ''}${user ? `<a href="#/premium" class="${cur === 'premium' ? 'on' : ''}">${ic('spark', 22)}${premium() && !['teste', 'gratis'].includes(PLANO.plano) ? 'Meu plano' : 'Seja Premium'}</a>` : ''}<a href="#/config" class="${cur === 'config' ? 'on' : ''}">${ic('gear', 22)}Configurações</a>
     <a href="#/config" class="eu">${avatarHTML(34)}<span class="tx"><b>${esc(S.perfil.nome || 'Sem nome')}</b><small>${esc(user?.email || 'Neste aparelho')}</small></span></a></div>`;
   $('#nav').insertAdjacentHTML('afterbegin', `<a href="#/inicio" class="nav-brand">${marca()}<b>Meu Semestre</b></a>`);
   aplicarTema(); aplicarRegras();
   $('#view').innerHTML = (V[R.v] || V.inicio)();
-  const t = $('#ttl'); if (t) t.textContent = R.v === 'disc' ? nomeM(byId(R.id)) : R.v === 'config' ? 'Configurações' : R.v === 'premium' ? 'Premium' : R.v === 'indicar' ? 'Indique e ganhe' : R.v === 'horas' ? 'Horas complementares' : R.v === 'admin' ? 'Admin' : R.v === 'feedbacks' ? 'Feedbacks' : (NAV.find(n => n[0] === cur) || [, , ''])[2];
+  const t = $('#ttl'); if (t) t.textContent = R.v === 'disc' ? nomeM(byId(R.id)) : R.v === 'config' ? 'Configurações' : R.v === 'premium' ? 'Premium' : R.v === 'indicar' ? 'Indique e ganhe' : R.v === 'horas' ? 'Horas complementares' : R.v === 'admin' ? 'Admin' : R.v === 'feedbacks' ? 'Feedbacks' : R.v === 'forum' ? 'Fórum' : (NAV.find(n => n[0] === cur) || [, , ''])[2];
 }
 
 // ================= Componentes =================
@@ -375,10 +376,11 @@ const V = {};
 V.inicio = () => {
   const h = hoje(), ag = agendaDoDia(h), agora = new Date(), mins = agora.getHours() * 60 + agora.getMinutes();
   const nome = (S.perfil.nome || '').split(' ')[0];
-  const sauda = agora.getHours() < 12 ? 'Bom dia' : agora.getHours() < 18 ? 'Boa tarde' : 'Boa noite';
+  const hr = agora.getHours(), sauda = hr >= 5 && hr < 12 ? 'Bom dia' : hr >= 12 && hr < 18 ? 'Boa tarde' : 'Boa noite';
   const topo = `<div class="pg-h"><div><p class="mu cap1">${agora.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</p><h1>${sauda}${nome ? ', ' + esc(nome) : ''} 👋</h1>${linhaCurso()}</div>
     <div class="row pg-acoes"><button class="btn" onclick="eventoSheet()">${ic('plus', 18)} Evento</button><a class="btn pr" href="#/atualizar">${ic('up', 18)} Atualizar</a></div></div>`;
-  if (!S.materias.length) return `<div class="stack">${topo}${avisoTeste()}${boasVindas()}</div>`;
+  const fBan = user ? `<a class="card tap forum-ban" href="#/forum"><span style="font-size:28px">💬</span><div class="sp"><b>Fórum da galera</b><div class="mu sm">Tira dúvida, troca resumo e ajuda quem tá no mesmo barco</div></div>${chev}</a>` : '';
+  if (!S.materias.length) return `<div class="stack">${topo}${avisoTeste()}${boasVindas()}${fBan}</div>`;
 
   // indicadores
   const fs = S.materias.map(freq), ns = S.materias.map(notas).map(n => n.mf ?? n.parcial).filter(n => n != null);
@@ -432,7 +434,7 @@ V.inicio = () => {
   if (user) lado += `<a class="card tap row indica-card" href="#/indicar" style="color:inherit;text-decoration:none"><span style="font-size:26px">🎁</span><div class="sp"><b>Indique e ganhe</b><div class="mu">1 mês de Premium por amigo que assinar</div></div>${ic('right')}</a>`;
   lado += cardInstalar();
 
-  return `<div class="stack">${topo}${avisoTeste()}${kpis}<div class="dash"><div class="stack">${main}</div><div class="stack">${lado}</div></div></div>`;
+  return `<div class="stack">${topo}${avisoTeste()}${kpis}${fBan}<div class="dash"><div class="stack">${main}</div><div class="stack">${lado}</div></div></div>`;
 };
 function boasVindas() {
   const passo = (n, icone, t, d, acao) => `<div class="card passo"><div class="row"><span class="num">${n}</span><span class="kpi-ic" style="color:var(--pr);background:var(--pr-2)">${ic(icone, 18)}</span></div><h3 style="margin:14px 0 6px">${t}</h3><p class="mu" style="margin:0 0 16px">${d}</p>${acao}</div>`;
@@ -1311,6 +1313,7 @@ V.admin = () => {
       <div class="kpi card"><div class="mu">Receita (Pix/avulso)</div><div class="kpi-v">R$ ${r.receita.toFixed(2).replace('.', ',')}</div><div class="mu sm">pagamentos aprovados</div></div></div>
     ${rankingIndicacoes()}
     ${feedbackAdmin()}
+    ${moderacaoAdmin()}
     <div class="row wrap"><input style="flex:1;min-width:200px" placeholder="Buscar por nome ou e-mail" value="${esc(admBusca)}" oninput="admBusca=this.value;clearTimeout(window._ab);window._ab=setTimeout(render,250)">
       <div class="chips">${[['todos', 'Todos'], ['premium', 'Premium'], ['gratis', 'Sem Premium'], ['teste', 'Em teste'], ['cortesia', 'Cortesia'], ['indicados', 'Vieram por indicação']].map(([k, l]) => `<button class="chip ${admFiltro === k ? 'on' : ''}" onclick="admFiltro='${k}';render()">${l}</button>`).join('')}</div></div>
     <div class="card" style="padding:0"><div class="adm-lista">${lista.map(c => `<div class="adm-row">
@@ -1414,6 +1417,18 @@ async function copiarConvite() {
 let rankPor = 'total';
 const FB_ST = { nova: ['🆕', 'Novas'], planejada: ['📌', 'Planejadas'], fazendo: ['🛠️', 'Fazendo'], feito: ['✅', 'Feitas'], descartada: ['🗑️', 'Descartadas'] };
 const FB_TP = { ideia: '💡 Ideia', problema: '🐞 Problema', elogio: '💜 Elogio' };
+function moderacaoAdmin() {
+  const m = ADM.moderacao || [];
+  return `<div class="card"><div class="card-h"><h3 class="sp">🚩 Denúncias do fórum</h3><span class="mu sm">${m.length}</span></div>
+    ${m.length ? `<div class="list">${m.map(x => `<div style="min-width:0"><div class="row wrap" style="gap:6px"><span class="forum-tag" style="--c:${x.oculto ? 'var(--bad)' : 'var(--warn)'}">${x.oculto ? 'Fora do ar' : 'No ar'} · ${x.denuncias} denúncia(s)</span><span class="mu sm">${x.alvo === 'post' ? 'Publicação' : 'Resposta'} de ${esc(x.autor_nome || '?')}</span></div>
+      <div style="margin:6px 0;overflow-wrap:anywhere">${x.titulo ? `<b>${esc(x.titulo)}</b><br>` : ''}<span class="mu">${esc((x.texto || '').slice(0, 240))}</span></div>
+      <div class="mu sm">Motivos: ${x.motivos.map(esc).join(', ')}</div>
+      <div class="row wrap" style="gap:8px;margin-top:8px">${x.oculto ? '' : `<a class="btn sm" href="#/forum/${x.alvo === 'post' ? x.id : x.post_id}">Ver</a>`}<button class="btn sm" onclick="modForum('${x.alvo}',${x.id},'restaurar')">✅ Manter no ar</button><button class="btn sm" style="color:var(--bad)" onclick="modForum('${x.alvo}',${x.id},'apagar')">${ic('trash', 16)} Apagar</button></div></div>`).join('')}</div>` : '<p class="mu">Nenhuma denúncia pendente. Comunidade de boa 😎</p>'}</div>`;
+}
+async function modForum(alvo, id, op) {
+  const r = await fetch('/api/admin', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + await tokenAtual() }, body: JSON.stringify({ acao: 'forum', alvo, id, op }) });
+  toast(r.ok ? (op === 'apagar' ? 'Apagado.' : 'Mantido no ar.') : 'Não deu para concluir.'); ADM = null; FORUM.lista = null; render();
+}
 function feedbackAdmin() {
   const f = ADM.feedback || [], n = k => f.filter(x => (x.status || 'nova') === k).length;
   return `<div class="card tap" onclick="go('feedbacks')" style="cursor:pointer"><div class="card-h"><h3 class="sp">💬 Ideias e feedback</h3><span class="mu sm">Gerenciar ›</span></div>
@@ -1849,3 +1864,214 @@ async function limparCurriculoGuardado() {
 }
 
 function marcarLote(i, on) { LOTE[i].on = on; $('#lt-' + i)?.classList.toggle('off', !on); const b = $('#lote-salvar'); if (b) b.disabled = !LOTE.some(x => x.on); vibrar(6); totLote(); }
+
+// ================= Fórum da galera =================
+const FT = { duvida: ['❓', 'Dúvida', '#e8590c'], material: ['📚', 'Material', '#0ca678'], discussao: ['💬', 'Discussão', '#7048e8'] };
+let FORUM = { lista: null, chave: '', post: null, resp: [], votos: new Set(), carregando: false }, fQ = '', fTipo = 'todos', fOrdem = 'recentes', fCurso = false;
+const fLimpa = q => q.replace(/[%,()*\\]/g, ' ').trim();
+const tempoAtras = d => { const s = (Date.now() - new Date(d)) / 1000; return s < 60 ? 'agora' : s < 3600 ? Math.floor(s / 60) + ' min' : s < 86400 ? Math.floor(s / 3600) + ' h' : s < 2592000 ? Math.floor(s / 86400) + ' d' : new Date(d).toLocaleDateString('pt-BR'); };
+const fAvatar = (nome, foto, t = 34) => foto && /^https:\/\//.test(foto) ? `<img class="avatar" src="${esc(foto)}" referrerpolicy="no-referrer" alt="" style="width:${t}px;height:${t}px;object-fit:cover" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'avatar',textContent:'${esc((nome || '?')[0].toUpperCase())}'}))">` : `<div class="avatar" style="width:${t}px;height:${t}px;font-size:${Math.round(t * .4)}px">${esc((nome || '?')[0].toUpperCase())}</div>`;
+
+async function forumCarregar() {
+  const chave = [fQ, fTipo, fOrdem, fCurso].join('|');
+  if (FORUM.carregando || (FORUM.lista && FORUM.chave === chave)) return;
+  FORUM.carregando = true;
+  try {
+    let q = sb.from('forum_posts').select('id,user_id,autor_nome,autor_curso,autor_uni,autor_foto,tipo,titulo,texto,disciplina,arquivos,votos,respostas,melhor_resposta,criado_em,atividade_em').limit(50);
+    if (fTipo !== 'todos') q = q.eq('tipo', fTipo);
+    const b = fLimpa(fQ); if (b) q = q.or(`titulo.ilike.%${b}%,texto.ilike.%${b}%,disciplina.ilike.%${b}%`);
+    if (fCurso && S.perfil.curso) q = q.ilike('autor_curso', `%${fLimpa(S.perfil.curso)}%`);
+    if (fOrdem === 'sem') q = q.eq('respostas', 0);
+    q = fOrdem === 'alta' ? q.order('votos', { ascending: false }).order('atividade_em', { ascending: false }) : q.order('atividade_em', { ascending: false });
+    const { data, error } = await q; if (error) throw error;
+    FORUM.lista = data; FORUM.chave = chave;
+    await forumMeusVotos('post', data.map(p => p.id));
+  } catch (e) { FORUM.lista = []; FORUM.chave = chave; toast(/relation|does not exist/i.test(e.message || '') ? 'O fórum ainda não foi ativado no banco.' : 'Não deu para carregar o fórum.'); }
+  FORUM.carregando = false; if (R.v === 'forum' && !R.id) render();
+}
+async function forumMeusVotos(alvo, ids) {
+  if (!ids.length) return;
+  const { data } = await sb.from('forum_votos').select('alvo_id').eq('alvo', alvo).in('alvo_id', ids);
+  (data || []).forEach(v => FORUM.votos.add(alvo + v.alvo_id));
+}
+async function forumAbrir(id) {
+  if (FORUM.carregando) return; FORUM.carregando = true;
+  try {
+    const [{ data: p, error }, { data: r }] = await Promise.all([
+      sb.from('forum_posts').select('*').eq('id', id).maybeSingle(),
+      sb.from('forum_respostas').select('*').eq('post_id', id).order('criado_em')]);
+    if (error) throw error;
+    FORUM.post = p; FORUM.resp = r || [];
+    if (p) { await forumMeusVotos('post', [p.id]); await forumMeusVotos('resposta', FORUM.resp.map(x => x.id)); }
+  } catch { FORUM.post = false; }
+  FORUM.carregando = false; if (R.v === 'forum' && R.id == id) render();
+}
+
+V.forum = () => {
+  if (!user || !sb) return `<div class="stack"><div class="pg-h"><div><h1>Fórum da galera</h1></div></div><div class="card empty"><p style="font-size:40px;margin:0">💬</p><p class="mu">Entre com sua conta pra perguntar, responder e trocar materiais com outros estudantes.</p><button class="btn pr" onclick="sair()">Entrar</button></div></div>`;
+  return R.id ? forumPostView(+R.id) : forumListaView();
+};
+function forumListaView() {
+  const chave = [fQ, fTipo, fOrdem, fCurso].join('|');
+  if (!FORUM.lista || FORUM.chave !== chave) setTimeout(forumCarregar);
+  const l = FORUM.lista || [];
+  return `<div class="stack"><div class="pg-h"><div><p class="mu">Dúvidas, materiais e resumos, de estudante pra estudante</p><h1>Fórum da galera 💬</h1></div>
+      <div class="row pg-acoes"><button class="btn pr" onclick="forumNovo()">${ic('plus', 18)} Publicar</button></div></div>
+    <input type="search" placeholder="Buscar: cálculo, resumo de anatomia, lista 3…" value="${esc(fQ)}" oninput="fQ=this.value;clearTimeout(window._fq);window._fq=setTimeout(()=>{FORUM.lista=null;render();setTimeout(()=>{const i=$('#view input[type=search]');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}})},400)">
+    <div class="chips">${[['todos', 'Tudo'], ['duvida', '❓ Dúvidas'], ['material', '📚 Materiais'], ['discussao', '💬 Discussões']].map(([k, n]) => `<button class="chip ${fTipo === k ? 'on' : ''}" onclick="fTipo='${k}';render()">${n}</button>`).join('')}</div>
+    <div class="chips">${[['recentes', '🕒 Recentes'], ['alta', '🔥 Em alta'], ['sem', '🙋 Sem resposta']].map(([k, n]) => `<button class="chip ${fOrdem === k ? 'on' : ''}" onclick="fOrdem='${k}';render()">${n}</button>`).join('')}${S.perfil.curso ? `<button class="chip ${fCurso ? 'on' : ''}" onclick="fCurso=!fCurso;render()">🎓 Só ${esc(S.perfil.curso)}</button>` : ''}</div>
+    ${!FORUM.lista || FORUM.chave !== chave ? `<div class="card empty"><div class="spin"></div></div>` : l.length ? l.map(forumCard).join('') : `<div class="card empty"><p style="font-size:40px;margin:0">🦗</p><p class="mu">${fQ ? 'Nada encontrado. Que tal perguntar você?' : 'Ainda tá vazio por aqui. Seja a primeira pessoa a publicar!'}</p><button class="btn pr" onclick="forumNovo()">${ic('plus', 18)} Publicar</button></div>`}
+  </div>`;
+}
+function forumCard(p) {
+  const [e, n, c] = FT[p.tipo] || FT.duvida, nArq = (p.arquivos || []).length;
+  return `<a class="card tap forum-card" href="#/forum/${p.id}">
+    <div class="forum-votos ${FORUM.votos.has('post' + p.id) ? 'on' : ''}"><b>${p.votos}</b><small>${p.votos === 1 ? 'voto' : 'votos'}</small></div>
+    <div class="sp" style="min-width:0">
+      <div class="forum-meta"><span class="forum-tag" style="--c:${c}">${e} ${n}</span>${p.disciplina ? `<span class="forum-tag">${esc(p.disciplina)}</span>` : ''}${p.melhor_resposta ? '<span class="forum-tag" style="--c:var(--ok)">✅ Resolvida</span>' : ''}</div>
+      <b class="forum-tit">${esc(p.titulo)}</b>
+      ${p.texto ? `<div class="mu forum-prev">${esc(p.texto.slice(0, 160))}</div>` : ''}
+      <div class="mu sm forum-rod">${esc((p.autor_nome || 'Estudante').split(' ')[0])}${p.autor_curso ? ' · ' + esc(p.autor_curso) : ''} · ${tempoAtras(p.criado_em)} · 💬 ${p.respostas}${nArq ? ' · 📎 ' + nArq : ''}</div>
+    </div></a>`;
+}
+function forumPostView(id) {
+  if (!FORUM.post || FORUM.post.id !== id) { if (FORUM.post !== false || FORUM._id !== id) { FORUM._id = id; FORUM.post = null; setTimeout(() => forumAbrir(id)); } }
+  const voltar = `<p class="mu"><a href="#/forum" style="color:inherit">← Fórum</a></p>`;
+  if (FORUM.post === false) return `<div class="stack">${voltar}<div class="card empty"><p class="mu">Essa publicação não existe mais.</p></div></div>`;
+  const p = FORUM.post; if (!p) return `<div class="stack">${voltar}<div class="card empty"><div class="spin"></div></div></div>`;
+  const [e, n, c] = FT[p.tipo] || FT.duvida, meu = p.user_id === user.id;
+  const resp = [...FORUM.resp].sort((a, b) => (b.id === p.melhor_resposta) - (a.id === p.melhor_resposta) || b.votos - a.votos || a.criado_em.localeCompare(b.criado_em));
+  const autor = (nome, curso, foto, quando) => `<div class="row" style="gap:10px">${fAvatar(nome, foto)}<div style="min-width:0"><b class="sm">${esc(nome || 'Estudante')}</b><div class="mu sm">${curso ? esc(curso) + ' · ' : ''}${tempoAtras(quando)}</div></div></div>`;
+  const votar = (alvo, x) => `<button class="btn sm forum-up ${FORUM.votos.has(alvo + x.id) ? 'on' : ''}" onclick="forumVotar('${alvo}',${x.id})" ${x.user_id === user.id ? 'disabled title="Não dá pra votar em você mesmo"' : ''}>▲ ${x.votos}</button>`;
+  return `<div class="stack">${voltar}
+    <div class="card" style="min-width:0">
+      <div class="forum-meta"><span class="forum-tag" style="--c:${c}">${e} ${n}</span>${p.disciplina ? `<span class="forum-tag">${esc(p.disciplina)}</span>` : ''}${p.autor_uni ? `<span class="forum-tag">${esc(p.autor_uni)}</span>` : ''}${p.oculto ? '<span class="forum-tag" style="--c:var(--bad)">Em revisão</span>' : ''}</div>
+      <h2 style="margin:8px 0;overflow-wrap:anywhere">${esc(p.titulo)}</h2>
+      ${p.texto ? `<div class="forum-txt">${forumTexto(p.texto)}</div>` : ''}
+      ${forumArquivos(p.arquivos)}
+      <div class="row wrap" style="justify-content:space-between;margin-top:14px;gap:10px">${autor(p.autor_nome, p.autor_curso, p.autor_foto, p.criado_em)}
+        <div class="row" style="gap:6px">${votar('post', p)}${meu ? `<button class="btn sm" onclick="forumApagar('post',${p.id})">${ic('trash', 16)}</button>` : `<button class="btn sm" onclick="forumDenunciar('post',${p.id})" aria-label="Denunciar">🚩</button>`}</div></div>
+    </div>
+    <h3 style="margin:8px 2px 0">${resp.length ? `${resp.length} resposta${resp.length > 1 ? 's' : ''}` : 'Nenhuma resposta ainda'}</h3>
+    ${resp.map(r => `<div class="card ${r.id === p.melhor_resposta ? 'forum-melhor' : ''}" style="min-width:0">
+      ${r.id === p.melhor_resposta ? '<div class="forum-tag" style="--c:var(--ok);margin-bottom:8px">✅ Melhor resposta</div>' : ''}
+      <div class="forum-txt">${forumTexto(r.texto)}</div>${forumArquivos(r.arquivos)}
+      <div class="row wrap" style="justify-content:space-between;margin-top:12px;gap:10px">${autor(r.autor_nome, r.autor_curso, r.autor_foto, r.criado_em)}
+        <div class="row" style="gap:6px">${meu && r.user_id !== user.id ? `<button class="btn sm" onclick="forumMelhor(${r.id})">${r.id === p.melhor_resposta ? 'Desmarcar' : '✅ Melhor'}</button>` : ''}${votar('resposta', r)}${r.user_id === user.id ? `<button class="btn sm" onclick="forumApagar('resposta',${r.id})">${ic('trash', 16)}</button>` : `<button class="btn sm" onclick="forumDenunciar('resposta',${r.id})" aria-label="Denunciar">🚩</button>`}</div></div>
+    </div>`).join('')}
+    <div class="card"><label class="f">Sua resposta<textarea id="fr-t" maxlength="5000" placeholder="Explica do seu jeito, manda o passo a passo ou anexa um material 😉"></textarea></label>
+      <div id="fr-arq" class="forum-anexos"></div>
+      <div class="actions" style="margin-top:10px"><label class="btn">📎 Anexar<input type="file" hidden multiple accept="application/pdf,image/*" onchange="forumAnexar(this,'fr')"></label><button class="btn pr sp" id="fr-b" onclick="forumResponder(${p.id})">Responder</button></div>
+      <p class="mu sm" style="margin:8px 0 0">Seja gentil e não compartilhe provas sigilosas ou material com direitos autorais.</p></div>
+  </div>`;
+}
+const forumTexto = t => esc(t).replace(/(https:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener nofollow ugc">$1</a>').replace(/\n/g, '<br>');
+const forumArquivos = a => (a || []).length ? `<div class="forum-anexos">${a.map((x, i) => `<button class="chip" onclick='forumBaixar(${JSON.stringify(x.path).replace(/'/g, '&#39;')})'>${x.tipo === 'pdf' ? '📄' : '🖼️'} ${esc(x.nome || 'arquivo ' + (i + 1))}</button>`).join('')}</div>` : '';
+async function forumBaixar(path) {
+  const w = window.open('', '_blank');
+  const { data, error } = await sb.storage.from('forum').createSignedUrl(path, 600);
+  if (error) { w?.close(); return toast('Não deu para abrir o arquivo.'); }
+  if (w) w.location = data.signedUrl; else location.href = data.signedUrl;
+}
+
+const ANEXOS = { fp: [], fr: [] };
+async function forumAnexar(inp, k) {
+  const fs = [...inp.files]; inp.value = '';
+  for (const f of fs) {
+    if (ANEXOS[k].length >= 3) { toast('Máximo de 3 arquivos.'); break; }
+    try {
+      let blob = f, ext = 'pdf';
+      if (f.type.startsWith('image/')) { const { data } = await comprimir(f); blob = b64ParaBlob(data, 'image/jpeg'); ext = 'jpg'; }
+      else if (f.type !== 'application/pdf') throw new Error('Use PDF ou imagem.');
+      else if (f.size > 10e6) throw new Error('PDF grande demais (máx. 10 MB).');
+      ANEXOS[k].push({ blob, ext, nome: f.name.slice(0, 80) });
+    } catch (e) { toast(e.message); }
+  }
+  forumAnexosUI(k);
+}
+function forumAnexosUI(k) { const el = $('#' + k + '-arq'); if (el) el.innerHTML = ANEXOS[k].map((a, i) => `<span class="chip">${a.ext === 'pdf' ? '📄' : '🖼️'} ${esc(a.nome)} <button class="ib" style="width:22px;height:22px" onclick="ANEXOS['${k}'].splice(${i},1);forumAnexosUI('${k}')" aria-label="Remover">✕</button></span>`).join(''); }
+async function forumSubir(k) {
+  const out = [];
+  for (const a of ANEXOS[k]) {
+    const path = `${user.id}/${uid()}.${a.ext}`;
+    const { error } = await sb.storage.from('forum').upload(path, a.blob, { contentType: a.ext === 'pdf' ? 'application/pdf' : 'image/jpeg' });
+    if (error) throw new Error('Não deu para enviar "' + a.nome + '".');
+    out.push({ path, nome: a.nome, tipo: a.ext });
+  }
+  return out;
+}
+
+function forumNovo(tipo = 'duvida') {
+  ANEXOS.fp = [];
+  const disc = S.materias.map(m => nomeM(m)).filter(Boolean);
+  sheet(`<h2>Publicar no fórum</h2>
+    <div class="seg" id="fp-seg" style="margin-top:12px">${Object.entries(FT).map(([k, [e, n]]) => `<button data-k="${k}" class="${k === tipo ? 'on' : ''}" onclick="document.querySelectorAll('#fp-seg button').forEach(b=>b.classList.toggle('on',b===this));$('#fp-t').placeholder=this.dataset.k==='material'?'Ex.: Resumo de Anatomia I (P1)':this.dataset.k==='duvida'?'Ex.: Como resolver integral por partes?':'Ex.: Vale a pena fazer iniciação científica?'">${e} ${n}</button>`).join('')}</div>
+    <div class="fields" style="margin-top:12px">
+      <label class="f">Título<input id="fp-t" maxlength="140" placeholder="Ex.: Como resolver integral por partes?"></label>
+      <label class="f">Disciplina ou assunto<input id="fp-d" maxlength="80" list="fp-dl" placeholder="Ex.: Cálculo I"><datalist id="fp-dl">${disc.map(d => `<option value="${esc(d)}">`).join('')}</datalist></label>
+      <label class="f">Detalhes<textarea id="fp-x" maxlength="5000" placeholder="Conta o contexto, o que já tentou, ou descreve o material"></textarea></label>
+    </div>
+    <div id="fp-arq" class="forum-anexos"></div>
+    <div class="actions"><label class="btn">📎 Anexar<input type="file" hidden multiple accept="application/pdf,image/*" onchange="forumAnexar(this,'fp')"></label><button class="btn pr sp" id="fp-b" onclick="forumPublicar()">Publicar</button></div>
+    <p class="mu sm" style="margin:8px 0 0">Seu nome e curso aparecem na publicação. Nada de provas sigilosas, conteúdo pirata ou ofensas: publicações denunciadas saem do ar.</p>`);
+}
+async function forumPublicar() {
+  const tipo = document.querySelector('#fp-seg .on')?.dataset.k || 'duvida', titulo = val('fp-t'), disciplina = val('fp-d'), texto = $('#fp-x').value.trim();
+  if (titulo.length < 5) return toast('Capricha no título (pelo menos 5 letras).');
+  if (tipo === 'material' && !ANEXOS.fp.length && !/https?:\/\//.test(texto)) return toast('Anexe o material ou cole um link nos detalhes.');
+  const b = $('#fp-b'); b.disabled = true; b.textContent = 'Publicando…';
+  try {
+    const arquivos = await forumSubir('fp');
+    const { data, error } = await sb.from('forum_posts').insert({ tipo, titulo, texto, disciplina: disciplina || null, arquivos }).select('id').single();
+    if (error) throw error;
+    closeSheet(); FORUM.lista = null; toast('Publicado! 🚀'); go('forum/' + data.id);
+  } catch (e) { b.disabled = false; b.textContent = 'Publicar'; toast(traduzErro(e.message)); }
+}
+async function forumResponder(id) {
+  const texto = $('#fr-t').value.trim();
+  if (texto.length < 2 && !ANEXOS.fr.length) return toast('Escreve sua resposta 🙂');
+  const b = $('#fr-b'); b.disabled = true; b.textContent = 'Enviando…';
+  try {
+    const arquivos = await forumSubir('fr');
+    const { error } = await sb.from('forum_respostas').insert({ post_id: id, texto: texto || '📎', arquivos });
+    if (error) throw error;
+    ANEXOS.fr = []; FORUM.post = null; FORUM.lista = null; toast('Resposta enviada! Valeu por ajudar 💜'); render();
+  } catch (e) { b.disabled = false; b.textContent = 'Responder'; toast(traduzErro(e.message)); }
+}
+async function forumVotar(alvo, id) {
+  const k = alvo + id, on = FORUM.votos.has(k), item = alvo === 'post' ? FORUM.post : FORUM.resp.find(x => x.id === id);
+  on ? FORUM.votos.delete(k) : FORUM.votos.add(k); if (item) item.votos += on ? -1 : 1; render();
+  const { error } = on ? await sb.from('forum_votos').delete().match({ user_id: user.id, alvo, alvo_id: id }) : await sb.from('forum_votos').insert({ alvo, alvo_id: id });
+  if (error) { on ? FORUM.votos.add(k) : FORUM.votos.delete(k); if (item) item.votos += on ? 1 : -1; render(); toast('Não deu para votar agora.'); }
+  FORUM.lista = null;
+}
+async function forumMelhor(rid) {
+  const p = FORUM.post, novo = p.melhor_resposta === rid ? null : rid;
+  const { error } = await sb.from('forum_posts').update({ melhor_resposta: novo }).eq('id', p.id);
+  if (error) return toast('Não deu para marcar.');
+  p.melhor_resposta = novo; FORUM.lista = null; render(); if (novo) toast('Marcada como melhor resposta ✅');
+}
+function forumApagar(alvo, id) {
+  sheet(`<h2>Apagar ${alvo === 'post' ? 'publicação' : 'resposta'}?</h2><p class="mu" style="margin:8px 0">${alvo === 'post' ? 'As respostas e os arquivos somem junto.' : 'Não dá para desfazer.'}</p>
+    <div class="actions"><button class="btn" onclick="closeSheet()">Cancelar</button><button class="btn pr sp" style="background:var(--bad);border-color:var(--bad)" onclick="forumApagarOk('${alvo}',${id})">Apagar</button></div>`);
+}
+async function forumApagarOk(alvo, id) {
+  closeSheet();
+  const item = alvo === 'post' ? FORUM.post : FORUM.resp.find(x => x.id === id);
+  const paths = alvo === 'post' ? [...(item?.arquivos || []), ...FORUM.resp.filter(r => r.user_id === user.id).flatMap(r => r.arquivos || [])].map(a => a.path) : (item?.arquivos || []).map(a => a.path);
+  const { error } = await sb.from(alvo === 'post' ? 'forum_posts' : 'forum_respostas').delete().eq('id', id);
+  if (error) return toast('Não deu para apagar.');
+  const meus = paths.filter(p => p.startsWith(user.id + '/')); if (meus.length) sb.storage.from('forum').remove(meus);
+  FORUM.lista = null; toast('Apagado.');
+  if (alvo === 'post') go('forum'); else { FORUM.post = null; render(); }
+}
+function forumDenunciar(alvo, id) {
+  sheet(`<h2>Denunciar 🚩</h2><p class="mu" style="margin:4px 0 12px">Conta pra gente o que tem de errado. Com 3 denúncias, a publicação sai do ar até a revisão.</p>
+    <div class="chips" id="fd-m">${['Spam ou propaganda', 'Ofensivo ou bullying', 'Prova sigilosa / cola', 'Pirataria', 'Outro'].map((m, i) => `<button class="chip ${i ? '' : 'on'}" onclick="document.querySelectorAll('#fd-m .chip').forEach(b=>b.classList.toggle('on',b===this))">${m}</button>`).join('')}</div>
+    <div class="actions"><button class="btn" onclick="closeSheet()">Cancelar</button><button class="btn pr sp" onclick="forumDenunciarOk('${alvo}',${id})">Enviar denúncia</button></div>`);
+}
+async function forumDenunciarOk(alvo, id) {
+  const motivo = document.querySelector('#fd-m .on')?.textContent || 'Outro'; closeSheet();
+  const { error } = await sb.from('forum_denuncias').insert({ alvo, alvo_id: id, motivo });
+  toast(error ? (/duplicate|unique/i.test(error.message) ? 'Você já denunciou isso. Valeu!' : 'Não deu para denunciar.') : 'Denúncia enviada. Valeu por cuidar da comunidade 💜');
+}
