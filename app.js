@@ -1212,7 +1212,7 @@ V.admin = () => {
       <div class="kpi card"><div class="mu">Contas</div><div class="kpi-v">${r.total}</div><div class="mu sm">${r.premium} com Premium ativo</div></div>
       <div class="kpi card"><div class="mu">Pagantes</div><div class="kpi-v">${r.pagantes}</div><div class="mu sm">mensal ou semestral</div></div>
       <div class="kpi card"><div class="mu">Cortesias</div><div class="kpi-v">${r.cortesias}</div><div class="mu sm">não pagam</div></div>
-      <div class="kpi card"><div class="mu">Receita (Pix/avulso)</div><div class="kpi-v">R$ ${r.receita.toFixed(2).replace('.', ',')}</div><div class="mu sm">pagamentos aprovados</div></div></div>
+      <div class="kpi card"><div class="mu">Receita (Pix/avulso)</div><div class="kpi-v">R$ ${r.receita.toFixed(2).replace('.', ',')}</div><div class="mu sm">pagamentos aprovados${r.receita ? ` · <a href="#" onclick="event.preventDefault();admZerar()">zerar testes</a>` : ''}</div></div></div>
     <div class="row wrap"><input style="flex:1;min-width:200px" placeholder="Buscar por nome ou e-mail" value="${esc(admBusca)}" oninput="admBusca=this.value;clearTimeout(window._ab);window._ab=setTimeout(render,250)">
       <div class="chips">${[['todos', 'Todos'], ['premium', 'Premium'], ['gratis', 'Sem Premium'], ['teste', 'Em teste'], ['cortesia', 'Cortesia']].map(([k, l]) => `<button class="chip ${admFiltro === k ? 'on' : ''}" onclick="admFiltro='${k}';render()">${l}</button>`).join('')}</div></div>
     <div class="card" style="padding:0"><div class="adm-lista">${lista.map(c => `<div class="adm-row">
@@ -1244,7 +1244,7 @@ function admConta(id) {
 async function admAcao(userId, acao, dias) {
   const r = await fetch('/api/admin', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + await tokenAtual() }, body: JSON.stringify({ userId, acao, dias }) });
   const d = await r.json(); closeSheet();
-  toast(r.ok ? (d.apagada ? 'Conta apagada.' : 'Plano atualizado.') : d.error); ADM = null; render();
+  toast(r.ok ? (d.apagada ? 'Conta apagada.' : d.apagados != null ? `${d.apagados} pagamento(s) de teste apagado(s).` : 'Plano atualizado.') : d.error); ADM = null; render();
   if (userId === user?.id) carregarPlano();
 }
 
@@ -1254,4 +1254,9 @@ function admApagar(id) {
     <p class="mu" style="text-align:center;margin:6px 0 14px">A conta <b>${esc(c.email)}</b> e tudo dela (disciplinas, notas, faltas, agenda, histórico, plano e lembretes) serão apagados para sempre. Se houver assinatura mensal ativa, ela é cancelada no Mercado Pago.</p>
     <label class="f">Para confirmar, digite o e-mail da conta<input id="adm-conf" autocomplete="off" placeholder="${esc(c.email)}"></label>
     <div class="actions"><button class="btn" onclick="admConta('${id}')">Voltar</button><button class="btn pr sp" style="background:var(--bad);border-color:var(--bad)" onclick="if($('#adm-conf').value.trim().toLowerCase()!=='${esc(c.email.toLowerCase())}')return toast('O e-mail não confere.');admAcao('${id}','apagar')">Apagar definitivamente</button></div>`);
+}
+
+function admZerar() {
+  sheet(`<h2>Zerar pagamentos de teste?</h2><p class="mu" style="margin:8px 0">Apaga os registros de pagamento usados para calcular a receita no Admin. Use só para limpar os testes antes de começar a vender. Não mexe nos planos das contas nem no Mercado Pago.</p>
+    <div class="actions"><button class="btn" onclick="closeSheet()">Cancelar</button><button class="btn pr sp" style="background:var(--bad);border-color:var(--bad)" onclick="admAcao(null,'zerar_pagamentos')">Zerar receita</button></div>`);
 }

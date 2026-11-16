@@ -11,6 +11,10 @@ export default async function handler(req, res) {
 
   if (req.method === 'POST') {
     const { userId, acao, dias } = req.body || {};
+    if (acao === 'zerar_pagamentos') { // limpa registros de pagamentos de teste (receita volta a zero)
+      const { data, error } = await db.from('pagamentos').delete().neq('id', '').select('id');
+      return error ? res.status(500).json({ error: error.message }) : res.status(200).json({ ok: true, apagados: data.length });
+    }
     const { data: alvo } = await db.auth.admin.getUserById(userId);
     if (!alvo?.user) return res.status(404).json({ error: 'Conta não encontrada.' });
     if (acao === 'apagar') {
