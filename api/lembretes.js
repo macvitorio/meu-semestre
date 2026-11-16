@@ -1,3 +1,4 @@
+import { segredoConfere } from './_premium.js';
 // Executado pela Vercel Cron todo dia às 7h (10h UTC): envia resumo do dia para quem ativou lembretes.
 import webpush from 'web-push';
 import { createClient } from '@supabase/supabase-js';
@@ -44,7 +45,7 @@ export function resumo(S, hoje = hojeBR(), amanha = hojeBR(1)) {
 }
 
 export default async function handler(req, res) {
-  if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) return res.status(401).json({ error: 'não autorizado' });
+  if (!segredoConfere(req.headers.authorization, process.env.CRON_SECRET)) return res.status(401).json({ error: 'não autorizado' });
   webpush.setVapidDetails(process.env.VAPID_SUBJECT || 'mailto:suporte@meusemestre.app', process.env.VAPID_PUBLIC_KEY, process.env.VAPID_PRIVATE_KEY);
   const db = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY, { auth: { persistSession: false } });
 

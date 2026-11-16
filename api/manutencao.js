@@ -1,3 +1,4 @@
+import { segredoConfere } from './_premium.js';
 // Manutenção administrativa: junta avaliações/eventos duplicados em todas as contas.
 // GET /api/manutencao            → só relatório (não altera nada)
 // GET /api/manutencao?aplicar=1  → aplica a limpeza
@@ -6,7 +7,7 @@ import '../limpeza.js';
 import { createClient } from '@supabase/supabase-js';
 
 export default async function handler(req, res) {
-  if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) return res.status(401).json({ error: 'não autorizado' });
+  if (!segredoConfere(req.headers.authorization, process.env.CRON_SECRET)) return res.status(401).json({ error: 'não autorizado' });
   const aplicar = req.query.aplicar === '1';
   const db = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY, { auth: { persistSession: false } });
   const { data: rows, error } = await db.from('user_data').select('user_id,data');

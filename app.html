@@ -35,15 +35,17 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link rel="preconnect" href="https://jfdegodhwssrtymlrsaz.supabase.co">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="styles.css">
+<script>/* aplica tema e cor antes de desenhar a tela (evita piscar) */try{var t=JSON.parse(localStorage.getItem('meu-semestre-v2:tema')||'null');if(t){if(t.t==='claro')document.documentElement.dataset.theme='light';else if(t.t==='escuro')document.documentElement.dataset.theme='dark';if(/^#[0-9a-f]{6}$/i.test(t.c||''))document.documentElement.style.setProperty('--pr-base',t.c)}}catch(e){}</script>
 </head>
 <body>
 <div id="root"></div>
 <div id="layer"></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.min.js" integrity="sha384-WgXwGL6fUsYJWNaKJgVbrJKGRQwc1vieh2oy4kw9nXqpNDz3tdSsqEYUgeHD/NuF" crossorigin="anonymous"></script>
 <script src="limpeza.js"></script>
 <script src="app.js"></script>
 <script src="parser.js"></script>

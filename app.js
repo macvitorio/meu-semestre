@@ -69,9 +69,23 @@ function migrar(d) {
   d = Object.assign(novoEstado(), d || {});
   d.feriados = (d.feriados || []).map(f => typeof f === 'string' ? { data: f, descricao: 'Sem aula' } : f);
   d.materias.forEach(m => { m.faltas ||= {}; m.canceladas ||= []; m.avaliacoes ||= []; m.topicos ||= []; m.horarios ||= []; });
+  const idOk = v => typeof v === 'string' && /^[\w-]{1,40}$/.test(v) ? v : uid();
+  const corOk = v => /^#[0-9a-f]{6}$/i.test(v || '') ? v : null;
+  d.materias.forEach((m, i) => {
+    m.id = idOk(m.id); m.cor = corOk(m.cor) || CORES[i % CORES.length];
+    m.avaliacoes.forEach(a => a.id = idOk(a.id)); m.topicos.forEach(t => t.id = idOk(t.id));
+    m.horarios = m.horarios.filter(h => DIAS[h.dia] && SLOTS.includes(h.inicio));
+    const fl = {}; for (const [k, v] of Object.entries(m.faltas)) if (/^\d{4}-\d{2}-\d{2}$/.test(k) && +v >= 0 && +v < 20) fl[k] = +v; m.faltas = fl;
+    m.canceladas = m.canceladas.filter(x => /^\d{4}-\d{2}-\d{2}$/.test(x));
+  });
+  d.eventos = (d.eventos || []).filter(e => /^\d{4}-\d{2}-\d{2}$/.test(e?.data || '')).map(e => ({ ...e, id: idOk(e.id) }));
+  d.feriados = d.feriados.filter(f => /^\d{4}-\d{2}-\d{2}$/.test(f?.data || ''));
+  d.historico = (d.historico || []).map(h => ({ ...h, id: idOk(h.id) }));
+  if (d.perfil?.cor && !corOk(d.perfil.cor)) d.perfil.cor = '';
   d.materias.forEach(m => { m.avaliacoes = juntarDuplicadas(m.avaliacoes); });
   d.eventos = limparEventos(d);
   d.horas = Object.assign({ exigidas: '', categorias: [], atividades: [], obs: '' }, d.horas || {});
+  d.horas.atividades = (d.horas.atividades || []).map(x => ({ ...x, id: /^[\w-]{1,40}$/.test(x.id || '') ? x.id : uid() }));
   return d;
 }
 const { mesmaAv, juntarDuplicadas, limparEventos } = Limpeza;
@@ -265,7 +279,7 @@ let R = { v: 'inicio' };
 function parseHash() { const [v = 'inicio', id, sub] = location.hash.replace(/^#\/?/, '').split('/'); R = { v: v || 'inicio', id, sub }; }
 addEventListener('hashchange', () => {
   const antes = R.v; parseHash();
-  const v = $('#view'); if (v) v.classList.toggle('lado', R.v === 'disc' && antes !== 'disc');
+  const v = $('#view'); if (v) { v.classList.toggle('lado', R.v === 'disc' && antes !== 'disc'); v.classList.add('anim'); clearTimeout(v._t); v._t = setTimeout(() => v.classList.remove('anim'), 320); }
   render(); scrollTo(0, 0);
 });
 const go = h => { location.hash = '#/' + h; };
@@ -501,7 +515,7 @@ V.historico = () => {
 };
 
 // ================= Atualizar (print / PDF / texto → IA → revisão) =================
-const TIPOS_UP = [['plano', 'Plano de ensino'], ['cronograma', 'Cronograma / calendário'], ['notas', 'Notas'], ['historico', 'Histórico escolar'], ['grade', 'Grade de horários'], ['outro', 'Outro']];
+const TIPOS_UP = [['plano', 'Plano de ensino'], ['curriculo', 'Currículo do curso'], ['cronograma', 'Cronograma / calendário'], ['notas', 'Notas'], ['historico', 'Histórico escolar'], ['grade', 'Grade de horários'], ['outro', 'Outro']];
 let UP = { tipo: 'plano', arquivos: [], fase: 'enviar', mudancas: [], resumo: '', erro: '' };
 V.atualizar = () => {
   if (R.id && TIPOS_UP.some(t => t[0] === R.id) && UP.fase === 'enviar' && !UP.arquivos.length) UP.tipo = R.id;
@@ -640,6 +654,13 @@ function montarMudancas(r) {
     const dup = ehAv || todosEventos().some(x => x.data === e.data && norm(x.titulo) === norm(e.titulo)) || out.some(o => o.grupo === 'Agenda' && norm(o.titulo) === norm(e.titulo) && o._d === e.data);
     if (!dup) { add('Agenda', e.titulo, `${brDL(e.data)}${e.codigo ? ' · ' + e.codigo : ''}`, () => S.eventos.push({ id: uid(), data: e.data, titulo: e.titulo, tipo: TIPOS_EV[e.tipo] ? e.tipo : 'outro', materiaId: mid(e.codigo) })); out[out.length - 1]._d = e.data; }
   }
+  // currículo: curso, universidade e regras de horas complementares
+  const c = r.curso || {};
+  if (c.nome && norm(c.nome) !== norm(S.perfil.curso)) add('Seu curso', 'Curso', `${S.perfil.curso || '—'} → ${c.nome}`, () => S.perfil.curso = c.nome);
+  if (c.universidade && norm(c.universidade) !== norm(S.perfil.universidade)) add('Seu curso', 'Universidade', `${S.perfil.universidade || '—'} → ${c.universidade}`, () => S.perfil.universidade = c.universidade);
+  if (num(c.horasComplementares) && String(num(c.horasComplementares)) !== String(S.horas.exigidas)) add('Horas complementares', 'Total exigido', `${S.horas.exigidas ? S.horas.exigidas + 'h' : '—'} → ${num(c.horasComplementares)}h`, () => S.horas.exigidas = String(num(c.horasComplementares)));
+  const catsNovas = (c.categoriasHoras || []).filter(x => x.nome && !S.horas.categorias.some(y => norm(y.nome) === norm(x.nome)));
+  if (catsNovas.length) add('Horas complementares', `${catsNovas.length} categoria(s) de atividades`, catsNovas.map(x => x.nome + (num(x.limiteHoras) ? ` (máx. ${num(x.limiteHoras)}h)` : '')).join('; '), () => catsNovas.forEach(x => S.horas.categorias.push({ id: uid(), nome: x.nome, limite: String(num(x.limiteHoras) ?? '') })));
   for (const h of r.historico || []) {
     const ex = h.codigo && S.historico.find(x => norm(x.codigo) === norm(h.codigo) && x.semestre === h.semestre);
     if (!ex) add('Histórico', `${h.codigo ? h.codigo + ' · ' : ''}${h.nome}`, [h.semestre, h.nota && `nota ${h.nota}`, h.situacao].filter(Boolean).join(' · '), () => S.historico.push({ id: uid(), ...h }));
@@ -651,10 +672,10 @@ function revisarView() {
   const ms = UP.mudancas, grupos = [...new Set(ms.map(m => m.grupo))], n = ms.filter(m => m.on).length;
   if (!ms.length) return `<div class="stack">${vazio('check', 'Tudo já está atualizado', esc(UP.resumo) || 'Não encontramos nada novo nesses arquivos.', `<button class="btn pr" onclick="resetUP()">Enviar outros</button>`)}</div>`;
   return `<div class="stack"><div><h1>Revisar mudanças</h1><p class="mu" style="margin-top:4px">${esc(UP.resumo)} Desmarque o que não quiser aplicar — dá para editar tudo depois pelo ✏️.</p></div>
-    ${grupos.map(g => `<div class="card"><div class="between" style="margin-bottom:4px"><h3>${esc(g)}</h3><button class="btn ghost sm" onclick="marcarGrupo('${esc(g).replace(/'/g, "\\'")}')">Alternar</button></div>${ms.filter(m => m.grupo === g).map(m => `<label class="chg"><input type="checkbox" ${m.on ? 'checked' : ''} onchange="UP.mudancas.find(x=>x.id==='${m.id}').on=this.checked;render()"><div class="sp"><b class="sm">${esc(m.titulo)}</b><div class="mu">${esc(m.detalhe)}</div></div></label>`).join('')}</div>`).join('')}
+    ${grupos.map((g, gi) => `<div class="card"><div class="between" style="margin-bottom:4px"><h3>${esc(g)}</h3><button class="btn ghost sm" onclick="marcarGrupo(${gi})">Alternar</button></div>${ms.filter(m => m.grupo === g).map(m => `<label class="chg"><input type="checkbox" ${m.on ? 'checked' : ''} onchange="UP.mudancas.find(x=>x.id==='${m.id}').on=this.checked;render()"><div class="sp"><b class="sm">${esc(m.titulo)}</b><div class="mu">${esc(m.detalhe)}</div></div></label>`).join('')}</div>`).join('')}
     <div class="row" style="position:sticky;bottom:calc(var(--nav-h) + 12px)"><button class="btn" onclick="resetUP()">Descartar</button><button class="btn pr sp" ${n ? '' : 'disabled'} onclick="aplicar()">${ic('check')} Aplicar ${n} mudança(s)</button></div></div>`;
 }
-function marcarGrupo(g) { const ms = UP.mudancas.filter(m => m.grupo === g), v = !ms.every(m => m.on); ms.forEach(m => m.on = v); render(); }
+function marcarGrupo(gi) { const g = [...new Set(UP.mudancas.map(m => m.grupo))][gi]; const ms = UP.mudancas.filter(m => m.grupo === g), v = !ms.every(m => m.on); ms.forEach(m => m.on = v); render(); }
 function aplicar() {
   const backup = JSON.stringify(S), ms = UP.mudancas.filter(m => m.on);
   const novas = ms.filter(m => m.grupo === 'Nova disciplina');
@@ -1270,7 +1291,7 @@ function admApagar(id) {
   sheet(`<div class="pw-top" style="background:var(--bad)">${ic('trash', 28)}</div><h2 style="text-align:center">Apagar esta conta?</h2>
     <p class="mu" style="text-align:center;margin:6px 0 14px">A conta <b>${esc(c.email)}</b> e tudo dela (disciplinas, notas, faltas, agenda, histórico, plano e lembretes) serão apagados para sempre. Se houver assinatura mensal ativa, ela é cancelada no Mercado Pago.</p>
     <label class="f">Para confirmar, digite o e-mail da conta<input id="adm-conf" autocomplete="off" placeholder="${esc(c.email)}"></label>
-    <div class="actions"><button class="btn" onclick="admConta('${id}')">Voltar</button><button class="btn pr sp" style="background:var(--bad);border-color:var(--bad)" onclick="if($('#adm-conf').value.trim().toLowerCase()!=='${esc(c.email.toLowerCase())}')return toast('O e-mail não confere.');admAcao('${id}','apagar')">Apagar definitivamente</button></div>`);
+    <div class="actions"><button class="btn" onclick="admConta('${id}')">Voltar</button><button class="btn pr sp" style="background:var(--bad);border-color:var(--bad)" onclick="confirmarApagar('${id}')">Apagar definitivamente</button></div>`);
 }
 
 function admZerar() {
@@ -1369,7 +1390,7 @@ function popupFimTeste() {
 const fotoPerfil = () => S.perfil.foto === 'none' ? '' : (S.perfil.foto || user?.user_metadata?.avatar_url || user?.user_metadata?.picture || '');
 function avatarHTML(tam = 40) {
   const f = fotoPerfil(), ini = ((S.perfil.nome || user?.email || '?').trim()[0] || '?').toUpperCase();
-  return f ? `<img class="avatar" src="${esc(f)}" alt="" referrerpolicy="no-referrer" style="width:${tam}px;height:${tam}px;object-fit:cover" onerror="this.outerHTML='<span class=&quot;avatar&quot; style=&quot;width:${tam}px;height:${tam}px&quot;>${esc(ini)}</span>'">`
+  return f ? `<img class="avatar" src="${esc(f)}" alt="" data-i="${esc(ini)}" referrerpolicy="no-referrer" style="width:${tam}px;height:${tam}px;object-fit:cover" onerror="avatarFalhou(this)">`
     : `<span class="avatar" style="width:${tam}px;height:${tam}px;font-size:${Math.round(tam * .4)}px">${esc(ini)}</span>`;
 }
 async function trocarFoto(inp) {
@@ -1511,11 +1532,12 @@ async function lerRegulamento(inp) {
     const d = await lerComIA('regulamento', await arquivoParaEnvio(f));
     const cats = (d.categorias || []).filter(c => c.nome).map(c => ({ id: uid(), nome: c.nome, limite: c.limiteHoras ? String(num(c.limiteHoras) ?? '') : '' }));
     sheet(`<h2>Confira as regras encontradas</h2>
+      ${d.curso || d.universidade ? `<p style="margin:10px 0 0"><b>Curso:</b> ${esc([d.curso, d.universidade].filter(Boolean).join(' · '))}</p>` : ''}
       <p style="margin:10px 0"><b>Total exigido:</b> ${d.horasExigidas ? esc(d.horasExigidas) + 'h' : 'não encontrado'}</p>
       ${cats.length ? `<div class="list">${cats.map(c => `<div class="between"><span>${esc(c.nome)}</span><span class="mu">${c.limite ? 'máx. ' + esc(c.limite) + 'h' : 'sem limite'}</span></div>`).join('')}</div>` : '<p class="mu">Nenhuma categoria encontrada.</p>'}
       ${d.observacoes ? `<p class="mu" style="margin-top:12px">📌 ${esc(d.observacoes)}</p>` : ''}
       <div class="actions"><button class="btn" onclick="closeSheet()">Descartar</button><button class="btn pr sp" id="ok-reg">Usar estas regras</button></div>`);
-    $('#ok-reg').onclick = () => { if (d.horasExigidas) S.horas.exigidas = String(num(d.horasExigidas)); if (cats.length) S.horas.categorias = cats; S.horas.obs = d.observacoes || ''; closeSheet(); save(); render(); toast('Regras aplicadas. Você pode editar em "Regras do curso".'); };
+    $('#ok-reg').onclick = () => { if (d.curso && !S.perfil.curso) S.perfil.curso = d.curso; if (d.universidade && !S.perfil.universidade) S.perfil.universidade = d.universidade; if (d.horasExigidas) S.horas.exigidas = String(num(d.horasExigidas)); if (cats.length) S.horas.categorias = cats; S.horas.obs = d.observacoes || ''; closeSheet(); save(); render(); toast('Regras aplicadas. Você pode editar em "Regras do curso".'); };
   } catch (e) { if (!e.silencioso) { closeSheet(); toast(e.message); } }
 }
 let novoArq = null;
@@ -1579,3 +1601,11 @@ function excluirAtividade(id) {
     S.horas.atividades = S.horas.atividades.filter(x => x.id !== id); closeSheet(); save(); render(); toast('Atividade excluída.');
   };
 }
+
+function confirmarApagar(id) {
+  const c = ADM?.contas.find(x => x.id === id);
+  if (!c || $('#adm-conf').value.trim().toLowerCase() !== String(c.email || '').toLowerCase()) return toast('O e-mail não confere.');
+  admAcao(id, 'apagar');
+}
+
+function avatarFalhou(img) { const sp = document.createElement('span'); sp.className = 'avatar'; sp.style.cssText = `width:${img.style.width};height:${img.style.height}`; sp.textContent = img.dataset.i || '?'; img.replaceWith(sp); }

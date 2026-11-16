@@ -9,7 +9,7 @@ const obj = props => ({ type: 'object', properties: props, required: Object.keys
 
 const ESQUEMAS = {
   certificado: obj({ titulo: S, horas: S, data: S, instituicao: S, categoria: S, resumo: S }),
-  regulamento: obj({ horasExigidas: S, categorias: { type: 'array', items: obj({ nome: S, limiteHoras: S }) }, observacoes: S }),
+  regulamento: obj({ curso: S, universidade: S, horasExigidas: S, categorias: { type: 'array', items: obj({ nome: S, limiteHoras: S }) }, observacoes: S }),
 };
 const INSTRUCOES = {
   certificado: `Você lê certificados de atividades complementares de estudantes universitários brasileiros (cursos, eventos, palestras, monitorias, projetos de extensão, estágios, voluntariado).
@@ -17,7 +17,7 @@ Extraia: "titulo" (nome da atividade), "horas" (carga horária total em horas, s
 "categoria": escolha a categoria mais adequada da lista enviada pelo aluno, copiando o nome exatamente; se a lista estiver vazia ou nenhuma servir, sugira um nome curto (ex.: "Eventos", "Cursos", "Extensão", "Monitoria", "Pesquisa").
 "resumo": uma frase em português. Campo desconhecido = "".`,
   regulamento: `Você lê o currículo, projeto pedagógico ou regulamento de atividades complementares de um curso universitário brasileiro.
-Extraia: "horasExigidas" (total de horas complementares exigidas para se formar, só o número; se não aparecer, ""), "categorias" (cada tipo de atividade aceito com "limiteHoras" = máximo de horas que pode contar naquela categoria, só o número, ou "" se não houver limite), "observacoes" (regras importantes resumidas em até 2 frases, em português).
+Extraia: "curso" (nome do curso, se aparecer), "universidade" (sigla ou nome da instituição, se aparecer), "horasExigidas" (total de horas complementares exigidas para se formar, só o número; se não aparecer, ""), "categorias" (cada tipo de atividade aceito com "limiteHoras" = máximo de horas que pode contar naquela categoria, só o número, ou "" se não houver limite), "observacoes" (regras importantes resumidas em até 2 frases, em português).
 Não invente categorias que não estejam no documento.`,
 };
 
@@ -30,6 +30,7 @@ export default async function handler(req, res) {
 
   const db = admin();
   const q = await podeUsarIA(db, user);
+  if (!q.ok && q.motivo === 'dia') return res.status(429).json({ error: 'Limite diário de leituras atingido. Tente amanhã.' });
   if (!q.ok) return res.status(402).json({ error: `Você usou as ${LIMITE_IA_GRATIS} leituras grátis deste semestre. Assine o Premium para leituras ilimitadas ou preencha manualmente.`, premium: true });
 
   const content = [];

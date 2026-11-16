@@ -2,7 +2,7 @@
 // Exige usuário logado no Supabase (token no header Authorization).
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
-import { admin, ehPremium, periodo, LIMITE_IA_GRATIS } from './_premium.js';
+import { admin, podeUsarIA, registrarUsoIA, LIMITE_IA_GRATIS } from './_premium.js';
 
 export const config = { api: { bodyParser: { sizeLimit: '4.5mb' } } };
 
@@ -26,6 +26,7 @@ const SCHEMA = obj({
   })),
   eventos: arr(obj({ data: S, titulo: S, tipo: S, codigo: S })),
   historico: arr(obj({ codigo: S, nome: S, semestre: S, nota: S, creditos: S, situacao: S })),
+  curso: obj({ nome: S, universidade: S, horasComplementares: S, categoriasHoras: arr(obj({ nome: S, limiteHoras: S })) }),
 });
 
 const SYSTEM = `Você extrai dados acadêmicos de documentos de estudantes universitários brasileiros, de qualquer instituição (plano de ensino, cronograma, calendário acadêmico, prints de portais acadêmicos como CAGR, SIGAA, Moodle, Canvas e Google Classroom, histórico escolar, boletim de notas).
@@ -39,6 +40,7 @@ Regras:
 - "historico": disciplinas já cursadas (histórico escolar), com situação como aparece (Aprovado, Reprovado, FI etc.).
 - Se o aluno já cadastrou a disciplina (lista no contexto), use em "avaliacoes" EXATAMENTE os nomes já existentes. Ex.: o print mostra "P1" e já existe "Prova I" → use "Prova I"; "Seminário" e já existe "Seminários" → use "Seminários". Só crie nome novo se a avaliação realmente não existir.
 - Em prints de notas, preencha só "nome" e "nota" (peso e data vazios, a menos que apareçam).
+- "curso": quando o documento for currículo, projeto pedagógico, matriz curricular, regulamento ou qualquer documento que mostre o curso, preencha "nome" (nome do curso), "universidade" (sigla ou nome da instituição), "horasComplementares" (total de horas complementares/atividades formativas exigidas, só o número) e "categoriasHoras" (tipos de atividade complementar aceitos com o limite máximo de horas de cada um). Campos desconhecidos = "".
 - "resumo": uma frase em português dizendo o que foi encontrado.`;
 
 export default async function handler(req, res) {
@@ -50,17 +52,12 @@ export default async function handler(req, res) {
 
   const { tipo = 'outro', arquivos = [], contexto = {} } = req.body || {};
 
-  // Plano grátis: até LIMITE_IA_GRATIS leituras por semestre
+  // limites: plano grátis por semestre + teto diário para todos
   const db = process.env.SUPABASE_SECRET_KEY ? admin() : null;
-  const per = periodo();
-  let premium = true, usos = 0;
+  let q = null;
   if (db) {
-    premium = await ehPremium(db, auth.user);
-    if (!premium) {
-      const { data: u } = await db.from('ia_uso').select('usos').eq('user_id', auth.user.id).eq('periodo', per).maybeSingle();
-      usos = u?.usos || 0;
-      if (usos >= LIMITE_IA_GRATIS) return res.status(402).json({ error: `Você usou as ${LIMITE_IA_GRATIS} leituras grátis deste semestre. Assine o Premium para leituras ilimitadas.`, premium: true });
-    }
+    q = await podeUsarIA(db, auth.user);
+    if (!q.ok) return res.status(q.motivo === 'dia' ? 429 : 402).json(q.motivo === 'dia' ? { error: 'Limite diário de leituras atingido. Tente amanhã.' } : { error: `Você usou as ${LIMITE_IA_GRATIS} leituras grátis deste semestre. Assine o Premium para leituras ilimitadas.`, premium: true });
   }
   if (!arquivos.length || arquivos.length > 8) return res.status(400).json({ error: 'Envie de 1 a 8 arquivos.' });
 
@@ -88,8 +85,8 @@ export default async function handler(req, res) {
     if (response.stop_reason === 'max_tokens') return res.status(422).json({ error: 'Documento grande demais. Envie menos páginas por vez.' });
     const text = response.content.filter(b => b.type === 'text').map(b => b.text).join('');
     const dados = JSON.parse(text);
-    if (db && !premium) await db.from('ia_uso').upsert({ user_id: auth.user.id, periodo: per, usos: usos + 1 });
-    return res.status(200).json({ ...dados, _usos: premium ? null : { usados: usos + 1, limite: LIMITE_IA_GRATIS } });
+    if (db) await registrarUsoIA(db, auth.user, q);
+    return res.status(200).json({ ...dados, _usos: !q || q.premium ? null : { usados: q.usos + 1, limite: LIMITE_IA_GRATIS } });
   } catch (error) {
     if (error instanceof Anthropic.RateLimitError) return res.status(429).json({ error: 'Muitas solicitações. Tente em instantes.' });
     if (error instanceof Anthropic.BadRequestError) return res.status(400).json({ error: 'Arquivo não suportado ou corrompido.' });

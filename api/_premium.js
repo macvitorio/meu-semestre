@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 // Funções compartilhadas do Premium (arquivos que começam com _ não viram rota na Vercel)
 import { createClient } from '@supabase/supabase-js';
 
@@ -7,7 +8,7 @@ export const PLANOS = {
 };
 export const LIMITE_IA_GRATIS = 3;
 export const DIAS_TESTE = 30;
-export const ehAdmin = user => !!user?.email && (process.env.ADMIN_EMAILS || '').toLowerCase().split(',').map(e => e.trim()).filter(Boolean).includes(user.email.toLowerCase());
+export const ehAdmin = user => !!user?.email && !!user.email_confirmed_at && (process.env.ADMIN_EMAILS || '').toLowerCase().split(',').map(e => e.trim()).filter(Boolean).includes(user.email.toLowerCase());
 
 // Garante o registro do plano; conta nova ganha DIAS_TESTE de Premium a partir da criação
 export async function planoDe(db, user) {
@@ -74,13 +75,21 @@ export async function recompensarIndicador(db, indicadoId) {
 }
 
 // Limite de leituras com IA do plano grátis (compartilhado entre planos de ensino, certificados e regulamentos)
+export const LIMITE_IA_DIA = 40; // teto diário para qualquer plano (protege contra abuso e custo)
+const hojeChave = () => 'dia:' + new Date().toISOString().slice(0, 10);
 export async function podeUsarIA(db, user) {
   const premium = await ehPremium(db, user);
-  if (premium) return { ok: true, premium, usos: 0 };
-  const { data: u } = await db.from('ia_uso').select('usos').eq('user_id', user.id).eq('periodo', periodo()).maybeSingle();
-  const usos = u?.usos || 0;
-  return { ok: usos < LIMITE_IA_GRATIS, premium, usos };
+  const { data: rows } = await db.from('ia_uso').select('periodo,usos').eq('user_id', user.id).in('periodo', [periodo(), hojeChave()]);
+  const usos = rows?.find(r => r.periodo === periodo())?.usos || 0, usosDia = rows?.find(r => r.periodo === hojeChave())?.usos || 0;
+  if (usosDia >= LIMITE_IA_DIA) return { ok: false, premium, usos, usosDia, motivo: 'dia' };
+  return { ok: premium || usos < LIMITE_IA_GRATIS, premium, usos, usosDia, motivo: 'plano' };
 }
 export async function registrarUsoIA(db, user, q) {
-  if (!q.premium) await db.from('ia_uso').upsert({ user_id: user.id, periodo: periodo(), usos: q.usos + 1 });
+  const linhas = [{ user_id: user.id, periodo: hojeChave(), usos: q.usosDia + 1 }];
+  if (!q.premium) linhas.push({ user_id: user.id, periodo: periodo(), usos: q.usos + 1 });
+  await db.from('ia_uso').upsert(linhas);
+}
+export function segredoConfere(recebido, esperado) {
+  const a = Buffer.from(String(recebido || '')), b = Buffer.from('Bearer ' + String(esperado || ''));
+  return !!esperado && a.length === b.length && crypto.timingSafeEqual(a, b);
 }

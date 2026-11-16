@@ -253,7 +253,7 @@ def cabeca(titulo, desc, url, extra_ld):
 <meta property="og:type" content="article"><meta property="og:site_name" content="Meu Semestre"><meta property="og:locale" content="pt_BR">
 <meta property="og:url" content="{url}"><meta property="og:title" content="{html.escape(titulo)}"><meta property="og:description" content="{html.escape(desc)}">
 <meta property="og:image" content="{BASE}/og.png"><meta name="twitter:card" content="summary_large_image">
-<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="/guias/guia.css">
 <script type="application/ld+json">{json.dumps(extra_ld, ensure_ascii=False)}</script>
