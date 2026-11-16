@@ -191,7 +191,7 @@ function renderAuth() {
     <div class="divider"></div>`}
     <button class="btn ${semBackend ? 'pr' : ''} block" onclick="entrarLocal()">Usar sem conta (só neste aparelho)</button>
     ${!standalone() && (isIOS() || /android/i.test(navigator.userAgent)) ? `<button class="btn ghost block" style="margin-top:12px" onclick="instalar()">${ic('phone', 18)} Instalar o app no celular</button>` : ''}
-    <p class="mu" style="text-align:center;margin-top:18px">App independente, sem vínculo com nenhuma universidade.<br><a href="privacidade.html" style="color:inherit">Privacidade</a> · <a href="termos.html" style="color:inherit">Termos</a></p>
+    <p class="mu" style="text-align:center;margin-top:18px">Projeto independente feito por estudantes. Sem vínculo com nenhuma universidade.<br><a href="privacidade.html" style="color:inherit">Privacidade</a> · <a href="termos.html" style="color:inherit">Termos</a></p>
   </div></div>`;
   montarGoogle();
 }
@@ -317,7 +317,7 @@ const pen = (fn, lbl = 'Editar') => `<button class="ib" aria-label="${lbl}" titl
 const ring = (p, c, t) => `<div class="ring" style="--p:${p};--c:${c}"><b>${t}</b></div>`;
 const nivelCor = n => `var(--${n === 'neu' ? 'tx-2' : n})`;
 const vazio = (icn, t, d, acao = '') => `<div class="card empty"><div class="ic">${ic(icn, 26)}</div><h3>${t}</h3><p class="mu" style="margin:6px 0 16px">${d}</p><div class="row wrap" style="justify-content:center">${acao}</div></div>`;
-const marca = () => `<span class="marca">${ic('cap', 20)}</span>`;
+const marca = () => `<img class="marca" src="/icon.svg" alt="">`;
 const ctaImportar = `<a class="btn pr" href="#/atualizar">${ic('up')} Enviar plano de ensino</a>`;
 
 // ================= Telas =================
@@ -870,7 +870,7 @@ addEventListener('appinstalled', () => { promptInstalar = null; toast('App insta
 function cardInstalar() {
   if (standalone() || localStorage.getItem(KEY + ':sem-instalar')) return '';
   if (!promptInstalar && !isIOS() && !/android/i.test(navigator.userAgent)) return '';
-  return `<div class="card install"><img src="icons/icon-192.png" alt=""><div class="sp"><b>Instale o Meu Semestre</b><div class="mu">Abre em tela cheia, funciona offline e recebe lembretes.</div></div>
+  return `<div class="card install"><img src="/icon.svg" alt=""><div class="sp"><b>Instale o Meu Semestre</b><div class="mu">Abre em tela cheia, funciona offline e recebe lembretes.</div></div>
     <div class="row"><button class="ib" aria-label="Dispensar" onclick="try{localStorage.setItem(KEY+':sem-instalar',1)}catch{};render()">${ic('x', 18)}</button><button class="btn pr sm" onclick="instalar()">Instalar</button></div></div>`;
 }
 async function instalar() {
@@ -1048,7 +1048,7 @@ V.config = () => {
     <button class="li danger" onclick="apagarTudo()"><span class="ico" style="background:var(--bad)">${ic('trash')}</span><span class="tx">Apagar todos os dados</span></button>
   </div></section>
 
-  </div><p class="versao">Meu Semestre · app independente, sem vínculo com universidades<br><a href="privacidade.html">Privacidade</a> · <a href="termos.html">Termos</a></p></div>`;
+  </div><p class="versao">Meu Semestre · projeto independente feito por estudantes, pra estudantes<br><a href="privacidade.html">Privacidade</a> · <a href="termos.html">Termos</a></p></div>`;
 };
 function setSemestre(k, v) {
   const novo = { ...S.semestre, [k]: v };
@@ -1199,14 +1199,14 @@ V.premium = () => {
   const ativo = p.premium && p.plano !== 'teste';
   return `<div class="stack"><div class="card prem-hero"><span class="tag" style="background:rgba(255,255,255,.18);color:#fff">${ic('spark', 14)} Meu Semestre Premium</span>
       <h1 style="color:#fff;margin:12px 0 6px">${ativo ? 'Você é Premium 💜' : 'Tudo do seu semestre, sem limites'}</h1>
-      <p style="opacity:.85;margin:0">${ativo ? (p.plano === 'cortesia' ? 'Sua conta tem Premium de cortesia.' : `Válido até ${fmtData(p.premium_ate)}${p.status === 'cancelada' ? ' · renovação cancelada' : ''}.`) : p.premium ? `Seu teste grátis termina em ${diasRestam(p.premium_ate)} dia(s). Assine para não perder nada.` : 'Seu teste grátis terminou. Assine e continue com tudo liberado.'}</p></div>
+      <p style="opacity:.85;margin:0">${ativo ? (p.plano === 'cortesia' ? 'Sua conta tem Premium de cortesia.' : `Válido até ${fmtData(p.premium_ate)}${p.status === 'cancelada' ? ' · renovação cancelada' : ''}.`) : p.premium ? `Seu teste grátis termina em ${diasRestam(p.premium_ate)} dia(s). Assine para não perder nada.` : 'Seu teste grátis acabou. Assina e continua com tudo liberado, por menos que uma coxinha por mês 😋'}</p></div>
     ${ativo ? '' : `<div class="planos">
-      <div class="card plano destaque"><span class="selo">Mais escolhido · economize 40%</span><h3>Semestral</h3><div class="preco">R$ 24,90<small>/semestre</small></div><p class="mu">Equivale a R$ 4,15 por mês. Pague com <b>Pix</b> ou cartão, sem renovação automática.</p><button class="btn pr block" onclick="assinar('semestral',this)">Assinar semestral</button></div>
-      <div class="card plano"><h3>Mensal</h3><div class="preco">R$ 6,90<small>/mês</small></div><p class="mu">Cobrança automática no cartão. Cancele quando quiser, direto pelo app.</p><button class="btn block" onclick="assinar('mensal',this)">Assinar mensal</button></div></div>`}
+      <div class="card plano destaque"><span class="selo">Mais escolhido · economize 40%</span><h3>Semestral</h3><div class="preco">R$ 24,90<small>/semestre</small></div><p class="mu">R$ 4,15 por mês: <b>menos que uma coxinha</b> 😋 Pix ou cartão, sem renovação automática.</p><button class="btn pr block" onclick="assinar('semestral',this)">Assinar semestral</button></div>
+      <div class="card plano"><h3>Mensal</h3><div class="preco">R$ 6,90<small>/mês</small></div><p class="mu">Cobrança automática no cartão. Cancela quando quiser, direto pelo app.</p><button class="btn block" onclick="assinar('mensal',this)">Assinar mensal</button></div></div>`}
     <div class="card"><h3 style="margin-bottom:10px">O que vem no Premium</h3>${listaBeneficios()}</div>
     ${p.mensal ? `<button class="btn danger block" onclick="cancelarAssinatura()">Cancelar renovação mensal</button>` : ''}
     <button class="btn ghost block" onclick="verificarPagamento(true)">${ic('hist', 18)} Já paguei, verificar agora</button>
-    <p class="mu" style="text-align:center">Pagamento processado pelo Mercado Pago. Arrependimento em até 7 dias: devolvemos o valor. <a href="termos.html">Termos</a></p></div>`;
+    <p class="mu" style="text-align:center">🎓 O Meu Semestre é um projeto independente, feito por estudantes pra simplificar a vida acadêmica de outros estudantes. Sua assinatura mantém ele de pé.<br><br>Pagamento processado pelo Mercado Pago. Arrependimento em até 7 dias: devolvemos o valor. <a href="termos.html">Termos</a></p></div>`;
 };
 async function assinar(plano, btn) {
   if (!user) return exigirPremium('Crie uma conta para assinar.');

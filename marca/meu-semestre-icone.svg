@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#4f46e5"/>
+  <!-- base do chapéu -->
+  <path d="M150 196v52c0 22 48 40 106 40s106-18 106-40v-52l-106 46z" fill="#e8e6ff"/>
+  <!-- tampo do chapéu -->
+  <path d="M256 92 446 172 256 252 66 172z" fill="#fff"/>
+  <!-- pingente -->
+  <path d="M256 172 404 214v40" fill="none" stroke="#ffc83d" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="404" cy="262" r="18" fill="#ffc83d"/>
+  <!-- óculos escuros -->
+  <g transform="translate(0 14) rotate(-5 256 340)">
+    <path d="M118 318h276" stroke="#1b1340" stroke-width="16" stroke-linecap="round"/>
+    <path d="M128 312h102c4 0 7 3 6 7l-8 44c-3 16-17 28-34 28h-30c-17 0-31-12-34-28l-8-44c-1-4 2-7 6-7z" fill="#1b1340"/>
+    <path d="M282 312h102c4 0 7 3 6 7l-8 44c-3 16-17 28-34 28h-30c-17 0-31-12-34-28l-8-44c-1-4 2-7 6-7z" fill="#1b1340"/>
+    <path d="M152 330l26-2" stroke="#ffc83d" stroke-width="10" stroke-linecap="round"/>
+    <path d="M306 330l26-2" stroke="#ffc83d" stroke-width="10" stroke-linecap="round"/>
+  </g>
+</svg>
