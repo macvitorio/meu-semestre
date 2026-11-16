@@ -20,6 +20,11 @@ CALC_MEDIA = '''<div class="calc" id="calc-media"><h3>🧮 Calculadora de média
 <div class="res" id="cm-res" aria-live="polite"></div></div>
 <script>(function(){var n=function(id){var v=document.getElementById(id).value.replace(',','.');return v===''?null:parseFloat(v)};var f=function(x){return x.toFixed(1).replace('.',',')};function c(){var s=0,w=0,wr=0;for(var i=1;i<=3;i++){var nota=n('cm-n'+i),p=n('cm-p'+i)||0;if(nota==null)wr+=p;else{s+=nota*p;w+=p}}var ma=n('cm-ma')||6,tot=w+wr,el=document.getElementById('cm-res');if(!tot){el.textContent='Preencha os pesos.';return}if(!wr){var m=s/tot;el.innerHTML='Sua média final é<b>'+f(m)+'</b>'+(m>=ma?'Aprovado(a) 🎉':'Abaixo de '+f(ma)+': confira a regra de recuperação.');return}var precisa=(ma*tot-s)/wr;el.innerHTML='Para fechar com '+f(ma)+', você precisa tirar<b>'+(precisa<=0?'qualquer nota 🎉':precisa>10?'mais de 10 😬':f(precisa))+'</b>na avaliação que falta (média parcial: '+(w?f(s/w):'—')+').'}['cm-n1','cm-p1','cm-n2','cm-p2','cm-n3','cm-p3','cm-ma'].forEach(function(i){document.getElementById(i).addEventListener('input',c)});c()})();</script>'''
 
+CALC_CR = '''<div class="calc" id="calc-cr"><h3>🧮 Calculadora de CR / IRA</h3><p style="margin:0 0 12px;opacity:.9;font-size:15px">Preencha a nota final e os créditos (ou a carga horária) de cada disciplina.</p><div id="cr-linhas" class="campos" style="grid-template-columns:1fr 1fr"></div>
+<button type="button" id="cr-add" style="margin-top:12px;background:#fff;color:#4f46e5;border:0;border-radius:12px;padding:10px 16px;font-weight:700;cursor:pointer">+ Disciplina</button>
+<div class="res" id="cr-res" aria-live="polite"></div></div>
+<script>(function(){var L=document.getElementById('cr-linhas'),ini=[[8.5,4],[6,4],[9,2],[7,6]];function add(n,c){L.insertAdjacentHTML('beforeend','<div><label>Nota final</label><input class="cr-n" inputmode="decimal" value="'+(n==null?'':n)+'"></div><div><label>Créditos ou horas</label><input class="cr-c" inputmode="decimal" value="'+(c==null?'':c)+'"></div>');}ini.forEach(function(x){add(x[0],x[1])});function v(e){var t=e.value.replace(',','.');return t===''?null:parseFloat(t)}function c(){var ns=L.querySelectorAll('.cr-n'),cs=L.querySelectorAll('.cr-c'),s=0,t=0;for(var i=0;i<ns.length;i++){var n=v(ns[i]),k=v(cs[i]);if(n!=null&&k){s+=n*k;t+=k}}document.getElementById('cr-res').innerHTML=t?'Seu CR/IRA estimado é<b>'+(s/t).toFixed(2).replace('.',',')+'</b>com base em '+t+' créditos/horas.':'Preencha pelo menos uma disciplina.'}L.addEventListener('input',c);document.getElementById('cr-add').onclick=function(){add(null,null);c()};c()})();</script>'''
+
 GUIAS = [
 dict(slug='quantas-faltas-posso-ter', emo='✅', tag='Frequência',
  title='Quantas faltas posso ter na faculdade? Calculadora e regra dos 75%',
@@ -137,6 +142,104 @@ dict(slug='grade-horaria-faculdade', emo='🗓️', tag='Organização',
 <p>Depois de montar a grade, aproveite para <a href="/guias/como-organizar-semestre-faculdade">organizar o resto do semestre</a>.</p>''',
  faq=[('O que significa 2.1010-2 no horário?','Em portais como o da UFSC, é dia 2 (segunda-feira), início às 10h10 e 2 aulas seguidas.'),
       ('Como encaixar horário de estudo na grade?','Use as janelas entre as aulas para revisões curtas e reserve blocos fixos de 1 a 2 horas nos dias mais leves.')]),
+dict(slug='cr-ira-como-calcular', emo='🎯', tag='Notas',
+ title='O que é CR, IRA e IAA e como calcular (com calculadora)',
+ desc='Entenda o que é CR, IRA, IAA e coeficiente de rendimento na faculdade, para que servem, como calcular com créditos ou carga horária e use a calculadora grátis.',
+ h1='O que é CR/IRA e como calcular',
+ lead='Coeficiente de rendimento, índice de rendimento acadêmico, IAA: o nome muda de faculdade para faculdade, mas a conta é parecida. Veja como funciona e calcule o seu.',
+ resposta='CR (coeficiente de rendimento), IRA ou IAA é a <b>média das suas notas finais ponderada pelos créditos</b> (ou pela carga horária) de cada disciplina. Multiplique cada nota pelos créditos, some tudo e divida pelo total de créditos.',
+ calc='cr',
+ corpo=""" <h2>Para que serve o CR/IRA?</h2>
+<p>O coeficiente resume seu desempenho acadêmico em um número. Ele costuma ser usado em:</p>
+<ul><li><b>Bolsas</b> de iniciação científica, monitoria e extensão;</li><li><b>Intercâmbio</b> e mobilidade acadêmica;</li><li><b>Prioridade na matrícula</b> em algumas faculdades;</li><li><b>Estágios e programas de trainee</b>, que às vezes pedem um coeficiente mínimo.</li></ul>
+<h2>Como calcular o CR/IRA</h2>
+<ol><li>Pegue a <b>nota final</b> de cada disciplina cursada.</li><li>Multiplique pela quantidade de <b>créditos</b> (ou horas) da disciplina.</li><li>Some todos os resultados.</li><li>Divida pela <b>soma dos créditos</b>.</li></ol>
+<div class="tab-wrap"><table><tr><th>Disciplina</th><th>Nota</th><th>Créditos</th><th>Nota × créditos</th></tr>
+<tr><td>Cálculo I</td><td>8,5</td><td>4</td><td>34</td></tr><tr><td>Física I</td><td>6,0</td><td>4</td><td>24</td></tr><tr><td>Metodologia</td><td>9,0</td><td>2</td><td>18</td></tr><tr><td>Programação</td><td>7,0</td><td>6</td><td>42</td></tr>
+<tr><td colspan="2"><b>Total</b></td><td><b>16</b></td><td><b>118</b></td></tr></table></div>
+<p>CR = 118 ÷ 16 = <b>7,38</b>.</p>
+<h2>Reprovações entram na conta?</h2>
+<p>Depende da faculdade. Em muitas, <b>reprovações por nota e por falta entram</b> no cálculo (às vezes com nota zero para quem reprovou por frequência), e disciplinas trancadas ou validadas ficam de fora. Algumas instituições também diferenciam o coeficiente do semestre e o acumulado. Confira a regra no regimento ou na secretaria.</p>
+<div class="alerta">⚠️ Reprovar por falta pode pesar mais do que uma nota baixa: em várias faculdades a disciplina entra com nota zero. Fique de olho no <a href="/guias/quantas-faltas-posso-ter">limite de faltas</a>.</div>
+<h2>Como melhorar o CR</h2>
+<ul><li>Priorize as disciplinas com <b>mais créditos</b>: elas pesam mais na média.</li><li>Evite reprovações por falta, que podem entrar como zero.</li><li>Acompanhe sua <a href="/guias/como-calcular-media-faculdade">média em cada matéria</a> durante o semestre, não só no final.</li></ul>""",
+ faq=[('CR e IRA são a mesma coisa?','Na prática, sim: são nomes diferentes que cada faculdade dá ao coeficiente de rendimento. IAA, CRA e MGP também aparecem.'),
+      ('Qual é um CR bom?','Depende do curso e da faculdade, mas muitas bolsas e programas pedem pelo menos 7,0.'),
+      ('Disciplina trancada entra no CR?','Normalmente não. Trancamentos dentro do prazo costumam ficar fora do cálculo.')]),
+
+dict(slug='trancamento-de-matricula', emo='⏸️', tag='Vida acadêmica',
+ title='Trancamento de matrícula na faculdade: como funciona e quando vale a pena',
+ desc='Entenda a diferença entre trancar uma disciplina e trancar a matrícula, prazos, efeitos no histórico, no CR e na bolsa, e o passo a passo para pedir.',
+ h1='Trancamento de matrícula: como funciona',
+ lead='Trancar pode salvar seu semestre ou complicar sua formatura. Entenda as opções e os cuidados antes de pedir.',
+ resposta='Existem dois tipos: <b>trancar uma disciplina</b> (você sai só daquela matéria) e <b>trancar a matrícula</b> (você suspende o curso por um período). Os dois têm <b>prazo definido no calendário acadêmico</b> e regras próprias de cada faculdade, por isso o primeiro passo é consultar o calendário e a coordenação.',
+ calc=None,
+ corpo=""" <h2>Trancar disciplina x trancar matrícula</h2>
+<div class="tab-wrap"><table><tr><th></th><th>Trancar disciplina</th><th>Trancar matrícula</th></tr>
+<tr><td><b>O que acontece</b></td><td>Você deixa só aquela matéria</td><td>Você suspende o curso inteiro por um tempo</td></tr>
+<tr><td><b>Quando</b></td><td>Até a data do calendário acadêmico</td><td>Em períodos definidos pela faculdade</td></tr>
+<tr><td><b>Histórico</b></td><td>Costuma aparecer como trancada, sem nota</td><td>O período fica registrado como trancado</td></tr>
+<tr><td><b>Limite</b></td><td>Algumas faculdades limitam quantas vezes</td><td>Costuma haver limite de semestres trancados</td></tr></table></div>
+<h2>Quando pode valer a pena</h2>
+<ul><li>Você já passou do limite de faltas ou não tem como alcançar a média, e a reprovação pesaria no seu coeficiente.</li><li>Problemas de saúde, trabalho ou família que impedem acompanhar o semestre.</li><li>Carga excessiva de disciplinas que está prejudicando todas as outras.</li></ul>
+<h2>Cuidados antes de trancar</h2>
+<ul><li><b>Pré-requisitos:</b> trancar uma disciplina pode atrasar outras que dependem dela.</li><li><b>Bolsas e financiamentos:</b> bolsa, auxílio estudantil ou financiamento estudantil podem exigir número mínimo de créditos por semestre. Consulte o órgão responsável antes.</li><li><b>Tempo máximo de curso:</b> semestres trancados podem contar ou não para o prazo de integralização.</li><li><b>Faculdades particulares:</b> veja no contrato como fica a mensalidade e se há multa ou prazo para aviso.</li></ul>
+<div class="dica">💡 Antes de trancar por causa de faltas ou notas, faça as contas: às vezes ainda dá para passar. Use a <a href="/guias/quantas-faltas-posso-ter">calculadora de faltas</a> e a de <a href="/guias/como-calcular-media-faculdade">média</a>.</div>
+<h2>Passo a passo para pedir</h2>
+<ol><li>Confira o <b>prazo</b> no calendário acadêmico.</li><li>Veja no portal da faculdade se o pedido é online ou na secretaria.</li><li>Converse com a coordenação se tiver dúvida sobre pré-requisitos e formatura.</li><li>Guarde o <b>comprovante</b> do pedido.</li><li>Confira no portal se o trancamento foi registrado.</li></ol>""",
+ faq=[('Trancar disciplina afeta o CR?','Normalmente não: disciplinas trancadas dentro do prazo costumam ficar fora do coeficiente. Confira a regra da sua faculdade.'),
+      ('Perco a vaga se trancar a matrícula?','Não, desde que você respeite o limite de períodos trancados e faça a rematrícula no prazo.'),
+      ('Posso trancar depois do prazo?','Em geral só em casos excepcionais, com justificativa e aprovação da coordenação.')]),
+
+dict(slug='como-pedir-revisao-de-prova', emo='🔍', tag='Notas',
+ title='Como pedir revisão de prova na faculdade (com modelo de pedido)',
+ desc='Veja quando pedir revisão de prova na faculdade, prazos, como argumentar e um modelo de pedido de revisão de nota pronto para adaptar.',
+ h1='Como pedir revisão de prova na faculdade',
+ lead='Achou um erro na correção ou um critério que não ficou claro? Você pode pedir revisão. Veja como fazer do jeito certo.',
+ resposta='Para pedir revisão de prova: <b>1)</b> veja a prova corrigida e o gabarito, <b>2)</b> confira o prazo no regimento (costuma ser de poucos dias após a divulgação da nota), <b>3)</b> converse primeiro com o professor e, se precisar, <b>4)</b> faça o pedido formal na secretaria ou no portal, explicando questão por questão o que deve ser revisto.',
+ calc=None,
+ corpo=""" <h2>Você tem direito de ver a prova corrigida</h2>
+<p>Na maioria das faculdades, o aluno pode ver a prova corrigida e entender os critérios usados. É o primeiro passo antes de qualquer pedido.</p>
+<h2>Quando vale pedir revisão</h2>
+<ul><li>Erro de soma das notas das questões.</li><li>Questão correta corrigida como errada, ou com critério diferente de outros colegas.</li><li>Questão sem correção.</li><li>Conteúdo cobrado fora do que estava no plano de ensino.</li></ul>
+<div class="alerta">⚠️ Revisão não é negociação de pontos. Pedidos genéricos ("acho que mereço mais") quase sempre são negados. Seja específico e objetivo.</div>
+<h2>Passo a passo</h2>
+<ol><li><b>Veja a prova e o gabarito</b> com calma e anote cada ponto que quer revisar.</li><li><b>Confira o prazo</b> no regimento ou no calendário: costuma ser curto, de poucos dias úteis após a nota.</li><li><b>Converse com o professor</b> com educação. Muitos erros se resolvem aqui.</li><li><b>Pedido formal:</b> se não resolver, protocole na secretaria, na coordenação ou no portal, com os argumentos por escrito.</li><li><b>Acompanhe</b> a resposta e guarde o protocolo.</li></ol>
+<h2>Modelo de pedido de revisão</h2>
+<div class="dica" style="font-size:16px;line-height:1.6">À Coordenação do Curso de [curso],<br><br>Eu, [nome], matrícula [número], aluno(a) da disciplina [nome e código], turma [turma], venho solicitar a revisão da avaliação [nome da avaliação], aplicada em [data], cuja nota foi divulgada em [data].<br><br>Solicito a revisão das seguintes questões:<br>• Questão [número]: [explique objetivamente por que a resposta deveria ser considerada correta, citando o gabarito, o material da disciplina ou o critério usado].<br>• Questão [número]: [idem].<br><br>Peço que a avaliação seja revista conforme os critérios apresentados.<br><br>[Cidade], [data].<br>[Assinatura]</div>
+<h2>Dicas para aumentar as chances</h2>
+<ul><li>Use o material da própria disciplina (slides, livro indicado, gabarito) como argumento.</li><li>Mantenha um tom respeitoso: o objetivo é corrigir um erro, não acusar.</li><li>Depois da revisão, atualize sua nota e veja <a href="/guias/como-calcular-media-faculdade">quanto ainda precisa</a> nas próximas avaliações.</li></ul>""",
+ faq=[('Qual o prazo para pedir revisão de prova?','Cada faculdade define o seu, normalmente poucos dias úteis após a divulgação da nota. Confira no regimento ou no calendário acadêmico.'),
+      ('A nota pode diminuir na revisão?','Em algumas faculdades sim, porque a prova inteira é corrigida de novo. Confira a regra antes de pedir.'),
+      ('Preciso falar com o professor antes?','Não é obrigatório em todas as faculdades, mas costuma resolver mais rápido e é bem-visto.')]),
+
+dict(slug='como-estudar-para-prova-faculdade', emo='🧠', tag='Estudos',
+ title='Como estudar para prova da faculdade: método em 7 passos',
+ desc='Aprenda a estudar para provas da faculdade com técnicas que funcionam: prática de recuperação, revisão espaçada, cronograma reverso e simulados.',
+ h1='Como estudar para prova da faculdade',
+ lead='Ler e grifar dá a sensação de estudo, mas rende pouco. Veja um método em 7 passos baseado nas técnicas que a pesquisa em aprendizagem mais recomenda.',
+ resposta='As técnicas mais eficazes são <b>praticar lembrar o conteúdo</b> (exercícios e perguntas sem consultar), <b>espalhar as revisões</b> ao longo dos dias em vez de estudar tudo na véspera e <b>fazer simulados</b> no formato da prova. Comece pelo conteúdo programático e monte um cronograma de trás para frente a partir da data da prova.',
+ calc=None,
+ corpo=""" <h2>1. Descubra exatamente o que cai</h2>
+<p>Use o <b>conteúdo programático</b> do plano de ensino e o que o professor disse em aula. Transforme em uma lista de tópicos: é o seu checklist.</p>
+<h2>2. Faça um cronograma reverso</h2>
+<p>Parta da data da prova e volte no calendário: distribua os tópicos pelos dias disponíveis e reserve os dois últimos dias para revisão e simulado.</p>
+<div class="tab-wrap"><table><tr><th>Quando</th><th>O que fazer</th></tr><tr><td>2 semanas antes</td><td>Primeira passada em todos os tópicos, com exercícios</td></tr><tr><td>1 semana antes</td><td>Revisão dos tópicos difíceis</td></tr><tr><td>3 dias antes</td><td>Simulado no formato da prova</td></tr><tr><td>Véspera</td><td>Revisão leve dos erros do simulado e sono</td></tr></table></div>
+<h2>3. Pratique lembrar, não só reler</h2>
+<p>Feche o material e tente explicar o tópico, resolver exercícios ou responder perguntas. Esse esforço de lembrar (prática de recuperação) fixa muito mais do que reler ou grifar.</p>
+<h2>4. Espalhe as revisões</h2>
+<p>Estudar o mesmo tópico em dias diferentes (revisão espaçada) rende mais do que uma maratona na véspera. Revisões curtas e frequentes vencem uma sessão longa.</p>
+<h2>5. Faça exercícios e provas antigas</h2>
+<p>Se o professor disponibiliza provas anteriores ou listas, elas mostram o estilo de cobrança. Resolva no tempo da prova.</p>
+<h2>6. Estude em blocos com pausas</h2>
+<p>Blocos de 25 a 50 minutos com pausas curtas ajudam a manter a concentração. Deixe o celular longe, exceto para o cronômetro.</p>
+<h2>7. Durma antes da prova</h2>
+<p>O sono ajuda a consolidar o que você estudou. Virar a noite costuma piorar o desempenho.</p>
+<div class="dica">💡 No Meu Semestre, o conteúdo programático vira uma lista de estudos com progresso, e as datas das provas aparecem com antecedência na agenda e nos lembretes.</div>
+<p>Antes de estudar, vale saber <a href="/guias/como-calcular-media-faculdade">quanto você precisa tirar</a> para focar no que mais pesa.</p>""",
+ faq=[('Quantas horas por dia devo estudar para a prova?','Depende da matéria e do quanto você já sabe, mas sessões diárias de 1 a 2 horas, com revisões espaçadas, costumam render mais que muitas horas na véspera.'),
+      ('Fazer resumo funciona?','Funciona melhor quando você escreve sem copiar do material, tentando lembrar. Copiar trechos rende pouco.'),
+      ('Vale a pena estudar de madrugada antes da prova?','Em geral não: perder sono prejudica a memória e a atenção no dia da prova.')]),
 ]
 
 def cabeca(titulo, desc, url, extra_ld):
@@ -175,7 +278,7 @@ def pagina(g):
             {"@type": "ListItem", "position": 2, "name": "Guias", "item": BASE + '/guias'},
             {"@type": "ListItem", "position": 3, "name": g['h1'], "item": url}]},
         {"@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in g['faq']]}]}
-    calc = CALC_FALTAS if g['calc'] == 'faltas' else CALC_MEDIA if g['calc'] == 'media' else ''
+    calc = {'faltas': CALC_FALTAS, 'media': CALC_MEDIA, 'cr': CALC_CR}.get(g['calc'], '')
     outros = ''.join(f'<li><a href="/guias/{o["slug"]}">{o["emo"]} {o["h1"]}</a></li>' for o in GUIAS if o is not g)
     faq = ''.join(f'<details><summary>{html.escape(q)}</summary><p>{html.escape(a)}</p></details>' for q, a in g['faq'])
     return cabeca(g['title'], g['desc'], url, ld) + f'''
