@@ -896,7 +896,7 @@ async function excluirConta() {
   if (conf.toLowerCase() !== String(user?.email || '').toLowerCase()) return toast('O e-mail não confere.');
   const b = $('#ex-b'); b.disabled = true; b.textContent = 'Excluindo…';
   try {
-    const r = await fetch('/api/excluir-conta', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + await tokenAtual() }, body: JSON.stringify({ confirmacao: conf }) });
+    const r = await fetch('/api/meu-plano', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + await tokenAtual() }, body: JSON.stringify({ acao: 'excluir_conta', confirmacao: conf }) });
     const d = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(d.error || 'Não foi possível excluir.');
     const id = user.id; try { localStorage.removeItem(KEY + ':' + id); localStorage.removeItem(KEY + ':plano'); } catch { }
