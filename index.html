@@ -22,7 +22,7 @@
 <meta name="description" content="App para universitários controlarem faltas, calcularem a média, organizarem a grade horária e as provas. Envie o plano de ensino (PDF ou print) e o Meu Semestre monta tudo. Grátis por 30 dias, no celular e no computador.">
 <meta name="keywords" content="controle de faltas faculdade, calculadora de faltas, quantas faltas posso ter, calcular média faculdade, app para universitário, planner universitário, grade horária faculdade, organizar semestre, controle de frequência, calendário de provas, agenda acadêmica, plano de ensino, app de estudos, organizador de estudos, média ponderada, recuperação faculdade">
 <link rel="canonical" href="https://www.meusemestre.com.br/">
-<meta name="theme-color" content="#2846d6">
+<meta name="theme-color" content="#fffaf3">
 <link rel="icon" href="/icon.svg">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/manifest.json">
@@ -37,7 +37,8 @@
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap">
+<link rel="preload" as="image" href="/img/amigas.jpg">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@graph":[
  {"@type":"SoftwareApplication","name":"Meu Semestre","applicationCategory":"EducationalApplication","operatingSystem":"Android, iOS, Web","url":"https://www.meusemestre.com.br/","description":"App para universitários controlarem faltas, notas, provas e grade horária a partir do plano de ensino.","inLanguage":"pt-BR",
@@ -50,107 +51,164 @@
  ]}]}
 </script>
 <style>
-:root{--pr:#2846d6;--pr2:#e8ecfd;--tx:#0e1530;--tx2:#5a6482;--bg:#f6f7fc;--card:#fff;--bd:#e3e7f1;--ok:#14945a}
-@media(prefers-color-scheme:dark){:root{--pr:#7d93ff;--pr2:#1f2a5a;--tx:#e8ebf6;--tx2:#a1aac6;--bg:#0b1020;--card:#141a2e;--bd:#262e4d;--ok:#3ccf8e}}
+/* ===== Sistema visual (regra 60-30-10: creme de base, índigo de marca, coral/amarelo de destaque) ===== */
+:root{--bg:#fffaf3;--bg2:#fff1e2;--card:#fff;--tx:#1b1340;--tx2:#5b5677;--bd:#efe6da;
+  --indigo:#4f46e5;--indigo2:#eef0ff;--coral:#ff6b4a;--coral2:#ffe9e3;--sol:#ffc83d;--sol2:#fff4d6;--menta:#16a36a;--menta2:#e2f7ec;--rosa:#e8488f;--rosa2:#fde7f1;--ceu:#2aa7e0;--ceu2:#e1f4fc;
+  --r:24px;--sh:0 1px 2px rgba(27,19,64,.05),0 10px 30px rgba(27,19,64,.08)}
 *{box-sizing:border-box}html{scroll-behavior:smooth}
-body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--tx);line-height:1.55;-webkit-font-smoothing:antialiased}
-a{color:inherit}
-.w{max-width:1140px;margin:0 auto;padding:0 20px}
-h1,h2,h3{line-height:1.15;letter-spacing:-.025em;margin:0}
+body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--tx);line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+h1,h2,h3{font-family:"Plus Jakarta Sans",Inter,sans-serif;line-height:1.1;letter-spacing:-.03em;margin:0}
+p{margin:0}a{color:inherit}img{max-width:100%;display:block}
+.w{max-width:1180px;margin:0 auto;padding-left:20px;padding-right:20px}
 .mu{color:var(--tx2)}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 22px;border-radius:14px;font-weight:600;font-size:16px;text-decoration:none;border:1px solid var(--bd);background:var(--card);color:var(--tx);transition:transform .12s,filter .15s}
-.btn:hover{filter:brightness(1.05)}.btn:active{transform:scale(.97)}
-.btn.pr{background:var(--pr);border-color:var(--pr);color:#fff;box-shadow:0 8px 24px color-mix(in srgb,var(--pr) 35%,transparent)}
-@media(prefers-color-scheme:dark){.btn.pr{color:#0b1020}}
-.mark{width:34px;height:34px;border-radius:10px;background:var(--pr);display:grid;place-items:center}
+.marca-txt{background:linear-gradient(90deg,var(--indigo),var(--rosa) 55%,var(--coral));-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub-risco{position:relative;white-space:nowrap}.sub-risco:after{content:"";position:absolute;left:-2%;right:-2%;bottom:.04em;height:.32em;background:var(--sol);border-radius:8px;z-index:-1;transform:rotate(-1.5deg)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:54px;padding:0 26px;border-radius:16px;font-weight:700;font-size:17px;text-decoration:none;border:2px solid var(--tx);background:var(--card);color:var(--tx);font-family:"Plus Jakarta Sans",Inter,sans-serif;transition:transform .15s,box-shadow .15s}
+.btn:hover{transform:translateY(-2px)}.btn:active{transform:translateY(0)}
+.btn.pr{background:var(--indigo);border-color:var(--indigo);color:#fff;box-shadow:0 6px 0 #312a9e}
+.btn.pr:hover{box-shadow:0 8px 0 #312a9e}.btn.pr:active{box-shadow:0 3px 0 #312a9e}
+.tag{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:99px;font-weight:700;font-size:14px;font-family:"Plus Jakarta Sans",Inter,sans-serif}
+.mark{width:36px;height:36px;border-radius:11px;background:var(--indigo);display:grid;place-items:center;box-shadow:0 4px 0 #312a9e}
 /* topo */
-header{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid transparent}
-header.s{border-color:var(--bd)}
-.nav{display:flex;align-items:center;gap:14px;height:68px}
-.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;text-decoration:none}
-.links{display:flex;gap:26px;margin-left:28px;font-weight:500;color:var(--tx2)}
-.links a{text-decoration:none}.links a:hover{color:var(--tx)}
+header{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);transition:box-shadow .2s}
+header.s{box-shadow:0 1px 0 var(--bd)}
+.nav{display:flex;align-items:center;gap:12px;height:72px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px;text-decoration:none;white-space:nowrap;font-family:"Plus Jakarta Sans",Inter,sans-serif}
+.links{display:flex;gap:28px;margin-left:30px;font-weight:600;color:var(--tx2);font-size:15px}
+.links a{text-decoration:none}.links a:hover{color:var(--indigo)}
 .sp{flex:1}
-.nav .btn{min-height:42px;padding:0 16px;font-size:15px}
-@media(max-width:820px){.links,.nav .entrar{display:none}}
-.logo,.nav .btn{white-space:nowrap}
-@media(max-width:420px){.logo{font-size:16px}.nav .btn{padding:0 12px;font-size:14px;min-height:38px}.nav{gap:10px}}
+.nav .btn{min-height:44px;padding:0 18px;font-size:15px;border-radius:12px;white-space:nowrap}
+.nav .btn.pr{box-shadow:0 4px 0 #312a9e}
+@media(max-width:860px){.links,.nav .entrar{display:none}}
+@media(max-width:400px){.logo{font-size:17px}.nav .btn{padding:0 12px;font-size:14px}}
 /* hero */
-.hero{padding-top:56px;padding-bottom:40px;display:grid;gap:40px;align-items:center}
-@media(min-width:900px){.hero{grid-template-columns:1.1fr .9fr;padding-top:84px;padding-bottom:64px}}
-.pill{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:99px;background:var(--pr2);color:var(--pr);font-weight:600;font-size:13px}
-.hero h1{font-size:clamp(36px,6vw,60px);font-weight:800;margin:18px 0 16px}
-.hero h1 em{font-style:normal;color:var(--pr)}
-.hero p.sub{font-size:clamp(17px,2.2vw,20px);color:var(--tx2);max-width:560px;margin:0 0 28px}
-.ctas{display:flex;gap:12px;flex-wrap:wrap}
-.trust{display:flex;gap:18px;flex-wrap:wrap;margin-top:22px;font-size:14px;color:var(--tx2)}
-.trust span:before{content:"✓ ";color:var(--ok);font-weight:700}
-.convite{display:none;margin:0 0 18px;padding:14px 16px;border-radius:14px;background:var(--pr2);border:1px solid color-mix(in srgb,var(--pr) 40%,var(--bd));font-weight:500}
-/* celular */
-.phone{justify-self:center;width:300px;max-width:100%;aspect-ratio:9/18.5;border-radius:44px;background:#0e1530;padding:12px;box-shadow:0 30px 80px rgba(14,21,48,.28);transform:rotate(2deg)}
-.scr{height:100%;border-radius:34px;background:#f4f6fb;overflow:hidden;padding:18px 14px;display:flex;flex-direction:column;gap:10px;color:#0e1530;font-size:12px}
-.scr .hi{font-weight:800;font-size:18px}
-.scr .hero2{background:linear-gradient(135deg,#2846d6,#7048e8);color:#fff;border-radius:16px;padding:12px}
-.scr .hero2 b{display:block;font-size:15px;margin:2px 0}
-.scr .k{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.scr .k div{background:#fff;border-radius:12px;padding:8px 10px;border:1px solid #e3e7f1}
-.scr .k b{display:block;font-size:17px}
-.scr .ln{background:#fff;border:1px solid #e3e7f1;border-radius:12px;padding:8px 10px;display:flex;align-items:center;gap:8px}
-.scr .ln i{width:4px;align-self:stretch;border-radius:4px}
-.scr .ln span{margin-left:auto;font-weight:600;font-size:11px;padding:4px 8px;border-radius:8px;border:1px solid #e3e7f1}
-.scr .tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:#fdf3dc;color:#c27803}
+.hero{display:grid;gap:44px;align-items:center;padding-top:40px;padding-bottom:70px}
+@media(min-width:960px){.hero{grid-template-columns:1.05fr .95fr;padding-top:64px;padding-bottom:96px}}
+.hero h1{font-size:clamp(40px,6.4vw,72px);font-weight:800;margin:20px 0 20px}
+.hero .lead{font-size:clamp(18px,2.2vw,21px);color:var(--tx2);max-width:540px;margin-bottom:30px}
+.ctas{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.garantias{display:flex;gap:10px 22px;flex-wrap:wrap;margin-top:24px;font-weight:600;font-size:15px}
+.garantias span{display:flex;align-items:center;gap:8px}
+.garantias i{width:22px;height:22px;border-radius:50%;background:var(--menta2);color:var(--menta);display:grid;place-items:center;font-style:normal;font-size:13px;font-weight:800}
+.convite{display:none;margin-bottom:18px;padding:14px 18px;border-radius:16px;background:var(--sol2);border:2px dashed var(--sol);font-weight:600}
+.foto-hero{position:relative;max-width:560px;justify-self:center;width:100%}
+.foto-hero .blob{position:absolute;inset:6% -4% -6% 8%;background:linear-gradient(135deg,var(--sol),var(--coral) 60%,var(--rosa));border-radius:46% 54% 42% 58%/52% 44% 56% 48%;z-index:0}
+.foto-hero img{position:relative;z-index:1;border-radius:32px;aspect-ratio:4/4.4;object-fit:cover;object-position:45% center;width:100%;box-shadow:var(--sh);border:6px solid #fff}
+.flut{position:absolute;z-index:2;background:#fff;border-radius:18px;padding:12px 16px;box-shadow:0 14px 34px rgba(27,19,64,.16);font-size:14px;display:flex;align-items:center;gap:12px;animation:boia 5s ease-in-out infinite}
+.flut b{display:block;font-family:"Plus Jakarta Sans",sans-serif;font-size:17px}
+.flut .ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:20px;flex:none}
+.f1{left:-18px;top:14%}.f2{right:-14px;top:46%;animation-delay:-1.6s}.f3{left:6%;bottom:-22px;animation-delay:-3.2s}
+@media(max-width:560px){.f1{left:-6px}.f2{right:-6px}.flut{padding:10px 12px;font-size:12px}.flut b{font-size:15px}.flut .ic{width:34px;height:34px}}
+@keyframes boia{50%{transform:translateY(-8px)}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;scroll-behavior:auto}}
+/* faixa de cursos */
+.faixa{background:var(--tx);color:#fff;padding:18px 0;overflow:hidden;transform:rotate(-1.2deg);margin:0 -10px}
+.faixa .t{display:flex;gap:38px;white-space:nowrap;width:max-content;animation:rola 40s linear infinite;font-family:"Plus Jakarta Sans",sans-serif;font-weight:700;font-size:20px}
+.faixa span:nth-child(3n+1):before{content:"✦ ";color:var(--sol)}.faixa span:nth-child(3n+2):before{content:"✦ ";color:var(--coral)}.faixa span:nth-child(3n):before{content:"✦ ";color:#9ea3ff}
+@keyframes rola{to{transform:translateX(-50%)}}
 /* seções */
-section{padding:72px 0}
-.sec-h{text-align:center;max-width:720px;margin:0 auto 44px}
-.sec-h h2{font-size:clamp(28px,4vw,42px);font-weight:800;margin-bottom:12px}
-.sec-h p{font-size:18px;color:var(--tx2);margin:0}
-.grid3{display:grid;gap:18px}
-@media(min-width:760px){.grid3{grid-template-columns:repeat(3,1fr)}}
-.card{background:var(--card);border:1px solid var(--bd);border-radius:20px;padding:26px}
-.ico{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:22px;margin-bottom:16px}
-.card h3{font-size:19px;margin-bottom:8px}
-.card p{margin:0;color:var(--tx2)}
-.passos .n{width:36px;height:36px;border-radius:50%;background:var(--pr);color:#fff;display:grid;place-items:center;font-weight:800;margin-bottom:14px}
-.alt{background:var(--card);border-block:1px solid var(--bd)}
-.split{display:grid;gap:36px;align-items:center}
-@media(min-width:900px){.split{grid-template-columns:1fr 1fr}}
-.lista{list-style:none;padding:0;margin:20px 0 0;display:grid;gap:12px}
-.lista li{display:flex;gap:10px}.lista li:before{content:"✓";color:var(--ok);font-weight:800}
-.calc{background:var(--bg);border:1px solid var(--bd);border-radius:20px;padding:24px}
-.calc label{display:block;font-weight:600;font-size:14px;margin-bottom:6px}
-.calc input{width:100%;font:inherit;font-size:16px;padding:12px 14px;border-radius:12px;border:1px solid var(--bd);background:var(--card);color:var(--tx);margin-bottom:14px}
-.calc .res{background:var(--pr2);border-radius:14px;padding:16px;font-size:17px}
-.calc .res b{font-size:30px;display:block;color:var(--pr)}
+section{padding:96px 0}
+.sec-h{max-width:760px;margin:0 auto 52px;text-align:center}
+.sec-h h2{font-size:clamp(32px,4.6vw,52px);font-weight:800;margin:14px 0 14px}
+.sec-h p{font-size:19px;color:var(--tx2)}
+/* dores */
+.dores{display:grid;gap:18px}
+@media(min-width:820px){.dores{grid-template-columns:repeat(3,1fr)}}
+.dor{border-radius:var(--r);padding:30px;border:2px solid var(--tx);box-shadow:6px 6px 0 var(--tx);background:#fff}
+.dor .emo{font-size:40px;margin-bottom:14px}
+.dor h3{font-size:22px;margin-bottom:10px}
+.dor p{color:var(--tx2)}
+.dor:nth-child(1){background:var(--coral2)}.dor:nth-child(2){background:var(--sol2)}.dor:nth-child(3){background:var(--indigo2)}
+/* recursos em zigue-zague */
+.zz{display:grid;gap:40px;align-items:center;margin-bottom:96px}
+.zz:last-child{margin-bottom:0}
+@media(min-width:900px){.zz{grid-template-columns:1fr 1fr;gap:72px}.zz.inv .zz-img{order:2}}
+.zz h3{font-size:clamp(28px,3.6vw,40px);font-weight:800;margin:14px 0 16px}
+.zz p.l{font-size:18px;color:var(--tx2);margin-bottom:18px}
+.check{list-style:none;padding:0;margin:0;display:grid;gap:12px;font-weight:500}
+.check li{display:flex;gap:12px;align-items:flex-start}
+.check li:before{content:"✓";flex:none;width:24px;height:24px;border-radius:8px;background:var(--menta2);color:var(--menta);display:grid;place-items:center;font-weight:800;font-size:14px;margin-top:1px}
+.zz-img{position:relative}
+.zz-img img{border-radius:28px;width:100%;aspect-ratio:16/11;object-fit:cover;box-shadow:var(--sh)}
+.zz-img .deco{position:absolute;width:120px;height:120px;border-radius:30px;z-index:-1}
+.mock{background:#fff;border-radius:28px;padding:22px;box-shadow:var(--sh);border:1px solid var(--bd);display:grid;gap:12px;max-width:440px;margin:0 auto}
+.mrow{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;background:var(--bg)}
+.mrow i{width:6px;align-self:stretch;border-radius:6px}
+.mrow b{font-family:"Plus Jakarta Sans",sans-serif}
+.mrow .v{margin-left:auto;font-family:"Plus Jakarta Sans",sans-serif;font-weight:800;font-size:22px}
+.pill{font-size:12px;font-weight:700;padding:4px 10px;border-radius:99px}
+.print{border:2px dashed var(--bd);border-radius:18px;padding:16px;text-align:center;color:var(--tx2);font-size:14px}
+/* passos */
+.passos{display:grid;gap:18px;counter-reset:p}
+@media(min-width:820px){.passos{grid-template-columns:repeat(3,1fr)}}
+.passo{background:#fff;border-radius:var(--r);padding:30px;box-shadow:var(--sh);position:relative}
+.passo .n{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;font-family:"Plus Jakarta Sans",sans-serif;font-weight:800;font-size:22px;color:#fff;margin-bottom:18px}
+.passo h3{font-size:21px;margin-bottom:8px}
+/* galeria */
+.galeria{display:grid;gap:16px;grid-template-columns:1fr 1fr}
+.galeria figure{margin:0;position:relative;border-radius:26px;overflow:hidden;box-shadow:var(--sh)}
+.galeria img{width:100%;height:100%;object-fit:cover}
+.galeria figcaption{position:absolute;left:14px;bottom:14px;right:14px;background:rgba(255,255,255,.94);border-radius:14px;padding:10px 14px;font-weight:600;font-size:14px}
+.galeria .alta{grid-row:span 2}
+@media(min-width:820px){.galeria{grid-template-columns:1.1fr 1fr 1fr;grid-auto-rows:260px}}
+@media(max-width:819px){.galeria{grid-auto-rows:220px}.galeria .alta{grid-row:span 2}}
+/* calculadora */
+.calc-box{display:grid;gap:36px;align-items:center;background:var(--indigo);color:#fff;border-radius:36px;padding:44px 28px;position:relative;overflow:hidden}
+.calc-box:before{content:"";position:absolute;width:420px;height:420px;border-radius:50%;background:var(--rosa);opacity:.35;filter:blur(60px);right:-120px;top:-160px}
+@media(min-width:900px){.calc-box{grid-template-columns:1fr 1fr;padding:64px}}
+.calc-box h2{font-size:clamp(30px,4vw,46px);font-weight:800;margin:14px 0}
+.calc-box p{opacity:.9;font-size:18px}
+.calc{background:#fff;color:var(--tx);border-radius:26px;padding:26px;position:relative}
+.calc label{display:block;font-weight:700;font-size:14px;margin-bottom:6px}
+.calc input{width:100%;font:inherit;font-size:17px;padding:13px 16px;border-radius:14px;border:2px solid var(--bd);background:var(--bg);color:var(--tx);margin-bottom:14px}
+.calc input:focus{outline:none;border-color:var(--indigo)}
+.res{border-radius:18px;padding:18px;font-weight:600;background:var(--menta2)}
+.res b{display:block;font-family:"Plus Jakarta Sans",sans-serif;font-size:36px;color:var(--menta);line-height:1.1;margin:4px 0}
+.res.ruim{background:var(--coral2)}.res.ruim b{color:var(--coral)}
 /* preços */
-.precos{display:grid;gap:18px;max-width:980px;margin:0 auto}
-@media(min-width:860px){.precos{grid-template-columns:repeat(3,1fr)}}
-.preco{position:relative;display:flex;flex-direction:column;gap:10px}
-.preco.dest{border:2px solid var(--pr);box-shadow:0 18px 50px color-mix(in srgb,var(--pr) 18%,transparent)}
-.selo{position:absolute;top:-13px;left:24px;background:var(--pr);color:#fff;font-size:12px;font-weight:700;padding:4px 12px;border-radius:99px}
-.valor{font-size:38px;font-weight:800;letter-spacing:-.03em}.valor small{font-size:15px;font-weight:500;color:var(--tx2)}
-.preco ul{list-style:none;padding:0;margin:6px 0 14px;display:grid;gap:8px;color:var(--tx2);font-size:15px}
-.preco ul li:before{content:"✓ ";color:var(--ok);font-weight:700}
-.preco .btn{margin-top:auto}
+.precos{display:grid;gap:20px;max-width:1040px;margin:0 auto;align-items:stretch}
+@media(min-width:880px){.precos{grid-template-columns:repeat(3,1fr)}}
+.preco{background:#fff;border-radius:28px;padding:30px;box-shadow:var(--sh);display:flex;flex-direction:column;gap:12px;position:relative;border:2px solid transparent}
+.preco.dest{border-color:var(--tx);box-shadow:8px 8px 0 var(--tx);background:var(--sol2)}
+.selo{position:absolute;top:-16px;left:50%;transform:translateX(-50%);background:var(--coral);color:#fff;font-weight:800;font-size:13px;padding:6px 14px;border-radius:99px;white-space:nowrap;font-family:"Plus Jakarta Sans",sans-serif}
+.preco h3{font-size:22px}
+.valor{font-family:"Plus Jakarta Sans",sans-serif;font-size:44px;font-weight:800;letter-spacing:-.04em}.valor small{font-size:16px;font-weight:600;color:var(--tx2);letter-spacing:0}
+.preco ul{list-style:none;padding:0;margin:4px 0 16px;display:grid;gap:10px;color:var(--tx2)}
+.preco ul li:before{content:"✓  ";color:var(--menta);font-weight:800}
+.preco .btn{margin-top:auto;width:100%}
 /* faq */
-.faq{max-width:780px;margin:0 auto;display:grid;gap:12px}
-details{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:18px 20px}
-summary{cursor:pointer;font-weight:600;font-size:17px;list-style:none;display:flex;justify-content:space-between;gap:12px}
+.faq{max-width:820px;margin:0 auto;display:grid;gap:14px}
+details{background:#fff;border-radius:20px;padding:20px 24px;box-shadow:var(--sh)}
+summary{cursor:pointer;font-weight:700;font-size:18px;list-style:none;display:flex;justify-content:space-between;gap:16px;font-family:"Plus Jakarta Sans",sans-serif}
 summary::-webkit-details-marker{display:none}
-summary:after{content:"+";font-size:22px;line-height:1;color:var(--tx2)}details[open] summary:after{content:"−"}
-details p{margin:12px 0 0;color:var(--tx2)}
-.final{text-align:center;background:linear-gradient(135deg,#2846d6,#7048e8);color:#fff;border-radius:28px;padding:56px 24px;margin:0 20px}
-.final h2{font-size:clamp(28px,4vw,40px);font-weight:800;margin-bottom:12px}
-.final p{opacity:.9;font-size:18px;margin:0 0 26px}
-.final .btn{background:#fff;color:#2846d6;border-color:#fff}
-footer{padding:48px 0;color:var(--tx2);font-size:14px}
-footer .w{display:flex;gap:16px;flex-wrap:wrap;align-items:center}
-footer a{text-decoration:none}footer a:hover{color:var(--tx)}
+summary:after{content:"+";flex:none;width:30px;height:30px;border-radius:10px;background:var(--indigo2);color:var(--indigo);display:grid;place-items:center;font-size:20px}
+details[open] summary:after{content:"−";background:var(--indigo);color:#fff}
+details p{margin-top:14px;color:var(--tx2)}
+/* final */
+.final{display:grid;gap:0;border-radius:40px;overflow:hidden;background:linear-gradient(135deg,var(--coral),var(--rosa) 55%,var(--indigo));color:#fff}
+@media(min-width:900px){.final{grid-template-columns:1.1fr .9fr}}
+.final .tx{padding:52px 32px}
+@media(min-width:900px){.final .tx{padding:72px 64px}}
+.final h2{font-size:clamp(32px,4.6vw,52px);font-weight:800;margin-bottom:16px}
+.final p{font-size:19px;opacity:.92;margin-bottom:30px}
+.final .btn{background:#fff;border-color:#fff;color:var(--tx);box-shadow:0 6px 0 rgba(0,0,0,.2)}
+.final img{width:100%;height:100%;min-height:280px;object-fit:cover}
+footer{padding:56px 0 110px;color:var(--tx2);font-size:14px}
+@media(min-width:760px){footer{padding-bottom:56px}}
+footer .w{display:flex;gap:14px 22px;flex-wrap:wrap;align-items:center}
+footer a{text-decoration:none}footer a:hover{color:var(--indigo)}
+/* CTA fixo no celular (lei de Fitts: ação principal sempre ao alcance do polegar) */
+.cta-fixo{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:30;display:none;transform:translateY(140%);transition:transform .3s}
+.cta-fixo .btn{width:100%}
+.cta-fixo.on{transform:none}
+@media(max-width:759px){.cta-fixo{display:block}}
+.rev{opacity:0;transform:translateY(24px);transition:opacity .6s,transform .6s}.rev.vis{opacity:1;transform:none}
 </style>
 </head>
 <body>
 <header id="hd"><div class="w nav">
-  <a class="logo" href="/"><span class="mark"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M22 10 12 5 2 10l10 5 10-5z" fill="#fff"/><path d="M6 12v4c0 1.7 2.7 3 6 3s6-1.3 6-3v-4l-6 3z" fill="#fbbf24"/></svg></span>Meu Semestre</a>
-  <nav class="links"><a href="#recursos">Recursos</a><a href="#como-funciona">Como funciona</a><a href="#calculadora">Calculadora de faltas</a><a href="#precos">Preços</a><a href="#duvidas">Dúvidas</a></nav>
+  <a class="logo" href="/"><span class="mark"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 10 12 5 2 10l10 5 10-5z" fill="#fff"/><path d="M6 12v4c0 1.7 2.7 3 6 3s6-1.3 6-3v-4l-6 3z" fill="#ffc83d"/></svg></span>Meu Semestre</a>
+  <nav class="links" aria-label="Seções"><a href="#recursos">Recursos</a><a href="#como-funciona">Como funciona</a><a href="#calculadora">Calculadora de faltas</a><a href="#precos">Preços</a><a href="#duvidas">Dúvidas</a></nav>
   <span class="sp"></span>
   <a class="btn entrar" href="/app">Entrar</a><a class="btn pr" href="/app">Começar grátis</a>
 </div></header>
@@ -158,103 +216,154 @@ footer a{text-decoration:none}footer a:hover{color:var(--tx)}
 <main>
 <div class="w hero">
   <div>
-    <div class="convite" id="convite">🎁 Você foi convidado! Crie sua conta e ganhe <b>45 dias de Premium grátis</b>.</div>
-    <span class="pill">✨ Para universitários de qualquer faculdade</span>
-    <h1>Seu semestre da faculdade <em>organizado</em> em minutos</h1>
-    <p class="sub">Controle de faltas, notas, provas e grade horária num só app. Mande o <b>plano de ensino</b> (PDF ou print) e o Meu Semestre monta tudo sozinho.</p>
-    <div class="ctas"><a class="btn pr" href="/app">Começar grátis →</a><a class="btn" href="#como-funciona">Ver como funciona</a></div>
-    <div class="trust"><span>30 dias de Premium grátis</span><span>Sem cartão</span><span>iPhone, Android e computador</span></div>
+    <div class="convite" id="convite">🎁 Um amigo te convidou! Crie sua conta e ganhe <b>45 dias de Premium grátis</b>.</div>
+    <span class="tag" style="background:var(--sol2);color:#8a5a00">🎓 Para universitários de qualquer faculdade</span>
+    <h1>Nunca mais <span class="sub-risco">reprove por falta</span>. <span class="marca-txt">Nem passe aperto na média.</span></h1>
+    <p class="lead">O Meu Semestre organiza suas faltas, notas, provas e grade horária a partir do plano de ensino. Você manda o PDF ou um print, e ele faz as contas por você.</p>
+    <div class="ctas"><a class="btn pr" href="/app">Começar grátis agora →</a><a class="btn" href="#calculadora">Calcular minhas faltas</a></div>
+    <div class="garantias"><span><i>✓</i>30 dias de Premium grátis</span><span><i>✓</i>Sem cartão de crédito</span><span><i>✓</i>Celular e computador</span></div>
   </div>
-  <div class="phone" aria-hidden="true"><div class="scr">
-    <div class="mu" style="font-size:11px">Segunda, 16 de março</div><div class="hi">Bom dia, Ana 👋</div>
-    <div class="hero2"><span style="opacity:.85">Começa em 20 min</span><b>Cálculo I</b><span style="opacity:.85">10:10–11:50 · Sala 204</span></div>
-    <div class="k"><div><span class="mu">Presença</span><b>92%</b></div><div><span class="mu">Média</span><b>7,8</b></div></div>
-    <div class="ln"><i style="background:#2846d6"></i><div><b>Programação II</b><div class="mu">13:30–15:10</div></div><span>✓ Presente</span></div>
-    <div class="ln"><i style="background:#d6336c"></i><div><b>Física Geral</b><div class="mu">Pode faltar mais 2</div></div><span class="tag">Atenção</span></div>
-    <div class="ln"><i style="background:#14945a"></i><div><b>Prova II · Química</b><div class="mu">em 3 dias</div></div></div>
-  </div></div>
+  <div class="foto-hero">
+    <div class="blob" aria-hidden="true"></div>
+    <img src="/img/amigas.jpg" width="1200" height="800" alt="Duas estudantes sorrindo enquanto olham o celular juntas no campus" fetchpriority="high">
+    <div class="flut f1" aria-hidden="true"><span class="ic" style="background:var(--menta2)">✅</span><div><span class="mu">Presença</span><b>92%</b></div></div>
+    <div class="flut f2" aria-hidden="true"><span class="ic" style="background:var(--coral2)">⚠️</span><div><span class="mu">Física Geral</span><b>Pode faltar mais 2</b></div></div>
+    <div class="flut f3" aria-hidden="true"><span class="ic" style="background:var(--indigo2)">📝</span><div><span class="mu">Prova II · Cálculo</span><b>amanhã, 10h10</b></div></div>
+  </div>
 </div>
 
-<section id="recursos" class="alt"><div class="w">
-  <div class="sec-h"><h2>Tudo o que a faculdade exige, num lugar só</h2><p>Chega de planilha, print perdido e conta de faltas no papel.</p></div>
-  <div class="grid3">
-    <div class="card"><div class="ico" style="background:#e3f6ec">✅</div><h3>Controle de faltas</h3><p>Saiba exatamente <b>quantas faltas você ainda pode ter</b> em cada matéria. Marque presença com um toque e receba alerta antes de estourar o limite.</p></div>
-    <div class="card"><div class="ico" style="background:#e8ecfd">📝</div><h3>Notas e média</h3><p><b>Calcule sua média</b> com pesos, veja quanto precisa tirar nas próximas provas para passar e acompanhe a recuperação.</p></div>
-    <div class="card"><div class="ico" style="background:#fde8f0">🗓️</div><h3>Grade horária e agenda</h3><p>Grade semanal montada sozinha, <b>calendário de provas</b>, entregas e feriados. Exporte para o Google Agenda.</p></div>
-    <div class="card"><div class="ico" style="background:#fdf3dc">📸</div><h3>Lê prints e PDFs com IA</h3><p>Tire print do portal da faculdade ou do Moodle e as notas e datas entram sozinhas. Você revisa antes de aplicar.</p></div>
-    <div class="card"><div class="ico" style="background:#efe8fd">📚</div><h3>Plano de estudos</h3><p>O conteúdo programático vira uma <b>lista de estudos</b> para marcar o que já revisou antes de cada prova.</p></div>
-    <div class="card"><div class="ico" style="background:#e3f3f6">🔔</div><h3>Lembretes diários</h3><p>Todo dia às 7h: suas aulas, provas de amanhã e alerta de faltas, direto no celular.</p></div>
+<div class="faixa" aria-hidden="true"><div class="t">
+  <span>Engenharia</span><span>Direito</span><span>Medicina</span><span>Psicologia</span><span>Administração</span><span>Computação</span><span>Arquitetura</span><span>Enfermagem</span><span>Nutrição</span><span>Pedagogia</span><span>Biologia</span><span>Jornalismo</span>
+  <span>Engenharia</span><span>Direito</span><span>Medicina</span><span>Psicologia</span><span>Administração</span><span>Computação</span><span>Arquitetura</span><span>Enfermagem</span><span>Nutrição</span><span>Pedagogia</span><span>Biologia</span><span>Jornalismo</span>
+</div></div>
+
+<section><div class="w">
+  <div class="sec-h rev"><span class="tag" style="background:var(--coral2);color:#c2410c">A gente sabe como é 😅</span><h2>Faculdade já é corrida demais pra ficar fazendo conta</h2><p>Se alguma dessas já aconteceu com você, o Meu Semestre foi feito pra você.</p></div>
+  <div class="dores">
+    <div class="dor rev"><div class="emo">😰</div><h3>"Quantas faltas eu ainda posso ter?"</h3><p>Você conta na mão, perde a conta e só descobre que estourou o limite quando já é tarde.</p></div>
+    <div class="dor rev"><div class="emo">🧮</div><h3>"Quanto preciso tirar na P2?"</h3><p>Peso 3, peso 4, trabalho, recuperação… calcular a média vira uma prova à parte.</p></div>
+    <div class="dor rev"><div class="emo">📅</div><h3>"Essa prova era hoje?!"</h3><p>Datas espalhadas entre o Moodle, o grupo da turma e o plano de ensino que ninguém lê.</p></div>
+  </div>
+</div></section>
+
+<section id="recursos" style="background:#fff"><div class="w">
+  <div class="sec-h rev"><span class="tag" style="background:var(--indigo2);color:var(--indigo)">✨ Tudo num lugar só</span><h2>Seu semestre inteiro, <span class="marca-txt">no bolso</span></h2><p>Do primeiro dia de aula à última prova.</p></div>
+
+  <div class="zz rev">
+    <div class="zz-img"><div class="deco" style="background:var(--sol);left:-22px;top:-22px"></div><img src="/img/sala.jpg" width="1200" height="675" loading="lazy" alt="Turma de estudantes usando o celular durante a aula"></div>
+    <div><span class="tag" style="background:var(--menta2);color:var(--menta)">✅ Controle de faltas</span><h3>Saiba exatamente quantas faltas você ainda pode ter</h3>
+      <p class="l">Marque presença com um toque. O app conta as horas-aula, desconta feriados e avisa antes de você chegar no limite.</p>
+      <ul class="check"><li>Funciona com 75%, 70% ou a regra da sua faculdade</li><li>Alerta de "pode faltar só mais 2"</li><li>Aulas canceladas não contam</li></ul></div>
+  </div>
+
+  <div class="zz inv rev">
+    <div class="zz-img"><div class="mock">
+      <div class="mrow"><i style="background:var(--indigo)"></i><div><b>Prova I</b><div class="mu" style="font-size:13px">peso 35%</div></div><span class="v">8,5</span></div>
+      <div class="mrow"><i style="background:var(--rosa)"></i><div><b>Prova II</b><div class="mu" style="font-size:13px">peso 35% · em 4 dias</div></div><span class="v" style="color:var(--tx2)">—</span></div>
+      <div class="mrow"><i style="background:var(--sol)"></i><div><b>Trabalho</b><div class="mu" style="font-size:13px">peso 30%</div></div><span class="v">9,0</span></div>
+      <div class="mrow" style="background:var(--menta2)"><div><b>Você precisa de 4,1 na Prova II</b><div class="mu" style="font-size:13px">para fechar com média 6,0</div></div><span class="pill" style="background:#fff;color:var(--menta)">Tranquilo</span></div>
+    </div></div>
+    <div><span class="tag" style="background:var(--indigo2);color:var(--indigo)">📝 Notas e média</span><h3>Descubra quanto precisa tirar pra passar</h3>
+      <p class="l">Lance as notas e veja sua média com os pesos certinhos. O app mostra quanto falta para a aprovação e se você vai para a recuperação.</p>
+      <ul class="check"><li>Média ponderada automática</li><li>Média de aprovação configurável (6, 7, 5…)</li><li>Cálculo da recuperação</li></ul></div>
+  </div>
+
+  <div class="zz rev">
+    <div class="zz-img"><div class="deco" style="background:var(--rosa);right:-20px;bottom:-20px;left:auto"></div><img src="/img/selfie.jpg" width="1200" height="675" loading="lazy" alt="Colegas de turma sorrindo e tirando uma selfie na sala de aula"></div>
+    <div><span class="tag" style="background:var(--sol2);color:#8a5a00">📸 Inteligência artificial</span><h3>Mande um print e pronto: o app atualiza sozinho</h3>
+      <p class="l">Print das notas no portal, foto do cronograma, PDF do plano de ensino. A IA lê, mostra o que mudou e você confirma.</p>
+      <ul class="check"><li>Funciona com SIGAA, Moodle, CAGR e outros portais</li><li>Você revisa tudo antes de aplicar</li><li>Grade, provas e conteúdos criados automaticamente</li></ul></div>
   </div>
 </div></section>
 
 <section id="como-funciona"><div class="w">
-  <div class="sec-h"><h2>Como funciona</h2><p>Do plano de ensino ao semestre organizado em 3 passos.</p></div>
-  <div class="grid3 passos">
-    <div class="card"><div class="n">1</div><h3>Envie o plano de ensino</h3><p>PDF, print ou texto copiado. Funciona com SIGAA, CAGR, Moodle e com o plano de qualquer faculdade.</p></div>
-    <div class="card"><div class="n">2</div><h3>O app monta tudo</h3><p>Grade, horas-aula, faltas permitidas, avaliações com pesos e datas, e a lista de conteúdos.</p></div>
-    <div class="card"><div class="n">3</div><h3>Acompanhe o semestre</h3><p>Marque presença, lance as notas e veja de cara se está tudo em dia. Tudo editável pelo ✏️.</p></div>
+  <div class="sec-h rev"><span class="tag" style="background:var(--ceu2);color:#0b6f9c">⚡ Em 2 minutos</span><h2>Como funciona</h2><p>Sem cadastro chato, sem planilha.</p></div>
+  <div class="passos">
+    <div class="passo rev"><div class="n" style="background:var(--coral)">1</div><h3>Crie sua conta</h3><p class="mu">Com Google ou e-mail. Você já ganha 30 dias de Premium, sem cartão.</p></div>
+    <div class="passo rev"><div class="n" style="background:var(--indigo)">2</div><h3>Envie o plano de ensino</h3><p class="mu">PDF, print ou texto. O app monta grade, faltas permitidas, provas e conteúdos.</p></div>
+    <div class="passo rev"><div class="n" style="background:var(--menta)">3</div><h3>Viva o semestre tranquilo</h3><p class="mu">Marque presença, lance notas e receba lembretes das provas no celular.</p></div>
   </div>
 </div></section>
 
-<section id="calculadora" class="alt"><div class="w split">
-  <div>
-    <span class="pill">Calculadora de faltas grátis</span>
-    <h2 style="font-size:clamp(28px,4vw,40px);font-weight:800;margin:14px 0 12px">Quantas faltas eu posso ter?</h2>
-    <p class="mu" style="font-size:18px;margin:0">Na maioria das faculdades a <b>presença mínima é 75%</b>, ou seja, dá para faltar até 25% das aulas. Faça a conta ao lado. No app, isso é calculado sozinho para cada disciplina, com alerta antes do limite.</p>
-    <ul class="lista"><li>Considera feriados e aulas canceladas</li><li>Funciona com 75%, 70% ou a regra da sua faculdade</li><li>Mostra quantas faltas ainda restam, matéria por matéria</li></ul>
-  </div>
-  <div class="calc">
-    <label for="ch">Carga horária da disciplina (horas-aula)</label><input id="ch" type="number" inputmode="numeric" value="72" min="1">
-    <label for="pm">Presença mínima (%)</label><input id="pm" type="number" inputmode="numeric" value="75" min="1" max="100">
-    <label for="ft">Faltas que você já tem</label><input id="ft" type="number" inputmode="numeric" value="4" min="0">
-    <div class="res" id="res"></div>
-    <a class="btn pr" style="width:100%;margin-top:14px" href="/app">Calcular para todas as matérias →</a>
+<section style="background:#fff;padding-top:80px"><div class="w">
+  <div class="sec-h rev"><span class="tag" style="background:var(--rosa2);color:#b0245f">💜 Feito pra rotina universitária</span><h2>Na sala, no campus, no busão</h2><p>Funciona como app no celular, até offline, e no computador quando você precisa de tela grande.</p></div>
+  <div class="galeria rev">
+    <figure class="alta"><img src="/img/campus.jpg" width="800" height="1200" loading="lazy" alt="Estudante com mochila olhando o celular no campus"><figcaption>📍 Próxima aula e sala na tela inicial</figcaption></figure>
+    <figure><img src="/img/selfie.jpg" width="1200" height="675" loading="lazy" alt="Amigos de turma sorrindo juntos"><figcaption>🎁 Indique pra turma e ganhe meses grátis</figcaption></figure>
+    <figure><img src="/img/amigas.jpg" width="1200" height="800" loading="lazy" alt="Duas amigas conferindo o celular"><figcaption>🔔 Lembrete das provas todo dia às 7h</figcaption></figure>
+    <figure style="grid-column:span 2"><img src="/img/sala.jpg" width="1200" height="675" loading="lazy" alt="Estudantes em sala de aula"><figcaption>✅ Presença marcada em 1 toque, sem sair da aula</figcaption></figure>
   </div>
 </div></section>
 
-<section id="precos"><div class="w">
-  <div class="sec-h"><h2>Comece grátis. Continue por menos de R$ 5 por mês.</h2><p>30 dias de Premium completo ao criar a conta, sem cartão.</p></div>
+<section id="calculadora"><div class="w">
+  <div class="calc-box rev">
+    <div style="position:relative"><span class="tag" style="background:rgba(255,255,255,.18);color:#fff">🧮 Calculadora de faltas grátis</span>
+      <h2>Quantas faltas eu posso ter na faculdade?</h2>
+      <p>Na maioria das faculdades a presença mínima é <b>75%</b>, ou seja, você pode faltar até 25% das aulas. Faça a conta aqui. No app, isso é automático para cada disciplina.</p></div>
+    <div class="calc">
+      <label for="ch">Carga horária da disciplina (horas-aula)</label><input id="ch" type="number" inputmode="numeric" value="72" min="1">
+      <label for="pm">Presença mínima (%)</label><input id="pm" type="number" inputmode="numeric" value="75" min="1" max="100">
+      <label for="ft">Faltas que você já tem</label><input id="ft" type="number" inputmode="numeric" value="4" min="0">
+      <div class="res" id="res" aria-live="polite"></div>
+      <a class="btn pr" style="width:100%;margin-top:16px" href="/app">Calcular todas as matérias →</a>
+    </div>
+  </div>
+</div></section>
+
+<section id="precos" style="background:#fff"><div class="w">
+  <div class="sec-h rev"><span class="tag" style="background:var(--menta2);color:var(--menta)">💸 Preço de estudante</span><h2>Comece grátis. Continue por <span class="sub-risco">menos de R$ 5/mês</span>.</h2><p>Todo mundo ganha 30 dias de Premium completo. Sem cartão, sem pegadinha.</p></div>
   <div class="precos">
-    <div class="card preco"><h3>Grátis</h3><div class="valor">R$ 0</div><ul><li>Até 3 disciplinas</li><li>Faltas, notas e grade</li><li>Agenda e histórico</li><li>3 leituras com IA por semestre</li></ul><a class="btn" href="/app">Criar conta</a></div>
-    <div class="card preco dest"><span class="selo">Mais escolhido · economize 40%</span><h3>Semestral</h3><div class="valor">R$ 24,90<small> /semestre</small></div><ul><li>Tudo ilimitado</li><li>Lembretes diários</li><li>Google Agenda e grade como imagem</li><li>Pix ou cartão, sem renovação automática</li></ul><a class="btn pr" href="/app">Testar 30 dias grátis</a></div>
-    <div class="card preco"><h3>Mensal</h3><div class="valor">R$ 6,90<small> /mês</small></div><ul><li>Tudo do Premium</li><li>Cancele quando quiser</li><li>Cobrança no cartão</li></ul><a class="btn" href="/app">Testar 30 dias grátis</a></div>
+    <div class="preco rev"><h3>Grátis</h3><div class="valor">R$ 0</div><ul><li>Até 3 disciplinas</li><li>Faltas, notas e grade</li><li>Agenda e histórico</li><li>3 leituras com IA por semestre</li></ul><a class="btn" href="/app">Criar conta</a></div>
+    <div class="preco dest rev"><span class="selo">⭐ Mais escolhido · economize 40%</span><h3>Semestral</h3><div class="valor">R$ 24,90<small> /semestre</small></div><ul><li>Tudo ilimitado</li><li>Lembretes diários no celular</li><li>Google Agenda e grade como imagem</li><li>Pix ou cartão, sem renovação automática</li></ul><a class="btn pr" href="/app">Testar 30 dias grátis</a></div>
+    <div class="preco rev"><h3>Mensal</h3><div class="valor">R$ 6,90<small> /mês</small></div><ul><li>Tudo do Premium</li><li>Cancele quando quiser</li><li>Cobrança no cartão</li></ul><a class="btn" href="/app">Testar 30 dias grátis</a></div>
   </div>
 </div></section>
 
-<section id="duvidas" class="alt"><div class="w">
-  <div class="sec-h"><h2>Dúvidas frequentes</h2></div>
+<section id="duvidas"><div class="w">
+  <div class="sec-h rev"><span class="tag" style="background:var(--indigo2);color:var(--indigo)">🤔 Dúvidas</span><h2>Perguntas frequentes</h2></div>
   <div class="faq">
     <details open><summary>Como calcular quantas faltas eu posso ter na faculdade?</summary><p>Na maioria das faculdades a presença mínima é 75%, então você pode faltar até 25% das aulas. Numa disciplina de 72 horas-aula, isso dá 18 faltas. O Meu Semestre faz essa conta para cada matéria e avisa quando você estiver chegando perto do limite.</p></details>
     <details><summary>Funciona para qualquer faculdade?</summary><p>Sim: federais, estaduais e particulares. Você ajusta a média de aprovação (6, 7, 5…) e a presença mínima da sua instituição. O app lê planos de ensino em PDF, prints de portais como SIGAA, CAGR e Moodle, ou texto copiado.</p></details>
-    <details><summary>Como calcular a média da faculdade com pesos?</summary><p>Multiplique cada nota pelo seu peso, some tudo e divida pela soma dos pesos. No app, as avaliações e os pesos vêm do plano de ensino e ele ainda mostra quanto você precisa tirar nas próximas provas para passar.</p></details>
+    <details><summary>Como calcular a média da faculdade com pesos?</summary><p>Multiplique cada nota pelo seu peso, some tudo e divida pela soma dos pesos. No app, as avaliações e os pesos vêm do plano de ensino, e ele ainda mostra quanto você precisa tirar nas próximas provas para passar.</p></details>
     <details><summary>Preciso baixar na App Store ou no Google Play?</summary><p>Não. Abra www.meusemestre.com.br no celular e adicione à tela inicial. Ele funciona como app, em tela cheia e até offline, no iPhone e no Android.</p></details>
-    <details><summary>Meus dados ficam seguros?</summary><p>Sim. Cada conta só acessa os próprios dados, e você pode exportar ou apagar tudo quando quiser. Veja a <a href="/privacidade.html">Política de Privacidade</a>.</p></details>
+    <details><summary>Meus dados ficam seguros?</summary><p>Sim. Cada conta só acessa os próprios dados, e você pode exportar ou apagar tudo quando quiser. Veja a <a href="/privacidade">Política de Privacidade</a>.</p></details>
     <details><summary>Quanto custa?</summary><p>Você ganha 30 dias de Premium grátis, sem cartão. Depois, pode seguir no plano grátis ou assinar o Premium por R$ 6,90/mês ou R$ 24,90/semestre (Pix ou cartão).</p></details>
   </div>
 </div></section>
 
-<section><div class="final">
-  <h2>Comece o semestre no controle</h2>
-  <p>Leva menos de 2 minutos para montar sua grade a partir do plano de ensino.</p>
-  <a class="btn" href="/app">Criar minha conta grátis →</a>
+<section style="padding-top:20px"><div class="w">
+  <div class="final rev">
+    <div class="tx"><h2>Comece o semestre no controle 🚀</h2><p>Leva menos de 2 minutos para montar sua grade a partir do plano de ensino. E os primeiros 30 dias são por nossa conta.</p><a class="btn" href="/app">Criar minha conta grátis →</a></div>
+    <img src="/img/campus.jpg" width="800" height="1200" loading="lazy" alt="Estudante no campus usando o celular">
+  </div>
 </div></section>
 </main>
 
 <footer><div class="w">
-  <a class="logo" href="/"><span class="mark" style="width:26px;height:26px;border-radius:8px"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M22 10 12 5 2 10l10 5 10-5z" fill="#fff"/><path d="M6 12v4c0 1.7 2.7 3 6 3s6-1.3 6-3v-4l-6 3z" fill="#fbbf24"/></svg></span>Meu Semestre</a>
+  <a class="logo" href="/"><span class="mark" style="width:30px;height:30px;border-radius:9px"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 10 12 5 2 10l10 5 10-5z" fill="#fff"/><path d="M6 12v4c0 1.7 2.7 3 6 3s6-1.3 6-3v-4l-6 3z" fill="#ffc83d"/></svg></span>Meu Semestre</a>
   <span>App independente para universitários, sem vínculo com nenhuma instituição de ensino.</span><span class="sp"></span>
-  <a href="/privacidade.html">Privacidade</a><a href="/termos.html">Termos</a><a href="/app">Entrar</a>
+  <a href="/privacidade">Privacidade</a><a href="/termos">Termos</a><a href="/app">Entrar</a>
+  <span style="width:100%;font-size:12px">Fotos: Unsplash.</span>
 </div></footer>
 
+<div class="cta-fixo" id="ctaFixo"><a class="btn pr" href="/app">Começar grátis, 30 dias de Premium →</a></div>
+
 <script>
-addEventListener('scroll', function () { document.getElementById('hd').classList.toggle('s', scrollY > 10); }, { passive: true });
+var hd = document.getElementById('hd'), cta = document.getElementById('ctaFixo');
+addEventListener('scroll', function () { hd.classList.toggle('s', scrollY > 10); cta.classList.toggle('on', scrollY > 600 && innerHeight + scrollY < document.body.scrollHeight - 300); }, { passive: true });
 try { if (localStorage.getItem('meu-semestre-v2:convite')) document.getElementById('convite').style.display = 'block'; } catch (e) { }
 function calc() {
   var ch = +document.getElementById('ch').value || 0, pm = +document.getElementById('pm').value || 75, ft = +document.getElementById('ft').value || 0;
   var max = Math.floor(ch * (1 - pm / 100)), resta = max - ft, r = document.getElementById('res');
-  r.innerHTML = ch ? (resta >= 0 ? 'Você ainda pode faltar<b>' + resta + ' aula' + (resta === 1 ? '' : 's') + '</b>de um total de ' + max + ' faltas permitidas.' : 'Você passou do limite em<b>' + (-resta) + ' falta' + (-resta === 1 ? '' : 's') + '</b>Converse com o professor sobre reposição.') : 'Informe a carga horária.';
+  r.className = 'res' + (resta < 0 ? ' ruim' : '');
+  r.innerHTML = !ch ? 'Informe a carga horária.' : resta >= 0 ? 'Você ainda pode faltar<b>' + resta + ' aula' + (resta === 1 ? '' : 's') + '</b>de ' + max + ' faltas permitidas 🙌' : 'Você passou do limite em<b>' + (-resta) + ' falta' + (-resta === 1 ? '' : 's') + '</b>Converse com o professor sobre reposição.';
 }
 ['ch', 'pm', 'ft'].forEach(function (id) { document.getElementById(id).addEventListener('input', calc); }); calc();
+// animação suave ao aparecer (respeita "reduzir movimento")
+if ('IntersectionObserver' in window && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  var io = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('vis'); io.unobserve(e.target); } }); }, { rootMargin: '0px 0px -8% 0px' });
+  document.querySelectorAll('.rev').forEach(function (el) { io.observe(el); });
+} else document.querySelectorAll('.rev').forEach(function (el) { el.classList.add('vis'); });
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function () { });
 </script>
 </body>
