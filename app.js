@@ -84,7 +84,7 @@ function migrar(d) {
   if (d.perfil?.cor && !corOk(d.perfil.cor)) d.perfil.cor = '';
   d.materias.forEach(m => { m.avaliacoes = juntarDuplicadas(m.avaliacoes); });
   d.eventos = limparEventos(d);
-  d.horas = Object.assign({ exigidas: '', categorias: [], atividades: [], obs: '', curriculo: [], disciplinas: [] }, d.horas || {});
+  d.horas = Object.assign({ exigidas: '', categorias: [], atividades: [], obs: '', curriculo: [], disciplinas: [], curriculoArquivos: [] }, d.horas || {});
   d.horas.disciplinas = (d.horas.disciplinas || []).filter(x => x && x.nome && num(x.horas) != null).map(x => ({ ...x, id: /^[\w-]{1,40}$/.test(x.id || '') ? x.id : uid() }));
   d.horas.atividades = (d.horas.atividades || []).map(x => ({ ...x, id: /^[\w-]{1,40}$/.test(x.id || '') ? x.id : uid() }));
   return d;
@@ -376,6 +376,7 @@ V.inicio = () => {
   lado += `<div class="card"><div class="card-h"><h3 class="sp">Próximas datas</h3><button class="btn ghost sm" onclick="eventoSheet()">${ic('plus', 16)}</button></div>
     ${evs.length ? `<div class="list">${evs.map(e => `<div class="row"><div class="dia-box" style="--c:${corEv(e)}"><b>${parseISO(e.data).getDate()}</b><small>${parseISO(e.data).toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}</small></div><div class="sp"><b class="sm">${esc(e.titulo)}</b><div class="mu">${esc(nomeM(byId(e.materiaId)) || TIPOS_EV[e.tipo] || '')} · ${quando(e.data)}</div></div></div>`).join('')}</div>` : '<p class="mu">Nenhuma data cadastrada.</p>'}</div>`;
   lado += `<div class="card tap" onclick="go('disciplinas')"><div class="row">${ring(pc, 'var(--pr)', tp.length ? pc + '%' : '—')}<div class="sp"><b>Conteúdos estudados</b><div class="mu">${feitos} de ${tp.length} em ${S.materias.length} disciplina(s)</div></div>${ic('right')}</div></div>`;
+  if (user && S.materias.length && !S.horas.curriculo?.length && !avisoCurrDispensado()) lado += avisoCurriculo(false);
   lado += cardHoras();
   if (user) lado += `<a class="card tap row indica-card" href="#/indicar" style="color:inherit;text-decoration:none"><span style="font-size:26px">🎁</span><div class="sp"><b>Indique e ganhe</b><div class="mu">1 mês de Premium por amigo que assinar</div></div>${ic('right')}</a>`;
   lado += cardInstalar();
@@ -594,6 +595,7 @@ async function processar() {
       res.resumo = `Leitura local de ${res.disciplinas.length} plano(s) de ensino.`;
     }
     UP.resumo = res.resumo || ''; UP.mudancas = montarMudancas(res); UP.fase = 'revisar';
+    if (user && (UP.tipo === 'curriculo' || (res.curso?.disciplinasCurriculo || []).length)) UP.guardarCurriculo = UP.arquivos.filter(a => a.mediaType !== 'text/plain').map(a => ({ mediaType: a.mediaType, data: a.data, name: a.name }));
   } catch (e) { UP.fase = 'enviar'; UP.erro = e.message; }
   render();
 }
@@ -686,6 +688,7 @@ function aplicar() {
   novas.forEach(m => m.apply());
   ms.filter(m => m.grupo !== 'Nova disciplina').forEach(m => m.apply());
   S.materias.forEach(m => { m.avaliacoes = juntarDuplicadas(m.avaliacoes); }); S.eventos = limparEventos(S);
+  if (UP.guardarCurriculo?.length) guardarCurriculo(UP.guardarCurriculo);
   save(); resetUP(false);
   toast(`${ms.length} mudança(s) aplicada(s).`, () => { S = migrar(JSON.parse(backup)); save(); render(); });
   go(ms.some(m => m.grupo === 'Histórico') && !ms.some(m => m.grupo === 'Nova disciplina') ? 'historico' : 'inicio');
@@ -1482,6 +1485,7 @@ V.horas = () => {
   const H = S.horas, r = resumoHoras();
   let html = `<div class="stack"><div class="pg-h"><div><p class="mu">Atividades extracurriculares do curso</p><h1>Horas complementares</h1></div>
     <div class="row wrap"><button class="btn" onclick="regrasHorasSheet()">${ic('gear', 18)} Regras do curso</button><label class="btn">${ic('up', 18)} Vários certificados<input type="file" accept="image/*,application/pdf" multiple hidden onchange="enviarVarios(this)"></label><button class="btn pr" onclick="atividadeSheet()">${ic('plus', 18)} Adicionar certificado</button></div></div>`;
+  if (user && !H.curriculo?.length) html += avisoCurriculo(true);
   if (!r.meta) html += `<div class="card"><div class="row" style="align-items:flex-start"><span style="font-size:30px">📋</span><div class="sp"><b>Quantas horas o seu curso exige?</b><div class="mu" style="margin:4px 0 12px">Digite o total ou envie o currículo / regulamento de atividades complementares que a IA lê as categorias e os limites.</div>
       <div class="row wrap"><input id="hx" inputmode="numeric" placeholder="Ex.: 200" style="width:130px"><button class="btn" onclick="const v=num($('#hx').value);if(!v)return toast('Digite o total de horas.');S.horas.exigidas=String(v);save();render()">Salvar</button><label class="btn ghost">${ic('file', 18)} Enviar regulamento<input type="file" accept="image/*,application/pdf" hidden onchange="lerRegulamento(this)"></label></div></div></div></div>`;
   html += `<div class="grid two"><div class="card"><div class="row">${ring(r.pct, 'var(--menta)', r.meta ? r.pct + '%' : '—')}<div class="sp"><div class="mu">Horas que contam</div><div class="big">${fmtH(r.total)}${r.meta ? `<span class="mu" style="font-size:16px;font-weight:500"> / ${fmtH(r.meta)}</span>` : ''}</div>
@@ -1506,7 +1510,8 @@ function regrasHorasSheet() {
   sheet(`<h2>Regras do curso</h2><p class="mu" style="margin:6px 0 14px">Total exigido para se formar e o máximo que cada tipo de atividade pode contar.</p>
     <label class="f">Total de horas complementares exigidas<input id="rh-t" inputmode="numeric" value="${esc(H.exigidas)}" placeholder="Ex.: 200"></label>
     <div class="between" style="margin-top:14px"><b>Categorias</b><button class="btn ghost sm" onclick="_cats.push({id:uid(),nome:'',limite:''});catsRender()">${ic('plus', 16)} Categoria</button></div><div id="cats"></div>
-    <label class="btn block" style="margin-top:14px">${ic('file', 18)} Preencher a partir do regulamento (IA)<input type="file" accept="image/*,application/pdf" hidden onchange="lerRegulamento(this)"></label>
+    ${H.curriculoArquivos?.length ? `<button class="btn block" style="margin-top:14px" onclick="relerCurriculo()">${ic('hist', 18)} Reler o currículo guardado (${H.curriculoArquivos.length} arquivo${H.curriculoArquivos.length > 1 ? 's' : ''})</button>` : ''}
+    <label class="btn block" style="margin-top:10px">${ic('file', 18)} Preencher a partir do regulamento (IA)<input type="file" accept="image/*,application/pdf" hidden onchange="lerRegulamento(this)"></label>
     <div class="actions"><button class="btn" onclick="closeSheet()">Cancelar</button><button class="btn pr sp" onclick="salvarRegrasHoras()">Salvar</button></div>`);
   catsRender();
 }
@@ -1535,7 +1540,8 @@ async function lerRegulamento(inp) {
   const f = inp.files[0]; inp.value = ''; if (!f) return;
   sheet(`<h2>Lendo o regulamento…</h2><div style="display:flex;justify-content:center;margin:20px 0"><div class="spin"></div></div><p class="mu" style="text-align:center">Isso leva alguns segundos.</p>`);
   try {
-    const d = await lerComIA('regulamento', await arquivoParaEnvio(f));
+    const arqReg = await arquivoParaEnvio(f);
+    const d = await lerComIA('regulamento', arqReg);
     const cats = (d.categorias || []).filter(c => c.nome).map(c => ({ id: uid(), nome: c.nome, limite: c.limiteHoras ? String(num(c.limiteHoras) ?? '') : '' }));
     sheet(`<h2>Confira as regras encontradas</h2>
       ${d.curso || d.universidade ? `<p style="margin:10px 0 0"><b>Curso:</b> ${esc([d.curso, d.universidade].filter(Boolean).join(' · '))}</p>` : ''}
@@ -1544,7 +1550,7 @@ async function lerRegulamento(inp) {
       ${d.observacoes ? `<p class="mu" style="margin-top:12px">📌 ${esc(d.observacoes)}</p>` : ''}
       ${(d.disciplinas || []).length ? `<p class="mu" style="margin-top:8px">📚 ${(d.disciplinas || []).length} disciplina(s) do currículo com carga horária (para marcar as que contam como horas complementares).</p>` : ''}
       <div class="actions"><button class="btn" onclick="closeSheet()">Descartar</button><button class="btn pr sp" id="ok-reg">Usar estas regras</button></div>`);
-    $('#ok-reg').onclick = () => { if (d.curso && !S.perfil.curso) S.perfil.curso = d.curso; if (d.universidade && !S.perfil.universidade) S.perfil.universidade = d.universidade; if (d.horasExigidas) S.horas.exigidas = String(num(d.horasExigidas)); if (cats.length) S.horas.categorias = cats; S.horas.obs = d.observacoes || ''; const dc = (d.disciplinas || []).filter(x => x.nome && num(x.cargaHoraria)); if (dc.length) S.horas.curriculo = dc.map(x => ({ codigo: (x.codigo || '').toUpperCase(), nome: x.nome, horas: String(num(x.cargaHoraria)), tipo: x.tipo || '' })); closeSheet(); save(); render(); toast('Regras aplicadas. Você pode editar em "Regras do curso".'); };
+    $('#ok-reg').onclick = () => { if (d.curso && !S.perfil.curso) S.perfil.curso = d.curso; if (d.universidade && !S.perfil.universidade) S.perfil.universidade = d.universidade; if (d.horasExigidas) S.horas.exigidas = String(num(d.horasExigidas)); if (cats.length) S.horas.categorias = cats; S.horas.obs = d.observacoes || ''; guardarCurriculo([{ mediaType: arqReg.mediaType, data: arqReg.data, name: f.name }]); const dc = (d.disciplinas || []).filter(x => x.nome && num(x.cargaHoraria)); if (dc.length) S.horas.curriculo = dc.map(x => ({ codigo: (x.codigo || '').toUpperCase(), nome: x.nome, horas: String(num(x.cargaHoraria)), tipo: x.tipo || '' })); closeSheet(); save(); render(); toast('Regras aplicadas. Você pode editar em "Regras do curso".'); };
   } catch (e) { if (!e.silencioso) { closeSheet(); toast(e.message); } }
 }
 let novoArq = null;
@@ -1724,4 +1730,44 @@ function salvarSelD() {
   if (sem.length) return toast(`Informe a carga horária de: ${sem.map(o => o.nome).slice(0, 2).join(', ')}${sem.length > 2 ? '…' : ''}`);
   S.horas.disciplinas = sel.map(o => ({ id: uid(), ref: o.ref, codigo: o.codigo || '', nome: o.nome, origem: o.origem || '', horas: String(num(o.horas)), categoria: (o.categoria || 'Disciplinas optativas').trim() }));
   closeSheet(); save(); render(); toast(`${sel.length} disciplina(s) contando nas horas complementares.`);
+}
+
+
+// ================= Currículo: aviso, cópia guardada e releitura =================
+const avisoCurrDispensado = () => { try { return localStorage.getItem(KEY + ':sem-aviso-curr'); } catch { return null; } };
+function avisoCurriculo(naTelaHoras) {
+  return `<div class="card aviso-curr"><div class="row" style="align-items:flex-start"><span style="font-size:28px">📚</span><div class="sp"><b>Envie o currículo do seu curso</b>
+    <div class="mu" style="margin:4px 0 12px">Com ele, o app preenche as horas complementares exigidas, as categorias e a carga horária de cada disciplina (inclusive optativas). É um envio só.</div>
+    <div class="row wrap"><a class="btn pr sm" href="#/atualizar/curriculo">${ic('up', 16)} Enviar currículo</a>${naTelaHoras ? '' : `<button class="btn ghost sm" onclick="try{localStorage.setItem(KEY+':sem-aviso-curr',1)}catch{};render()">Agora não</button>`}</div></div></div></div>`;
+}
+async function guardarCurriculo(arquivos) {
+  if (!sb || !user || !arquivos?.length) return;
+  const salvos = [];
+  for (const [i, a] of arquivos.slice(0, 4).entries()) {
+    const ext = a.mediaType === 'application/pdf' ? 'pdf' : 'jpg';
+    const path = `${user.id}/curriculo/${Date.now()}-${i}.${ext}`;
+    const { error } = await sb.storage.from('certificados').upload(path, b64ParaBlob(a.data, a.mediaType === 'application/pdf' ? 'application/pdf' : 'image/jpeg'), { upsert: true, contentType: a.mediaType === 'application/pdf' ? 'application/pdf' : 'image/jpeg' });
+    if (!error) salvos.push({ path, nome: a.name || 'curriculo.' + ext, mediaType: a.mediaType === 'application/pdf' ? 'application/pdf' : 'image/jpeg', em: hoje() });
+  }
+  if (!salvos.length) return;
+  const antigos = S.horas.curriculoArquivos || [];
+  S.horas.curriculoArquivos = salvos;
+  save();
+  if (antigos.length) sb.storage.from('certificados').remove(antigos.map(x => x.path)).catch(() => { });
+}
+async function relerCurriculo() {
+  const arqs = S.horas.curriculoArquivos || [];
+  if (!arqs.length || !sb) return;
+  sheet(`<h2>Relendo o currículo…</h2><div style="display:flex;justify-content:center;margin:20px 0"><div class="spin"></div></div>`);
+  try {
+    const { data: blob, error } = await sb.storage.from('certificados').download(arqs[0].path);
+    if (error) throw error;
+    const data = await new Promise((ok, err) => { const r = new FileReader(); r.onload = () => ok(r.result.split(',')[1]); r.onerror = err; r.readAsDataURL(blob); });
+    const d = await lerComIA('regulamento', { mediaType: arqs[0].mediaType, data });
+    const dc = (d.disciplinas || []).filter(x => x.nome && num(x.cargaHoraria));
+    if (dc.length) S.horas.curriculo = dc.map(x => ({ codigo: (x.codigo || '').toUpperCase(), nome: x.nome, horas: String(num(x.cargaHoraria)), tipo: x.tipo || '' }));
+    if (d.horasExigidas && !S.horas.exigidas) S.horas.exigidas = String(num(d.horasExigidas));
+    if (!S.horas.categorias.length && (d.categorias || []).length) S.horas.categorias = d.categorias.filter(c => c.nome).map(c => ({ id: uid(), nome: c.nome, limite: c.limiteHoras ? String(num(c.limiteHoras) ?? '') : '' }));
+    closeSheet(); save(); render(); toast(dc.length ? `Currículo relido: ${dc.length} disciplina(s) com carga horária.` : 'Currículo relido. Nenhuma disciplina nova encontrada.');
+  } catch (e) { if (!e.silencioso) { closeSheet(); toast('Não foi possível reler: ' + (e.message || e)); } }
 }
