@@ -9,7 +9,7 @@ const obj = props => ({ type: 'object', properties: props, required: Object.keys
 
 const ESQUEMAS = {
   certificado: obj({ titulo: S, horas: S, data: S, instituicao: S, categoria: S, resumo: S }),
-  regulamento: obj({ curso: S, universidade: S, horasExigidas: S, categorias: { type: 'array', items: obj({ nome: S, limiteHoras: S }) }, observacoes: S }),
+  regulamento: obj({ curso: S, universidade: S, horasExigidas: S, categorias: { type: 'array', items: obj({ nome: S, limiteHoras: S }) }, disciplinas: { type: 'array', items: obj({ codigo: S, nome: S, cargaHoraria: S, tipo: S }) }, observacoes: S }),
 };
 const INSTRUCOES = {
   certificado: `Você lê certificados de atividades complementares de estudantes universitários brasileiros (cursos, eventos, palestras, monitorias, projetos de extensão, estágios, voluntariado).
@@ -17,7 +17,7 @@ Extraia: "titulo" (nome da atividade), "horas" (carga horária total em horas, s
 "categoria": escolha a categoria mais adequada da lista enviada pelo aluno, copiando o nome exatamente; se a lista estiver vazia ou nenhuma servir, sugira um nome curto (ex.: "Eventos", "Cursos", "Extensão", "Monitoria", "Pesquisa").
 "resumo": uma frase em português. Campo desconhecido = "".`,
   regulamento: `Você lê o currículo, projeto pedagógico ou regulamento de atividades complementares de um curso universitário brasileiro.
-Extraia: "curso" (nome do curso, se aparecer), "universidade" (sigla ou nome da instituição, se aparecer), "horasExigidas" (total de horas complementares exigidas para se formar, só o número; se não aparecer, ""), "categorias" (cada tipo de atividade aceito com "limiteHoras" = máximo de horas que pode contar naquela categoria, só o número, ou "" se não houver limite), "observacoes" (regras importantes resumidas em até 2 frases, em português).
+Extraia: "curso" (nome do curso, se aparecer), "universidade" (sigla ou nome da instituição, se aparecer), "horasExigidas" (total de horas complementares exigidas para se formar, só o número; se não aparecer, ""), "categorias" (cada tipo de atividade aceito com "limiteHoras" = máximo de horas que pode contar naquela categoria, só o número, ou "" se não houver limite), "disciplinas" (disciplinas do currículo com código, nome, carga horária total só o número e tipo "obrigatória", "optativa" ou "eletiva"; priorize optativas/eletivas, no máximo 150; lista vazia se o documento não tiver disciplinas), "observacoes" (regras importantes resumidas em até 2 frases, em português).
 Não invente categorias que não estejam no documento.`,
 };
 
@@ -42,7 +42,7 @@ export default async function handler(req, res) {
 
   try {
     const r = await anthropic.messages.create({
-      model: 'claude-haiku-5-5', max_tokens: 4000,
+      model: 'claude-haiku-5-5', max_tokens: 12000,
       output_config: { effort: 'medium', format: { type: 'json_schema', schema: ESQUEMAS[tipo] } },
       system: INSTRUCOES[tipo], messages: [{ role: 'user', content }],
     });

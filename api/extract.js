@@ -18,7 +18,7 @@ const SCHEMA = obj({
   semestre: obj({ inicio: S, fim: S }),
   feriados: arr(obj({ data: S, descricao: S })),
   disciplinas: arr(obj({
-    codigo: S, nome: S, professor: S, turma: S, cargaHoraria: S,
+    codigo: S, nome: S, professor: S, turma: S, cargaHoraria: S, tipo: S,
     horarios: arr(obj({ dia: S, inicio: S, aulas: S, sala: S })),
     avaliacoes: arr(obj({ nome: S, peso: S, data: S, nota: S })),
     topicos: arr(S),
@@ -26,7 +26,7 @@ const SCHEMA = obj({
   })),
   eventos: arr(obj({ data: S, titulo: S, tipo: S, codigo: S })),
   historico: arr(obj({ codigo: S, nome: S, semestre: S, nota: S, creditos: S, situacao: S })),
-  curso: obj({ nome: S, universidade: S, horasComplementares: S, categoriasHoras: arr(obj({ nome: S, limiteHoras: S })) }),
+  curso: obj({ nome: S, universidade: S, horasComplementares: S, categoriasHoras: arr(obj({ nome: S, limiteHoras: S })), disciplinasCurriculo: arr(obj({ codigo: S, nome: S, cargaHoraria: S, tipo: S })) }),
 });
 
 const SYSTEM = `Você extrai dados acadêmicos de documentos de estudantes universitários brasileiros, de qualquer instituição (plano de ensino, cronograma, calendário acadêmico, prints de portais acadêmicos como CAGR, SIGAA, Moodle, Canvas e Google Classroom, histórico escolar, boletim de notas).
@@ -35,12 +35,13 @@ Regras:
 - Datas sempre no formato AAAA-MM-DD. Se o ano não aparecer, use o ano informado no contexto.
 - Horários: "dia" é o número UFSC (2=segunda ... 7=sábado); "inicio" é HHMM entre 0730,0820,0910,1010,1100,1330,1420,1510,1620,1710,1830,1920,2020,2110; "aulas" é a quantidade de aulas de 50 min. O formato do CAGR/UFSC "2.1010-2" significa dia 2, início 1010, 2 aulas. Em outras faculdades os horários vêm como "Segunda 08:20–10:00": converta para o horário de início mais próximo da lista e calcule as aulas de 50 min.
 - Pesos das avaliações em porcentagem, sem o símbolo (ex.: "35"). Notas de 0 a 10 com ponto decimal.
+- Em cada disciplina, "cargaHoraria" é a carga horária total que aparece no plano (só o número) e "tipo" é "obrigatória", "optativa" ou "eletiva" se o documento indicar (senão "").
 - "topicos" são itens do conteúdo programático, curtos, um por item.
 - "eventos": entregas, feriados, dias sem aula e outras datas do calendário. NÃO repita em "eventos" as provas/avaliações que já estão em "avaliacoes" da disciplina; "tipo" é um de: prova, entrega, feriado, aula, outro. "codigo" é o código da disciplina relacionada, se houver.
 - "historico": disciplinas já cursadas (histórico escolar), com situação como aparece (Aprovado, Reprovado, FI etc.).
 - Se o aluno já cadastrou a disciplina (lista no contexto), use em "avaliacoes" EXATAMENTE os nomes já existentes. Ex.: o print mostra "P1" e já existe "Prova I" → use "Prova I"; "Seminário" e já existe "Seminários" → use "Seminários". Só crie nome novo se a avaliação realmente não existir.
 - Em prints de notas, preencha só "nome" e "nota" (peso e data vazios, a menos que apareçam).
-- "curso": quando o documento for currículo, projeto pedagógico, matriz curricular, regulamento ou qualquer documento que mostre o curso, preencha "nome" (nome do curso), "universidade" (sigla ou nome da instituição), "horasComplementares" (total de horas complementares/atividades formativas exigidas, só o número) e "categoriasHoras" (tipos de atividade complementar aceitos com o limite máximo de horas de cada um). Campos desconhecidos = "".
+- "curso": quando o documento for currículo, projeto pedagógico, matriz curricular, regulamento ou qualquer documento que mostre o curso, preencha "nome" (nome do curso), "universidade" (sigla ou nome da instituição), "horasComplementares" (total de horas complementares/atividades formativas exigidas, só o número) e "categoriasHoras" (tipos de atividade complementar aceitos com o limite máximo de horas de cada um). Em "disciplinasCurriculo" liste as disciplinas do currículo com "codigo", "nome", "cargaHoraria" (total de horas da disciplina, só o número; se o documento usar horas-aula, use esse número) e "tipo" ("obrigatória", "optativa" ou "eletiva"); priorize as optativas e eletivas e liste no máximo 150. Campos desconhecidos = "".
 - "resumo": uma frase em português dizendo o que foi encontrado.`;
 
 export default async function handler(req, res) {

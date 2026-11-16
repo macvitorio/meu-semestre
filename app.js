@@ -84,7 +84,8 @@ function migrar(d) {
   if (d.perfil?.cor && !corOk(d.perfil.cor)) d.perfil.cor = '';
   d.materias.forEach(m => { m.avaliacoes = juntarDuplicadas(m.avaliacoes); });
   d.eventos = limparEventos(d);
-  d.horas = Object.assign({ exigidas: '', categorias: [], atividades: [], obs: '' }, d.horas || {});
+  d.horas = Object.assign({ exigidas: '', categorias: [], atividades: [], obs: '', curriculo: [], disciplinas: [] }, d.horas || {});
+  d.horas.disciplinas = (d.horas.disciplinas || []).filter(x => x && x.nome && num(x.horas) != null).map(x => ({ ...x, id: /^[\w-]{1,40}$/.test(x.id || '') ? x.id : uid() }));
   d.horas.atividades = (d.horas.atividades || []).map(x => ({ ...x, id: /^[\w-]{1,40}$/.test(x.id || '') ? x.id : uid() }));
   return d;
 }
@@ -618,7 +619,7 @@ function montarMudancas(r) {
     if (!ex) {
       add('Nova disciplina', `${d.codigo ? d.codigo + ' · ' : ''}${nome}`, [hor.length && `${hor.length} horário(s)`, d.avaliacoes?.length && `${d.avaliacoes.length} avaliação(ões)`, d.topicos?.length && `${d.topicos.length} conteúdo(s)`].filter(Boolean).join(' · ') || 'Dados básicos', () => {
         S.materias.push(migrar({ materias: [{
-          id: uid(), codigo: (d.codigo || '').toUpperCase(), nome: d.nome || '', professor: d.professor || '', turma: d.turma || '', cargaHoraria: d.cargaHoraria || '', cor: CORES[S.materias.length % CORES.length], horarios: hor, rec: '',
+          id: uid(), codigo: (d.codigo || '').toUpperCase(), nome: d.nome || '', professor: d.professor || '', turma: d.turma || '', cargaHoraria: d.cargaHoraria || '', tipo: d.tipo || '', cor: CORES[S.materias.length % CORES.length], horarios: hor, rec: '',
           avaliacoes: (d.avaliacoes || []).map(a => ({ id: uid(), nome: a.nome, peso: a.peso || '', data: okData(a.data) ? a.data : '', nota: a.nota || '' })),
           topicos: (d.topicos || []).map(t => ({ id: uid(), texto: t, feito: false })),
           faltas: Object.fromEntries((d.faltas || []).filter(f => okData(f.data) && +f.quantidade).map(f => [f.data, +f.quantidade])),
@@ -627,7 +628,7 @@ function montarMudancas(r) {
       continue;
     }
     const g = nomeM(ex);
-    for (const [k, l] of [['nome', 'Nome'], ['professor', 'Professor(a)'], ['turma', 'Turma'], ['cargaHoraria', 'Carga horária']])
+    for (const [k, l] of [['nome', 'Nome'], ['professor', 'Professor(a)'], ['turma', 'Turma'], ['cargaHoraria', 'Carga horária'], ['tipo', 'Tipo']])
       if (d[k] && String(d[k]) !== String(ex[k] || '')) add(g, l, `${ex[k] || '—'} → ${d[k]}`, () => ex[k] = d[k]);
     const fmtH = hs => hs.map(h => `${DIAS[h.dia]} ${hhmm(h.inicio)}${h.sala ? ' (' + h.sala + ')' : ''}`).join(', ');
     if (hor.length && fmtH(hor) !== fmtH(ex.horarios)) add(g, 'Horários', `${fmtH(ex.horarios) || '—'} → ${fmtH(hor)}`, () => ex.horarios = hor);
@@ -661,6 +662,8 @@ function montarMudancas(r) {
   if (num(c.horasComplementares) && String(num(c.horasComplementares)) !== String(S.horas.exigidas)) add('Horas complementares', 'Total exigido', `${S.horas.exigidas ? S.horas.exigidas + 'h' : '—'} → ${num(c.horasComplementares)}h`, () => S.horas.exigidas = String(num(c.horasComplementares)));
   const catsNovas = (c.categoriasHoras || []).filter(x => x.nome && !S.horas.categorias.some(y => norm(y.nome) === norm(x.nome)));
   if (catsNovas.length) add('Horas complementares', `${catsNovas.length} categoria(s) de atividades`, catsNovas.map(x => x.nome + (num(x.limiteHoras) ? ` (máx. ${num(x.limiteHoras)}h)` : '')).join('; '), () => catsNovas.forEach(x => S.horas.categorias.push({ id: uid(), nome: x.nome, limite: String(num(x.limiteHoras) ?? '') })));
+  const discCurr = (c.disciplinasCurriculo || []).filter(x => x.nome && num(x.cargaHoraria));
+  if (discCurr.length) add('Horas complementares', `${discCurr.length} disciplina(s) do currículo com carga horária`, `${discCurr.filter(x => /optativ|eletiv/i.test(x.tipo)).length} optativa(s)/eletiva(s), para usar nas horas complementares`, () => { S.horas.curriculo = discCurr.map(x => ({ codigo: (x.codigo || '').toUpperCase(), nome: x.nome, horas: String(num(x.cargaHoraria)), tipo: x.tipo || '' })); });
   for (const h of r.historico || []) {
     const ex = h.codigo && S.historico.find(x => norm(x.codigo) === norm(h.codigo) && x.semestre === h.semestre);
     if (!ex) add('Histórico', `${h.codigo ? h.codigo + ' · ' : ''}${h.nome}`, [h.semestre, h.nota && `nota ${h.nota}`, h.situacao].filter(Boolean).join(' · '), () => S.historico.push({ id: uid(), ...h }));
@@ -1463,7 +1466,7 @@ function salvarCurso() {
 // ================= Horas complementares =================
 function resumoHoras() {
   const H = S.horas, porCat = {};
-  for (const a of H.atividades) { const k = a.categoria || 'Outras'; porCat[k] = (porCat[k] || 0) + (num(a.horas) || 0); }
+  for (const a of [...H.atividades, ...(H.disciplinas || [])]) { const k = a.categoria || 'Outras'; porCat[k] = (porCat[k] || 0) + (num(a.horas) || 0); }
   const cats = [...H.categorias.map(c => c.nome), ...Object.keys(porCat).filter(k => !H.categorias.some(c => c.nome === k))];
   const linhas = cats.map(nome => { const c = H.categorias.find(x => x.nome === nome), lim = num(c?.limite), feitas = porCat[nome] || 0; return { nome, feitas, lim, contam: lim != null ? Math.min(feitas, lim) : feitas }; });
   const total = linhas.reduce((a, l) => a + l.contam, 0), meta = num(H.exigidas);
@@ -1485,6 +1488,9 @@ V.horas = () => {
       ${r.meta ? (r.faltam ? tag(`Faltam ${fmtH(r.faltam)}`, 'warn') : tag('Meta concluída 🎉', 'ok')) : '<span class="mu">Defina a meta do curso</span>'}</div></div></div>
     <div class="card"><h3 style="margin-bottom:10px">Por categoria</h3>${r.linhas.length ? `<div class="list">${r.linhas.map(l => `<div><div class="between"><b class="sm">${esc(l.nome)}</b><span class="sm">${fmtH(l.feitas)}${l.lim != null ? ` / máx. ${fmtH(l.lim)}` : ''}</span></div>
       ${l.lim != null ? `<div class="bar" style="margin-top:6px"><i style="width:${Math.min(100, l.feitas / (l.lim || 1) * 100)}%;background:${l.feitas > l.lim ? 'var(--warn)' : 'var(--menta)'}"></i></div>${l.feitas > l.lim ? `<div class="mu" style="font-size:12px;margin-top:2px">${fmtH(l.feitas - l.lim)} acima do limite não contam</div>` : ''}` : ''}</div>`).join('')}</div>` : '<p class="mu">Nenhuma categoria ainda. Elas aparecem conforme você adiciona certificados ou configura as regras.</p>'}</div></div>`;
+  html += `<div class="card"><div class="card-h"><h3 class="sp">📚 Disciplinas que contam (${H.disciplinas.length})</h3><button class="btn ghost sm" onclick="disciplinasHorasSheet()">${ic('pen', 16)} Selecionar</button></div>
+    ${H.disciplinas.length ? `<div class="list">${H.disciplinas.map(x => `<div class="row"><span class="kpi-ic" style="margin:0;color:var(--pr);background:var(--pr-2)">${ic('book', 18)}</span><div class="sp" style="min-width:0"><b class="sm">${esc(x.nome)}</b><div class="mu">${[x.codigo, x.categoria, x.origem].filter(Boolean).map(esc).join(' · ')}</div></div><b>${fmtH(num(x.horas) || 0)}</b></div>`).join('')}</div>`
+      : `<p class="mu">Algumas disciplinas (optativas, eletivas, de extensão) podem contar como horas complementares. Toque em <b>Selecionar</b> e marque as que valem no seu curso. ${H.curriculo.length ? '' : 'Envie o currículo na aba Atualizar para a carga horária vir certinha.'}</p>`}</div>`;
   const lista = [...H.atividades].sort((a, b) => (b.data || '').localeCompare(a.data || ''));
   html += `<div class="card"><div class="card-h"><h3 class="sp">Certificados e atividades (${lista.length})</h3><button class="btn ghost sm" onclick="atividadeSheet()">${ic('plus', 16)} Adicionar</button></div>
     ${lista.length ? `<div class="list">${lista.map(a => `<div class="row"><span class="kpi-ic" style="margin:0;color:var(--menta);background:color-mix(in srgb,var(--menta) 14%,transparent)">${ic(a.arquivo ? 'file' : 'clip', 18)}</span>
@@ -1536,8 +1542,9 @@ async function lerRegulamento(inp) {
       <p style="margin:10px 0"><b>Total exigido:</b> ${d.horasExigidas ? esc(d.horasExigidas) + 'h' : 'não encontrado'}</p>
       ${cats.length ? `<div class="list">${cats.map(c => `<div class="between"><span>${esc(c.nome)}</span><span class="mu">${c.limite ? 'máx. ' + esc(c.limite) + 'h' : 'sem limite'}</span></div>`).join('')}</div>` : '<p class="mu">Nenhuma categoria encontrada.</p>'}
       ${d.observacoes ? `<p class="mu" style="margin-top:12px">📌 ${esc(d.observacoes)}</p>` : ''}
+      ${(d.disciplinas || []).length ? `<p class="mu" style="margin-top:8px">📚 ${(d.disciplinas || []).length} disciplina(s) do currículo com carga horária (para marcar as que contam como horas complementares).</p>` : ''}
       <div class="actions"><button class="btn" onclick="closeSheet()">Descartar</button><button class="btn pr sp" id="ok-reg">Usar estas regras</button></div>`);
-    $('#ok-reg').onclick = () => { if (d.curso && !S.perfil.curso) S.perfil.curso = d.curso; if (d.universidade && !S.perfil.universidade) S.perfil.universidade = d.universidade; if (d.horasExigidas) S.horas.exigidas = String(num(d.horasExigidas)); if (cats.length) S.horas.categorias = cats; S.horas.obs = d.observacoes || ''; closeSheet(); save(); render(); toast('Regras aplicadas. Você pode editar em "Regras do curso".'); };
+    $('#ok-reg').onclick = () => { if (d.curso && !S.perfil.curso) S.perfil.curso = d.curso; if (d.universidade && !S.perfil.universidade) S.perfil.universidade = d.universidade; if (d.horasExigidas) S.horas.exigidas = String(num(d.horasExigidas)); if (cats.length) S.horas.categorias = cats; S.horas.obs = d.observacoes || ''; const dc = (d.disciplinas || []).filter(x => x.nome && num(x.cargaHoraria)); if (dc.length) S.horas.curriculo = dc.map(x => ({ codigo: (x.codigo || '').toUpperCase(), nome: x.nome, horas: String(num(x.cargaHoraria)), tipo: x.tipo || '' })); closeSheet(); save(); render(); toast('Regras aplicadas. Você pode editar em "Regras do curso".'); };
   } catch (e) { if (!e.silencioso) { closeSheet(); toast(e.message); } }
 }
 let novoArq = null;
@@ -1678,3 +1685,43 @@ async function salvarLote() {
 }
 
 function b64ParaBlob(b64, tipo) { const bin = atob(b64), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i); return new Blob([u8], { type: tipo }); }
+
+
+// ================= Disciplinas que contam como horas complementares =================
+let SELD = [];
+function horasDoCurriculo(codigo, nome) {
+  const c = S.horas.curriculo || [], cod = norm(codigo), n = norm(nome);
+  const achou = c.find(x => cod && norm(x.codigo) === cod) || c.find(x => n && norm(x.nome) === n);
+  return achou ? achou.horas : '';
+}
+function disciplinasHorasSheet() {
+  const H = S.horas, ja = new Map(H.disciplinas.map(x => [x.ref, x]));
+  const opcoes = [];
+  const push = (ref, codigo, nome, origem, sugestao, planoPrimeiro) => { if (!nome || opcoes.some(o => o.ref === ref || (codigo && norm(o.codigo) === norm(codigo)))) return; const sel = ja.get(ref); const h = planoPrimeiro ? (num(sugestao) ? String(num(sugestao)) : horasDoCurriculo(codigo, nome)) : (horasDoCurriculo(codigo, nome) || sugestao); opcoes.push({ ref, codigo, nome, origem, on: !!sel, horas: sel?.horas ?? (h || ''), categoria: sel?.categoria || 'Disciplinas optativas' }); };
+  for (const x of H.disciplinas) push(x.ref, x.codigo, x.nome, x.origem, x.horas);
+  for (const m of S.materias) push('m:' + m.id, m.codigo, m.nome || m.codigo, 'Semestre atual' + (m.tipo ? ' · ' + m.tipo : ''), m.cargaHoraria, true);
+  for (const h of S.historico) if (!/reprov|tranc/i.test(h.situacao || '')) push('h:' + h.id, h.codigo, h.nome || h.codigo, 'Histórico ' + (h.semestre || ''), num(h.creditos) ? String(num(h.creditos) * 18) : '');
+  for (const c of (H.curriculo || []).filter(x => /optativ|eletiv/i.test(x.tipo))) push('c:' + (c.codigo || c.nome), c.codigo, c.nome, 'Optativa do currículo', c.horas);
+  SELD = opcoes.sort((a, b) => (/optativ|eletiv/i.test(b.origem) - /optativ|eletiv/i.test(a.origem)) || (b.on - a.on));
+  desenharSelD();
+}
+function desenharSelD(busca = '') {
+  const b = norm(busca), cats = [...new Set(['Disciplinas optativas', ...S.horas.categorias.map(c => c.nome)])];
+  const vis = SELD.map((o, i) => ({ o, i })).filter(({ o }) => !b || norm(o.nome + ' ' + o.codigo).includes(b));
+  const sel = SELD.filter(o => o.on), tot = sel.reduce((a, o) => a + (num(o.horas) || 0), 0);
+  sheet(`<h2>Disciplinas que contam</h2><p class="mu" style="margin:6px 0 12px">Marque as disciplinas que o seu curso aceita como horas complementares. A carga horária vem do currículo ${S.horas.curriculo?.length ? '(já enviado ✓)' : '(envie o currículo na aba Atualizar para vir certinha)'}; ajuste se precisar.</p>
+    ${SELD.length > 8 ? `<input id="seld-b" placeholder="Buscar disciplina ou código" value="${esc(busca)}" oninput="desenharSelD(this.value);setTimeout(()=>{const e=$('#seld-b');e.focus();e.setSelectionRange(e.value.length,e.value.length)})" style="margin-bottom:10px">` : ''}
+    <datalist id="cats-d">${cats.map(c => `<option value="${esc(c)}">`).join('')}</datalist>
+    <div class="lote">${vis.map(({ o, i }) => `<div class="lote-item ${o.on ? '' : 'off'}">
+      <label class="row" style="gap:10px;cursor:pointer"><input type="checkbox" ${o.on ? 'checked' : ''} onchange="SELD[${i}].on=this.checked;desenharSelD($('#seld-b')?.value||'')"><div class="sp" style="min-width:0"><b class="sm">${esc(o.nome)}</b><div class="mu">${[o.codigo, o.origem].filter(Boolean).map(esc).join(' · ')}</div></div></label>
+      ${o.on ? `<div class="fields c2" style="margin-top:8px"><input aria-label="Horas" inputmode="decimal" placeholder="Horas" value="${esc(o.horas)}" oninput="SELD[${i}].horas=this.value;totSelD()"><input aria-label="Categoria" list="cats-d" placeholder="Categoria" value="${esc(o.categoria)}" oninput="SELD[${i}].categoria=this.value"></div>${o.horas ? '' : '<div class="mu" style="font-size:12px;margin-top:4px">Informe a carga horária da disciplina.</div>'}` : ''}</div>`).join('') || '<p class="mu">Nenhuma disciplina encontrada. Cadastre disciplinas, envie seu histórico ou o currículo do curso.</p>'}</div>
+    <div class="actions"><button class="btn" onclick="closeSheet()">Cancelar</button><button class="btn pr sp" onclick="salvarSelD()">Salvar <span id="seld-tot">${sel.length} · ${fmtH(tot)}</span></button></div>`);
+}
+function totSelD() { const sel = SELD.filter(o => o.on), t = sel.reduce((a, o) => a + (num(o.horas) || 0), 0); const el = $('#seld-tot'); if (el) el.textContent = `${sel.length} · ${fmtH(t)}`; }
+function salvarSelD() {
+  const sel = SELD.filter(o => o.on);
+  const sem = sel.filter(o => !num(o.horas));
+  if (sem.length) return toast(`Informe a carga horária de: ${sem.map(o => o.nome).slice(0, 2).join(', ')}${sem.length > 2 ? '…' : ''}`);
+  S.horas.disciplinas = sel.map(o => ({ id: uid(), ref: o.ref, codigo: o.codigo || '', nome: o.nome, origem: o.origem || '', horas: String(num(o.horas)), categoria: (o.categoria || 'Disciplinas optativas').trim() }));
+  closeSheet(); save(); render(); toast(`${sel.length} disciplina(s) contando nas horas complementares.`);
+}
