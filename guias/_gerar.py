@@ -252,7 +252,7 @@ def cabeca(titulo, desc, url, extra_ld):
 <meta name="theme-color" content="#fffaf3"><link rel="icon" href="/icon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta property="og:type" content="article"><meta property="og:site_name" content="Meu Semestre"><meta property="og:locale" content="pt_BR">
 <meta property="og:url" content="{url}"><meta property="og:title" content="{html.escape(titulo)}"><meta property="og:description" content="{html.escape(desc)}">
-<meta property="og:image" content="{BASE}/og.png?v=4"><meta name="twitter:card" content="summary_large_image">
+<meta property="og:image" content="{BASE}/og.png?v=5"><meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="/guias/guia.css">
@@ -271,7 +271,7 @@ def pagina(g):
     url = f'{BASE}/guias/{g["slug"]}'
     ld = {"@context": "https://schema.org", "@graph": [
         {"@type": "Article", "headline": g['h1'], "description": g['desc'], "inLanguage": "pt-BR", "datePublished": DATA, "dateModified": DATA,
-         "mainEntityOfPage": url, "image": f'{BASE}/og.png?v=4', "author": {"@type": "Organization", "name": "Meu Semestre", "url": BASE},
+         "mainEntityOfPage": url, "image": f'{BASE}/og.png?v=5', "author": {"@type": "Organization", "name": "Meu Semestre", "url": BASE},
          "publisher": {"@type": "Organization", "name": "Meu Semestre", "logo": {"@type": "ImageObject", "url": f'{BASE}/icons/icon-512.png'}}},
         {"@type": "BreadcrumbList", "itemListElement": [
             {"@type": "ListItem", "position": 1, "name": "Início", "item": BASE + '/'},
