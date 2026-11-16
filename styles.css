@@ -402,3 +402,4 @@ body{min-height:100%;min-height:100dvh}
 .link-box span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;-webkit-user-select:all;user-select:all}
 .num-c{width:30px;height:30px;border-radius:50%;flex:none;display:grid;place-items:center;background:var(--pr-2);color:var(--pr);font-weight:700}
 .indica-card{background:linear-gradient(135deg,color-mix(in srgb,#7048e8 12%,var(--surface)),var(--surface))}
+.rank{width:28px;text-align:center;font-weight:700;flex:none}

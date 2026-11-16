@@ -1211,7 +1211,7 @@ V.admin = () => {
   if (!PLANO.admin) { setTimeout(() => go('inicio')); return ''; }
   if (!ADM) { carregarAdmin(); return `<div class="card empty" style="margin-top:24px"><div class="spin"></div><p class="mu" style="margin-top:12px">Carregando contas…</p></div>`; }
   const r = ADM.resumo, b = norm(admBusca);
-  const lista = ADM.contas.filter(c => (!b || norm(c.email + ' ' + c.nome).includes(b)) && (admFiltro === 'todos' || (admFiltro === 'premium' ? c.premium : admFiltro === 'gratis' ? !c.premium : c.plano === admFiltro)));
+  const lista = ADM.contas.filter(c => (!b || norm(c.email + ' ' + c.nome).includes(b)) && (admFiltro === 'todos' || (admFiltro === 'premium' ? c.premium : admFiltro === 'gratis' ? !c.premium : admFiltro === 'indicados' ? !!c.indicadoPor : c.plano === admFiltro)));
   const pl = c => ({ teste: ['Teste', 'neu'], mensal: ['Mensal', 'ok'], semestral: ['Semestral', 'ok'], cortesia: ['Cortesia', 'ok'], manual: ['Manual', 'ok'], gratis: ['Grátis', 'neu'] }[c.plano] || [c.plano, 'neu']);
   return `<div class="stack"><div class="pg-h"><div><p class="mu">Somente você vê esta tela</p><h1>Admin</h1></div><div class="row"><button class="btn" onclick="admZerar()">${ic('trash', 18)} Zerar pagamentos de teste</button><button class="btn" onclick="ADM=null;render()">${ic('hist', 18)} Atualizar</button></div></div>
     <div class="kpis">
@@ -1219,8 +1219,9 @@ V.admin = () => {
       <div class="kpi card"><div class="mu">Pagantes</div><div class="kpi-v">${r.pagantes}</div><div class="mu sm">mensal ou semestral</div></div>
       <div class="kpi card"><div class="mu">Cortesias · Indicações</div><div class="kpi-v">${r.cortesias} · ${r.indicacoes || 0}</div><div class="mu sm">${r.indicacoesAssinaram || 0} indicação(ões) viraram assinatura</div></div>
       <div class="kpi card"><div class="mu">Receita (Pix/avulso)</div><div class="kpi-v">R$ ${r.receita.toFixed(2).replace('.', ',')}</div><div class="mu sm">pagamentos aprovados</div></div></div>
+    ${rankingIndicacoes()}
     <div class="row wrap"><input style="flex:1;min-width:200px" placeholder="Buscar por nome ou e-mail" value="${esc(admBusca)}" oninput="admBusca=this.value;clearTimeout(window._ab);window._ab=setTimeout(render,250)">
-      <div class="chips">${[['todos', 'Todos'], ['premium', 'Premium'], ['gratis', 'Sem Premium'], ['teste', 'Em teste'], ['cortesia', 'Cortesia']].map(([k, l]) => `<button class="chip ${admFiltro === k ? 'on' : ''}" onclick="admFiltro='${k}';render()">${l}</button>`).join('')}</div></div>
+      <div class="chips">${[['todos', 'Todos'], ['premium', 'Premium'], ['gratis', 'Sem Premium'], ['teste', 'Em teste'], ['cortesia', 'Cortesia'], ['indicados', 'Vieram por indicação']].map(([k, l]) => `<button class="chip ${admFiltro === k ? 'on' : ''}" onclick="admFiltro='${k}';render()">${l}</button>`).join('')}</div></div>
     <div class="card" style="padding:0"><div class="adm-lista">${lista.map(c => `<div class="adm-row">
       <div class="avatar" style="width:38px;height:38px;font-size:14px">${esc((c.nome || c.email || '?')[0].toUpperCase())}</div>
       <div class="sp" style="min-width:0"><b class="sm">${esc(c.nome || '(sem nome)')}</b><div class="mu" style="overflow:hidden;text-overflow:ellipsis">${esc(c.email)} · ${c.provedor === 'google' ? 'Google' : 'e-mail'}</div>
@@ -1316,4 +1317,21 @@ async function carregarIndicacao() {
 async function copiarConvite() {
   try { await navigator.clipboard.writeText(textoConvite()); toast('Convite copiado! Cole no WhatsApp ou onde quiser.'); }
   catch { prompt('Copie o convite:', textoConvite()); }
+}
+
+// Ranking de quem mais indica (Admin)
+let rankPor = 'total';
+function rankingIndicacoes() {
+  const top = ADM.contas.filter(c => c.indicacoes?.total).sort((a, b) => (b.indicacoes[rankPor] - a.indicacoes[rankPor]) || (b.indicacoes.total - a.indicacoes.total)).slice(0, 10);
+  const conv = ADM.resumo.indicacoes ? Math.round(ADM.resumo.indicacoesAssinaram / ADM.resumo.indicacoes * 100) : 0;
+  const med = ['🥇', '🥈', '🥉'];
+  return `<div class="card"><div class="card-h"><h3 class="sp">🏆 Quem mais indica</h3>
+      <div class="seg" style="width:auto"><button class="${rankPor === 'total' ? 'on' : ''}" onclick="rankPor='total';render()">Cadastros</button><button class="${rankPor === 'assinaram' ? 'on' : ''}" onclick="rankPor='assinaram';render()">Assinaturas</button></div></div>
+    <p class="mu" style="margin:-4px 0 10px">${ADM.resumo.indicacoes || 0} cadastros por indicação · ${ADM.resumo.indicacoesAssinaram || 0} viraram assinatura (${conv}% de conversão)</p>
+    ${top.length ? `<div class="list">${top.map((c, i) => `<div class="row"><span class="rank">${med[i] || (i + 1) + 'º'}</span>
+      <div class="avatar" style="width:34px;height:34px;font-size:13px">${esc((c.nome || c.email || '?')[0].toUpperCase())}</div>
+      <div class="sp" style="min-width:0"><b class="sm">${esc(c.nome || '(sem nome)')}</b><div class="mu" style="overflow:hidden;text-overflow:ellipsis">${esc(c.email)}</div></div>
+      <div class="mini"><span class="mu">Cadastros</span><b>${c.indicacoes.total}</b></div>
+      <div class="mini"><span class="mu">Assinaram</span><b style="color:var(--ok)">${c.indicacoes.assinaram}</b></div>
+      <div class="mini so-desktop"><span class="mu">Ganhou</span><b>${c.indicacoes.assinaram * 30}d</b></div></div>`).join('')}</div>` : '<p class="mu">Ninguém indicou ainda. Assim que os alunos compartilharem o link, o ranking aparece aqui.</p>'}</div>`;
 }
