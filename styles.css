@@ -433,3 +433,8 @@ nav.bn a.fab span.circ{box-shadow:0 4px 0 var(--pr-sombra),0 8px 20px color-mix(
 .curso-chip svg{flex:none}
 @media(max-width:899px){nav.bn .so-desktop-nav{display:none}}
 .grp .plano-card{padding:14px 16px;gap:14px}.grp .plano-card .btn{flex:none}
+.lote{display:grid;gap:12px;max-height:58vh;overflow:auto;padding-right:2px}
+.lote-item{border:1px solid var(--bd);border-radius:16px;padding:12px;background:var(--surface)}
+.lote-item.off{opacity:.5}
+.lote-item .fields{gap:8px}
+.lote-item input:not([type=checkbox]){min-height:40px;padding:8px 10px}

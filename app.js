@@ -1478,7 +1478,7 @@ function cardHoras() {
 V.horas = () => {
   const H = S.horas, r = resumoHoras();
   let html = `<div class="stack"><div class="pg-h"><div><p class="mu">Atividades extracurriculares do curso</p><h1>Horas complementares</h1></div>
-    <div class="row wrap"><button class="btn" onclick="regrasHorasSheet()">${ic('gear', 18)} Regras do curso</button><button class="btn pr" onclick="atividadeSheet()">${ic('plus', 18)} Adicionar certificado</button></div></div>`;
+    <div class="row wrap"><button class="btn" onclick="regrasHorasSheet()">${ic('gear', 18)} Regras do curso</button><label class="btn">${ic('up', 18)} Vários certificados<input type="file" accept="image/*,application/pdf" multiple hidden onchange="enviarVarios(this)"></label><button class="btn pr" onclick="atividadeSheet()">${ic('plus', 18)} Adicionar certificado</button></div></div>`;
   if (!r.meta) html += `<div class="card"><div class="row" style="align-items:flex-start"><span style="font-size:30px">📋</span><div class="sp"><b>Quantas horas o seu curso exige?</b><div class="mu" style="margin:4px 0 12px">Digite o total ou envie o currículo / regulamento de atividades complementares que a IA lê as categorias e os limites.</div>
       <div class="row wrap"><input id="hx" inputmode="numeric" placeholder="Ex.: 200" style="width:130px"><button class="btn" onclick="const v=num($('#hx').value);if(!v)return toast('Digite o total de horas.');S.horas.exigidas=String(v);save();render()">Salvar</button><label class="btn ghost">${ic('file', 18)} Enviar regulamento<input type="file" accept="image/*,application/pdf" hidden onchange="lerRegulamento(this)"></label></div></div></div></div>`;
   html += `<div class="grid two"><div class="card"><div class="row">${ring(r.pct, 'var(--menta)', r.meta ? r.pct + '%' : '—')}<div class="sp"><div class="mu">Horas que contam</div><div class="big">${fmtH(r.total)}${r.meta ? `<span class="mu" style="font-size:16px;font-weight:500"> / ${fmtH(r.meta)}</span>` : ''}</div>
@@ -1490,7 +1490,7 @@ V.horas = () => {
     ${lista.length ? `<div class="list">${lista.map(a => `<div class="row"><span class="kpi-ic" style="margin:0;color:var(--menta);background:color-mix(in srgb,var(--menta) 14%,transparent)">${ic(a.arquivo ? 'file' : 'clip', 18)}</span>
       <div class="sp" style="min-width:0"><b class="sm">${esc(a.titulo || 'Atividade')}</b><div class="mu">${[a.categoria, a.data ? brD(a.data) + '/' + a.data.slice(0, 4) : '', a.instituicao].filter(Boolean).map(esc).join(' · ')}</div></div>
       <b>${fmtH(num(a.horas) || 0)}</b>${a.arquivo ? `<button class="ib" aria-label="Ver certificado" onclick="verCertificado('${a.id}')">${ic('right', 18)}</button>` : ''}${pen(`atividadeSheet('${a.id}')`)}</div>`).join('')}</div>`
-      : `<div class="empty" style="padding:16px"><p class="mu">Tire foto ou envie o PDF de um certificado. A IA preenche horas, data e instituição para você conferir.</p><button class="btn pr" onclick="atividadeSheet()">${ic('cam', 18)} Adicionar primeiro certificado</button></div>`}</div>
+      : `<div class="empty" style="padding:16px"><p class="mu">Tire foto ou envie o PDF de um certificado. A IA preenche horas, data e instituição para você conferir.</p><div class="row wrap" style="justify-content:center"><button class="btn pr" onclick="atividadeSheet()">${ic('cam', 18)} Adicionar um certificado</button><label class="btn">${ic('up', 18)} Enviar vários de uma vez<input type="file" accept="image/*,application/pdf" multiple hidden onchange="enviarVarios(this)"></label></div></div>`}</div>
     ${H.obs ? `<p class="mu">📌 ${esc(H.obs)}</p>` : ''}</div>`;
   return html;
 };
@@ -1517,11 +1517,11 @@ async function arquivoParaEnvio(f) {
   if (f.type === 'application/pdf') { if (f.size > 3.3e6) throw new Error('PDF grande demais (máx. ~3 MB).'); return { mediaType: f.type, data: await b64(f), blob: f, ext: 'pdf' }; }
   throw new Error('Use uma foto ou um PDF.');
 }
-async function lerComIA(tipo, arq) {
+async function lerComIA(tipo, arq, semPopup) {
   if (!user) throw new Error('Entre com sua conta para usar a leitura com IA.');
   const r = await fetch('/api/horas', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + await tokenAtual() }, body: JSON.stringify({ tipo, arquivo: { mediaType: arq.mediaType, data: arq.data }, categorias: S.horas.categorias.map(c => c.nome) }) });
   const d = await r.json().catch(() => ({}));
-  if (r.status === 402) { closeSheet(); exigirPremium(d.error); throw Object.assign(new Error(''), { silencioso: true }); }
+  if (r.status === 402 || r.status === 429) { if (semPopup) throw Object.assign(new Error(d.error || 'Limite de leituras atingido.'), { limite: true }); closeSheet(); exigirPremium(d.error); throw Object.assign(new Error(''), { silencioso: true }); }
   if (!r.ok) throw new Error(d.error || 'Não foi possível ler.');
   return d;
 }
@@ -1609,3 +1609,70 @@ function confirmarApagar(id) {
 }
 
 function avatarFalhou(img) { const sp = document.createElement('span'); sp.className = 'avatar'; sp.style.cssText = `width:${img.style.width};height:${img.style.height}`; sp.textContent = img.dataset.i || '?'; img.replaceWith(sp); }
+
+
+// ================= Vários certificados de uma vez =================
+const MAX_LOTE = 10;
+let LOTE = [], LOTE_AVISO = '';
+async function enviarVarios(inp) {
+  const files = [...inp.files]; inp.value = '';
+  if (!files.length) return;
+  if (files.length > MAX_LOTE) toast(`Enviando os primeiros ${MAX_LOTE} arquivos. Depois envie o restante.`);
+  LOTE = [];
+  let semIA = !user, avisoIA = '';
+  const lista = files.slice(0, MAX_LOTE);
+  sheet(`<h2>Lendo certificados…</h2><div style="display:flex;justify-content:center;margin:18px 0"><div class="spin"></div></div><p class="mu" style="text-align:center" id="lote-st">Preparando ${lista.length} arquivo(s)…</p>`);
+  for (const [i, f] of lista.entries()) {
+    const st = $('#lote-st'); if (st) st.textContent = `Lendo ${i + 1} de ${lista.length}: ${f.name}`;
+    const item = { id: uid(), titulo: '', horas: '', data: '', categoria: '', instituicao: '', arq: null, nomeArq: f.name, erro: '', on: true };
+    try { item.arq = { ...(await arquivoParaEnvio(f)), nome: f.name }; } catch (e) { item.erro = e.message; item.on = false; LOTE.push(item); continue; }
+    if (!semIA) {
+      try {
+        const d = await lerComIA('certificado', item.arq, true);
+        Object.assign(item, { titulo: d.titulo || '', horas: d.horas ? String(num(d.horas) ?? '') : '', data: /^\d{4}-\d{2}-\d{2}$/.test(d.data) ? d.data : '', categoria: d.categoria || '', instituicao: d.instituicao || '' });
+      } catch (e) { if (e.limite) { semIA = true; avisoIA = e.message; } else item.erro = 'Não deu para ler: preencha à mão.'; }
+    }
+    if (!item.titulo) item.titulo = f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ');
+    LOTE.push(item);
+  }
+  LOTE_AVISO = avisoIA || (!user ? 'Entre com uma conta para a IA preencher e para guardar os certificados.' : '');
+  revisarLote();
+}
+function revisarLote() {
+  const aviso = LOTE_AVISO;
+  const cats = [...new Set([...S.horas.categorias.map(c => c.nome), ...S.horas.atividades.map(x => x.categoria).filter(Boolean)])];
+  const sel = LOTE.filter(x => x.on).length, tot = LOTE.filter(x => x.on).reduce((a, x) => a + (num(x.horas) || 0), 0);
+  sheet(`<h2>Conferir ${LOTE.length} certificado(s)</h2><p class="mu" style="margin:6px 0 12px">Ajuste o que precisar e desmarque o que não quiser salvar.</p>
+    ${aviso ? `<div class="card flat" style="margin-bottom:12px;border-color:var(--warn)"><span class="sm">⚠️ ${esc(aviso)}</span></div>` : ''}
+    <datalist id="cats-l">${cats.map(c => `<option value="${esc(c)}">`).join('')}</datalist>
+    <div class="lote">${LOTE.map((x, i) => `<div class="lote-item ${x.on ? '' : 'off'}">
+      <label class="row" style="gap:10px"><input type="checkbox" ${x.on ? 'checked' : ''} ${x.arq ? '' : 'disabled'} onchange="LOTE[${i}].on=this.checked;revisarLote()"><span class="sm mu" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📎 ${esc(x.nomeArq)}</span></label>
+      ${x.erro ? `<div class="mu" style="color:var(--bad);font-size:12px">${esc(x.erro)}</div>` : ''}
+      <div class="fields" style="margin-top:8px"><input aria-label="Atividade" placeholder="Atividade" value="${esc(x.titulo)}" oninput="LOTE[${i}].titulo=this.value">
+        <div class="fields c2"><input aria-label="Horas" inputmode="decimal" placeholder="Horas" value="${esc(x.horas)}" oninput="LOTE[${i}].horas=this.value;totLote()"><input aria-label="Data" type="date" value="${esc(x.data)}" oninput="LOTE[${i}].data=this.value"></div>
+        <div class="fields c2"><input aria-label="Categoria" list="cats-l" placeholder="Categoria" value="${esc(x.categoria)}" oninput="LOTE[${i}].categoria=this.value"><input aria-label="Instituição" placeholder="Instituição" value="${esc(x.instituicao)}" oninput="LOTE[${i}].instituicao=this.value"></div></div></div>`).join('')}</div>
+    <div class="actions"><button class="btn" onclick="LOTE=[];closeSheet()">Cancelar</button><button class="btn pr sp" id="lote-salvar" onclick="salvarLote()" ${sel ? '' : 'disabled'}>Salvar <span id="lote-tot">${sel} · ${fmtH(tot)}</span></button></div>`);
+}
+function totLote() { const sel = LOTE.filter(x => x.on), t = sel.reduce((a, x) => a + (num(x.horas) || 0), 0); const el = $('#lote-tot'); if (el) el.textContent = `${sel.length} · ${fmtH(t)}`; }
+async function salvarLote() {
+  const sel = LOTE.filter(x => x.on);
+  const faltando = sel.filter(x => !x.titulo.trim() || !num(x.horas));
+  if (faltando.length) return toast(`Preencha atividade e horas em ${faltando.length} certificado(s).`);
+  const btn = $('#lote-salvar'); btn.disabled = true;
+  let ok = 0, falhas = 0;
+  for (const [i, x] of sel.entries()) {
+    btn.textContent = `Salvando ${i + 1} de ${sel.length}…`;
+    const at = { id: x.id, titulo: x.titulo.trim(), horas: String(num(x.horas)), data: x.data, categoria: x.categoria.trim(), instituicao: x.instituicao.trim(), arquivo: null };
+    try {
+      if (x.arq && sb && user) {
+        const path = `${user.id}/${at.id}.${x.arq.ext}`;
+        const { error } = await sb.storage.from('certificados').upload(path, x.arq.blob, { upsert: true, contentType: x.arq.ext === 'pdf' ? 'application/pdf' : 'image/jpeg' });
+        if (error) throw error;
+        at.arquivo = { path, nome: x.nomeArq, tipo: x.arq.ext };
+      }
+      S.horas.atividades.push(at); ok++;
+    } catch { falhas++; }
+  }
+  LOTE = []; closeSheet(); save(); render();
+  toast(falhas ? `${ok} salvo(s), ${falhas} com erro no envio do arquivo. Tente esses de novo.` : `${ok} certificado(s) salvo(s)! 🎉`);
+}
