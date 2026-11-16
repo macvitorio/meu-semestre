@@ -55,3 +55,19 @@ Tempo até a 1ª disciplina importada (< 2 min), % de importações aplicadas se
 
 ## 9. Próximas iterações sugeridas
 Notificações de aula/prova (Web Push), compartilhar grade como imagem, sincronização com Google Calendar, simulador "quanto preciso tirar", cálculo de IAA por créditos.
+
+## 10. Landing page — regras de design aplicadas
+| Regra | Como foi aplicada |
+|---|---|
+| **Uma ação principal (lei de Hick)** | Todo botão primário leva a "Começar grátis"; o secundário só ajuda a decidir (calculadora, como funciona) |
+| **Lei de Fitts** | CTA grande (54px) e CTA fixo no rodapé do celular, sempre ao alcance do polegar |
+| **Rostos humanos geram conexão** | Fotos reais de estudantes usando o celular na sala, no campus e com amigos |
+| **Dor antes da solução (PAS)** | Seção "A gente sabe como é" com as 3 dores mais comuns antes dos recursos |
+| **Leitura em Z** | Recursos em zigue-zague (foto/texto alternados) para manter o ritmo da leitura |
+| **Regra 60-30-10 de cor** | 60% creme claro, 30% índigo da marca, 10% coral/amarelo/rosa nos destaques |
+| **Hierarquia tipográfica** | Plus Jakarta Sans nos títulos (personalidade), Inter no texto (legibilidade), escala clara |
+| **Prova de valor imediata** | Calculadora de faltas funcional na própria página, antes de pedir cadastro |
+| **Redução de risco** | "30 dias grátis · sem cartão · sem pegadinha" perto de cada chamada |
+| **Ancoragem de preço** | Semestral destacado no meio com "economize 40%" e equivalente "menos de R$ 5/mês" |
+| **Honestidade** | Nenhum depoimento ou número inventado; quando houver alunos reais, adicionar depoimentos verdadeiros |
+| **Acessibilidade e desempenho** | Textos alternativos nas fotos, contraste alto, animações respeitam "reduzir movimento", imagens otimizadas (~100 KB) e carregadas sob demanda |
