@@ -1,49 +1,45 @@
 # Mensagens prontas para WhatsApp
 
-Voz da marca: o aluno contando pros amigos um achado. Leve, engraçado, sem exagero.
+Voz: um estudante contando pros colegas que achou algo útil. Natural, sem cara de propaganda.
 
 Página para enviar com a imagem: https://www.meusemestre.com.br/compartilhar
 
 ## O achado  ·  arte `post-3-plano-de-ensino.png`
 _Quando usar: Lançamento, começo do semestre, grupo da turma._
 ```
-gente PARA TUDO 🚨
-achei um app que organiza a facul sozinho
+Pessoal, vim compartilhar uma dica que tá me salvando nesse fim de semestre 🙏
 
-vc joga o plano de ensino lá (pdf ou print mesmo) e ele monta:
-✅ quantas faltas vc ainda pode ter
-📝 quanto precisa tirar pra passar
-📅 todas as provas numa agenda só
+Achei um app bem prático pra organizar a facul. Você manda o plano de ensino (PDF ou print mesmo) e ele monta sozinho as faltas que você ainda pode ter, quanto precisa tirar em cada prova e a agenda com todas as datas.
 
-tô me sentindo a pessoa mais organizada do curso kkkk
-30 dias de graça: https://www.meusemestre.com.br
+Tô usando faz uns dias e já me ajudou bastante. Dá pra testar de graça por 30 dias: https://www.meusemestre.com.br
 ```
 
 ## Faltas  ·  arte `post-1-faltas.png`
 _Quando usar: Meio do semestre, quando alguém perguntar quantas faltas ainda pode ter._
 ```
-confissão: eu contava falta no bloco de notas 🫠
+Gente, uma dica rápida pra quem também vive se perdendo nas faltas 😅
 
-achei esse app que conta sozinho (já descontando feriado) e ainda AVISA quando vc tá quase estourando os 75%
+Eu anotava tudo no bloco de notas e sempre ficava na dúvida. Achei um app que conta sozinho (já descontando os feriados) e avisa quando tá chegando perto do limite.
 
-meu eu do fim do semestre agradece 🙏
-https://www.meusemestre.com.br
+Pra mim tá sendo muito útil, fica aí se ajudar alguém: https://www.meusemestre.com.br
 ```
 
 ## Média  ·  arte `post-2-media.png`
 _Quando usar: Semana de provas._
 ```
-semana de prova chegando e eu: quanto preciso tirar pra passar??? 😭
+Pessoal, com a semana de provas chegando, deixo aqui uma coisa que me ajudou 📚
 
-achado do dia: esse app calcula na hora, com os pesos certinhos. adeus conta no guardanapo
+Tem um app que calcula quanto você precisa tirar em cada prova pra passar, já com os pesos certinhos do plano de ensino. Bem mais fácil do que ficar fazendo conta na mão.
 
-de nada 😌 https://www.meusemestre.com.br
+Se alguém quiser testar: https://www.meusemestre.com.br
+
+Boa sorte nas provas pra gente!
 ```
 
 ## Stories  ·  arte `stories.png`
 _Quando usar: Status do WhatsApp e stories do Instagram (no Instagram, use o adesivo de link)._
 ```
-achado do semestre 📚✨ faltas, notas e provas num app só. de nada 😌 → meusemestre.com.br
+Achei um app que organiza faltas, notas e provas da facul num lugar só. Tá me ajudando muito nesse semestre 🙌 meusemestre.com.br
 ```
 
 ## Só texto
@@ -51,28 +47,27 @@ achado do semestre 📚✨ faltas, notas e provas num app só. de nada 😌 → 
 ### Mensagem curta
 _Pra responder alguém ou grupos grandes._
 ```
-se vc também perde a conta das faltas, toma esse presente 🎁 https://www.meusemestre.com.br
+Gente, pra quem também se perde nas faltas e nas notas, esse app tá me ajudando muito: https://www.meusemestre.com.br
 ```
 
 ### Convite com link de indicação
 _Cada aluno troca pelo próprio link (app > Indique e ganhe). Quem entra pelo link ganha 45 dias._
 ```
-achei um app que organiza a facul inteira 🤯 faltas, notas, provas, tudo
-
-entra pelo meu link que vc ganha 45 dias de premium de graça (e eu ganho uns pontos kkk):
+Oi! Tô usando um app pra organizar a facul (faltas, notas, provas) e tá sendo bem útil. Se quiser testar, entrando pelo meu link você ganha 45 dias de Premium de graça:
 [SEU LINK DE CONVITE AQUI]
 ```
 
 ### Centro acadêmico / representante
 _Tom mais leve, mas com cara de recado oficial da turma._
 ```
-oi, turma! 👋
+Oi, turma! 👋
 
-dica de sobrevivência pro semestre: o Meu Semestre é um app que monta sua grade, calcula as faltas permitidas e a média de cada matéria a partir do plano de ensino. tem até calculadora de faltas e de média de graça:
+Passando pra compartilhar uma ferramenta que pode ajudar nesse fim de semestre. O Meu Semestre é um app feito por estudantes que, a partir do plano de ensino, calcula as faltas permitidas e a média de cada disciplina, e junta todas as provas numa agenda.
 
-📲 app: https://www.meusemestre.com.br
-🧮 quantas faltas posso ter: https://www.meusemestre.com.br/guias/quantas-faltas-posso-ter
-📝 como calcular a média: https://www.meusemestre.com.br/guias/como-calcular-media-faculdade
+Também tem uns guias gratuitos que valem a leitura:
+📲 App: https://www.meusemestre.com.br
+🧮 Quantas faltas posso ter: https://www.meusemestre.com.br/guias/quantas-faltas-posso-ter
+📝 Como calcular a média: https://www.meusemestre.com.br/guias/como-calcular-media-faculdade
 
-bom semestre pra gente 💜
+Bom fim de semestre pra todo mundo 💜
 ```
