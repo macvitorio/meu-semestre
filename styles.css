@@ -439,3 +439,4 @@ nav.bn a.fab span.circ{box-shadow:0 4px 0 var(--pr-sombra),0 8px 20px color-mix(
 .lote-item .fields{gap:8px}
 .lote-item input:not([type=checkbox]){min-height:40px;padding:8px 10px}
 .aviso-curr{border:1.5px dashed color-mix(in srgb,var(--pr) 45%,var(--bd));background:color-mix(in srgb,var(--pr) 5%,var(--surface))}
+.lote-item{transition:opacity .15s}

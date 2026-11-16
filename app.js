@@ -1657,8 +1657,8 @@ function revisarLote() {
   sheet(`<h2>Conferir ${LOTE.length} certificado(s)</h2><p class="mu" style="margin:6px 0 12px">Ajuste o que precisar e desmarque o que não quiser salvar.</p>
     ${aviso ? `<div class="card flat" style="margin-bottom:12px;border-color:var(--warn)"><span class="sm">⚠️ ${esc(aviso)}</span></div>` : ''}
     <datalist id="cats-l">${cats.map(c => `<option value="${esc(c)}">`).join('')}</datalist>
-    <div class="lote">${LOTE.map((x, i) => `<div class="lote-item ${x.on ? '' : 'off'}">
-      <label class="row" style="gap:10px"><input type="checkbox" ${x.on ? 'checked' : ''} ${x.arq ? '' : 'disabled'} onchange="LOTE[${i}].on=this.checked;revisarLote()"><span class="sm mu" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📎 ${esc(x.nomeArq)}</span></label>
+    <div class="lote">${LOTE.map((x, i) => `<div class="lote-item ${x.on ? '' : 'off'}" id="lt-${i}">
+      <label class="row" style="gap:10px"><input type="checkbox" ${x.on ? 'checked' : ''} ${x.arq ? '' : 'disabled'} onchange="marcarLote(${i},this.checked)"><span class="sm mu" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📎 ${esc(x.nomeArq)}</span></label>
       ${x.erro ? `<div class="mu" style="color:var(--bad);font-size:12px">${esc(x.erro)}</div>` : ''}
       <div class="fields" style="margin-top:8px"><input aria-label="Atividade" placeholder="Atividade" value="${esc(x.titulo)}" oninput="LOTE[${i}].titulo=this.value">
         <div class="fields c2"><input aria-label="Horas" inputmode="decimal" placeholder="Horas" value="${esc(x.horas)}" oninput="LOTE[${i}].horas=this.value;totLote()"><input aria-label="Data" type="date" value="${esc(x.data)}" oninput="LOTE[${i}].data=this.value"></div>
@@ -1710,18 +1710,25 @@ function disciplinasHorasSheet() {
   SELD = opcoes.sort((a, b) => (/optativ|eletiv/i.test(b.origem) - /optativ|eletiv/i.test(a.origem)) || (b.on - a.on));
   desenharSelD();
 }
-function desenharSelD(busca = '') {
-  const b = norm(busca), cats = [...new Set(['Disciplinas optativas', ...S.horas.categorias.map(c => c.nome)])];
-  const vis = SELD.map((o, i) => ({ o, i })).filter(({ o }) => !b || norm(o.nome + ' ' + o.codigo).includes(b));
-  const sel = SELD.filter(o => o.on), tot = sel.reduce((a, o) => a + (num(o.horas) || 0), 0);
-  sheet(`<h2>Disciplinas que contam</h2><p class="mu" style="margin:6px 0 12px">Marque as disciplinas que o seu curso aceita como horas complementares. A carga horária vem do currículo ${S.horas.curriculo?.length ? '(já enviado ✓)' : '(envie o currículo na aba Atualizar para vir certinha)'}; ajuste se precisar.</p>
-    ${SELD.length > 8 ? `<input id="seld-b" placeholder="Buscar disciplina ou código" value="${esc(busca)}" oninput="desenharSelD(this.value);setTimeout(()=>{const e=$('#seld-b');e.focus();e.setSelectionRange(e.value.length,e.value.length)})" style="margin-bottom:10px">` : ''}
+function desenharSelD() {
+  const cats = [...new Set(['Disciplinas optativas', ...S.horas.categorias.map(c => c.nome)])];
+  sheet(`<h2>Disciplinas que contam</h2><p class="mu" style="margin:6px 0 12px">Marque as disciplinas que o seu curso aceita como horas complementares. A carga horária vem do plano de ensino ou do currículo; ajuste se precisar.</p>
+    ${SELD.length > 8 ? `<input id="seld-b" placeholder="Buscar disciplina ou código" oninput="filtrarSelD(this.value)" style="margin-bottom:10px">` : ''}
     <datalist id="cats-d">${cats.map(c => `<option value="${esc(c)}">`).join('')}</datalist>
-    <div class="lote">${vis.map(({ o, i }) => `<div class="lote-item ${o.on ? '' : 'off'}">
-      <label class="row" style="gap:10px;cursor:pointer"><input type="checkbox" ${o.on ? 'checked' : ''} onchange="SELD[${i}].on=this.checked;desenharSelD($('#seld-b')?.value||'')"><div class="sp" style="min-width:0"><b class="sm">${esc(o.nome)}</b><div class="mu">${[o.codigo, o.origem].filter(Boolean).map(esc).join(' · ')}</div></div></label>
-      ${o.on ? `<div class="fields c2" style="margin-top:8px"><input aria-label="Horas" inputmode="decimal" placeholder="Horas" value="${esc(o.horas)}" oninput="SELD[${i}].horas=this.value;totSelD()"><input aria-label="Categoria" list="cats-d" placeholder="Categoria" value="${esc(o.categoria)}" oninput="SELD[${i}].categoria=this.value"></div>${o.horas ? '' : '<div class="mu" style="font-size:12px;margin-top:4px">Informe a carga horária da disciplina.</div>'}` : ''}</div>`).join('') || '<p class="mu">Nenhuma disciplina encontrada. Cadastre disciplinas, envie seu histórico ou o currículo do curso.</p>'}</div>
-    <div class="actions"><button class="btn" onclick="closeSheet()">Cancelar</button><button class="btn pr sp" onclick="salvarSelD()">Salvar <span id="seld-tot">${sel.length} · ${fmtH(tot)}</span></button></div>`);
+    <div class="lote">${SELD.map((o, i) => `<div class="lote-item ${o.on ? '' : 'off'}" id="sd-${i}" data-busca="${esc(norm(o.nome + ' ' + o.codigo))}">
+      <label class="row" style="gap:10px;cursor:pointer"><input type="checkbox" ${o.on ? 'checked' : ''} onchange="marcarSelD(${i},this.checked)"><div class="sp" style="min-width:0"><b class="sm">${esc(o.nome)}</b><div class="mu">${[o.codigo, o.origem].filter(Boolean).map(esc).join(' · ')}</div></div></label>
+      <div class="sd-campos" ${o.on ? '' : 'hidden'}><div class="fields c2" style="margin-top:8px"><input aria-label="Horas" inputmode="decimal" placeholder="Horas" value="${esc(o.horas)}" oninput="SELD[${i}].horas=this.value;totSelD()"><input aria-label="Categoria" list="cats-d" placeholder="Categoria" value="${esc(o.categoria)}" oninput="SELD[${i}].categoria=this.value"></div></div></div>`).join('') || '<p class="mu">Nenhuma disciplina encontrada. Cadastre disciplinas, envie seu histórico ou o currículo do curso.</p>'}</div>
+    <div class="actions"><button class="btn" onclick="closeSheet()">Cancelar</button><button class="btn pr sp" onclick="salvarSelD()">Salvar <span id="seld-tot"></span></button></div>`);
+  totSelD();
 }
+// atualiza só o item marcado (sem redesenhar o painel)
+function marcarSelD(i, on) {
+  SELD[i].on = on;
+  const el = $('#sd-' + i); el.classList.toggle('off', !on); el.querySelector('.sd-campos').hidden = !on;
+  if (on) el.querySelector('.sd-campos input')?.focus({ preventScroll: true });
+  vibrar(6); totSelD();
+}
+function filtrarSelD(q) { const b = norm(q); document.querySelectorAll('.lote-item[data-busca]').forEach(el => el.hidden = !!b && !el.dataset.busca.includes(b)); }
 function totSelD() { const sel = SELD.filter(o => o.on), t = sel.reduce((a, o) => a + (num(o.horas) || 0), 0); const el = $('#seld-tot'); if (el) el.textContent = `${sel.length} · ${fmtH(t)}`; }
 function salvarSelD() {
   const sel = SELD.filter(o => o.on);
@@ -1752,3 +1759,5 @@ async function limparCurriculoGuardado() {
   await sb.storage.from('certificados').remove(arqs.map(x => x.path)).catch(() => { });
   S.horas.curriculoArquivos = []; save();
 }
+
+function marcarLote(i, on) { LOTE[i].on = on; $('#lt-' + i)?.classList.toggle('off', !on); const b = $('#lote-salvar'); if (b) b.disabled = !LOTE.some(x => x.on); vibrar(6); totLote(); }
