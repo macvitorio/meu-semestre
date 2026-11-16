@@ -101,7 +101,9 @@ const convitePendente = () => { try { return localStorage.getItem(KEY + ':convit
 async function boot() {
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => { });
   $('#root').innerHTML = `<div class="auth"><div class="spin"></div></div>`;
-  try { const r = await fetch('/api/config'); if (r.ok) cfg = await r.json(); } catch { }
+  let cache = null; try { cache = JSON.parse(localStorage.getItem(KEY + ':cfg')); } catch { }
+  const buscarCfg = fetch('/api/config').then(r => r.ok ? r.json() : null).then(c => { if (c) { cfg = { ...cfg, ...c }; try { localStorage.setItem(KEY + ':cfg', JSON.stringify(c)); } catch { } } return c; }).catch(() => null);
+  if (cache?.supabaseUrl) { cfg = { ...cfg, ...cache }; buscarCfg; } else await buscarCfg;
   // desenvolvimento local sem Vercel: lê config.local.json (fora do git)
   if (!cfg.supabaseUrl && ['localhost', '127.0.0.1'].includes(location.hostname)) { try { const r = await fetch('config.local.json'); if (r.ok) cfg = { ...cfg, ...(await r.json()) }; } catch { } }
   if (cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase) {
@@ -386,9 +388,10 @@ V.agenda = () => {
     S.materias.forEach(m => m.horarios.forEach(h => { const i = SLOTS.indexOf(h.inicio); for (let k = 0; k < (+h.aulas || 1); k++) { const s = SLOTS[i + k]; if (s) oc[h.dia + s] = { m, h, first: !k }; } }));
     const usados = SLOTS.filter(s => dias.some(d => oc[d + s]));
     if (!usados.length) return html + vazio('cal', 'Grade vazia', 'Os horários aparecem aqui quando você importa um plano de ensino ou edita uma disciplina.', ctaImportar) + '</div>';
-    html += `<div class="row wrap"><button class="btn sm" onclick="compartilharGrade()">${ic('up', 16)} Compartilhar grade</button><button class="btn sm" onclick="exportarAgenda()">${ic('cal', 16)} Google Agenda</button></div>`;
+    const porNome = !!S.perfil.gradeNome;
+    html += `<div class="row wrap"><div class="seg" style="width:auto"><button class="${porNome ? '' : 'on'}" onclick="S.perfil.gradeNome=false;save();render()">Código</button><button class="${porNome ? 'on' : ''}" onclick="S.perfil.gradeNome=true;save();render()">Nome</button></div><span class="sp"></span><button class="btn sm" onclick="compartilharGrade()">${ic('up', 16)} Compartilhar grade</button><button class="btn sm" onclick="exportarAgenda()">${ic('cal', 16)} Google Agenda</button></div>`;
     html += `<div class="card"><div class="wk" style="--d:${dias.length}"><div></div>${dias.map(d => `<div class="h">${DIAS[d]}</div>`).join('')}
-      ${usados.map(s => `<div class="t">${hhmm(s)}</div>${dias.map(d => { const o = oc[d + s]; return o ? `<div class="c has" style="background:${o.m.cor};${o.first ? '' : 'opacity:.8'}" onclick="go('disc/${o.m.id}')">${o.first ? esc(o.m.codigo || o.m.nome.slice(0, 10)) + (o.h.sala ? `<small>${esc(o.h.sala)}</small>` : '') : ''}</div>` : '<div class="c"></div>'; }).join('')}`).join('')}</div></div>`;
+      ${usados.map(s => `<div class="t">${hhmm(s)}</div>${dias.map(d => { const o = oc[d + s]; return o ? `<div class="c has" style="background:${o.m.cor};${o.first ? '' : 'opacity:.8'}" onclick="go('disc/${o.m.id}')">${o.first ? `<span class="wk-nome">${esc(porNome ? (o.m.nome || o.m.codigo) : (o.m.codigo || o.m.nome))}</span>` + (o.h.sala ? `<small>${esc(o.h.sala)}</small>` : '') : ''}</div>` : '<div class="c"></div>'; }).join('')}`).join('')}</div></div>`;
   } else if (agModo === 'mes') {
     agMes ||= hoje().slice(0, 7); agSel ||= hoje();
     const [y, mo] = agMes.split('-').map(Number), first = new Date(y, mo - 1, 1), start = new Date(first); start.setDate(1 - first.getDay());

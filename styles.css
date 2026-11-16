@@ -427,3 +427,4 @@ nav.bn a.fab span.circ{box-shadow:0 4px 0 var(--pr-sombra),0 8px 20px color-mix(
 @media(min-width:900px){nav.bn a.fab{box-shadow:0 4px 0 var(--pr-sombra)}}
 .empty .ic{border-radius:18px}
 .aviso-teste{border-radius:var(--r)}
+.wk .c.has .wk-nome{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}

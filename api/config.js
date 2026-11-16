@@ -1,6 +1,6 @@
 // Entrega ao navegador apenas a URL e a chave pública (anon) do Supabase.
 export default function handler(req, res) {
-  res.setHeader('Cache-Control', 'public, max-age=60');
+  res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=86400');
   res.status(200).json({
     supabaseUrl: process.env.SUPABASE_URL || '',
     supabaseAnonKey: process.env.SUPABASE_ANON_KEY || '',

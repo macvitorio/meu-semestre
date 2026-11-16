@@ -1,7 +1,7 @@
 /* Leitor local de plano de ensino (sem IA) — usado quando a IA não está disponível */
 'use strict';
 async function pdfText(file) {
-  if (!window.pdfjsLib) throw new Error('Leitor de PDF não carregou (precisa de internet na 1ª vez).');
+  if (!window.pdfjsLib) await new Promise((ok, err) => { const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'; sc.onload = ok; sc.onerror = () => err(new Error('Leitor de PDF não carregou (precisa de internet).')); document.head.append(sc); });
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
   let txt = '';
