@@ -78,6 +78,15 @@
           "value": "noindex"
         }
       ]
+    },
+    {
+      "source": "/arquitetura",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex"
+        }
+      ]
     }
   ],
   "cleanUrls": true,
@@ -86,6 +95,11 @@
       "source": "/app.html",
       "destination": "/app",
       "permanent": true
+    },
+    {
+      "source": "/arquitetura",
+      "destination": "https://claude.ai/artifact/HK3oZeryDAt3WbLybAWTeg",
+      "permanent": false
     }
   ],
   "rewrites": [
