@@ -103,7 +103,7 @@ export function segredoConfere(recebido, esperado) {
 // ===== Notificações push =====
 import webpush from 'web-push';
 let vapidOk = false;
-function vapid() { if (!vapidOk) { webpush.setVapidDetails(process.env.VAPID_SUBJECT || 'mailto:suporte@meusemestre.app', process.env.VAPID_PUBLIC_KEY, process.env.VAPID_PRIVATE_KEY); vapidOk = true; } }
+function vapid() { if (!vapidOk) { webpush.setVapidDetails(process.env.VAPID_SUBJECT || 'mailto:suporte.meusemestre@gmail.com', process.env.VAPID_PUBLIC_KEY, process.env.VAPID_PRIVATE_KEY); vapidOk = true; } }
 export async function enviarPush(db, subs, msg) {
   if (!process.env.VAPID_PRIVATE_KEY) return { enviados: 0, removidos: 0 };
   vapid(); let enviados = 0, removidos = 0;

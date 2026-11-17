@@ -40,6 +40,6 @@ async function excluirConta(req, res, user) {
   for (const b of ['avatares', 'certificados', 'forum']) { try { await limparPasta(db, b, user.id); } catch { } }
   try { await db.from('feedback').delete().eq('user_id', user.id); } catch { }
   const { error } = await db.auth.admin.deleteUser(user.id);
-  if (error) return res.status(500).json({ error: 'Não foi possível excluir agora. Tente de novo ou fale com a gente por e-mail.' });
+  if (error) return res.status(500).json({ error: 'Não foi possível excluir agora. Tente de novo ou escreva para suporte.meusemestre@gmail.com.' });
   res.status(200).json({ ok: true });
 }
