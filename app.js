@@ -159,6 +159,7 @@ async function entrar(u) {
   render();
   carregarPlano();
   setTimeout(checarTermos, 400);
+  setTimeout(popupApp, 2500);
   limparCurriculoGuardado();
 }
 function entrarLocal() { modoLocal = true; user = null; try { localStorage.setItem(KEY + ':modo', 'local'); } catch { } S = migrar(loadLocal(':local')); startApp(); }
@@ -1181,12 +1182,20 @@ function feriadosSheet() {
 function addFeriado() { const d = val('fer-d'); if (!d) return toast('Escolha a data.'); if (!S.feriados.some(f => f.data === d)) S.feriados.push({ data: d, descricao: val('fer-t') || 'Sem aula' }); save(); feriadosSheet(); }
 function removerFeriado(d) { S.feriados = S.feriados.filter(f => f.data !== d); save(); feriadosSheet(); }
 
-// iPhone no Safari: mostra uma vez como instalar (sem isso fica com cara de site)
-addEventListener('load', () => setTimeout(() => {
-  if (!document.body.classList.contains('app') || standalone() || !isIOS()) return;
-  try { if (localStorage.getItem(KEY + ':ios-dica')) return; localStorage.setItem(KEY + ':ios-dica', 1); } catch { return; }
-  instalar();
-}, 1500));
+// Primeiro login pelo navegador: avisa uma vez (por conta) que dá pra instalar o app
+function popupApp() {
+  if (!user || standalone() || !document.body.classList.contains('app')) return;
+  const k = KEY + ':popup-app:' + user.id;
+  try { if (localStorage.getItem(k)) return; } catch { return; }
+  if ($('#layer').innerHTML.trim()) return setTimeout(popupApp, 3000); // espera outra janela (ex.: termos) fechar
+  try { localStorage.setItem(k, '1'); } catch { }
+  const celular = isIOS() || /android/i.test(navigator.userAgent);
+  sheet(`<div style="text-align:center"><img src="/icon.svg" alt="" style="width:72px;height:72px;border-radius:18px;margin:4px auto 10px;display:block">
+    <h2>Leva o Meu Semestre no bolso 📲</h2>
+    <p class="mu" style="margin:8px 0 4px">${celular ? 'Instala o app na tela inicial: abre em tela cheia, mais rápido, funciona sem internet e te avisa das provas e faltas.' : 'No celular fica ainda melhor: abre em tela cheia, funciona sem internet e te avisa das provas e faltas. Abre <b>meusemestre.com.br</b> no celular e instala, ou instala aqui no computador.'}</p>
+    <p class="mu sm" style="margin:0 0 4px">Leva 10 segundos e não ocupa quase nada de espaço.</p></div>
+    <div class="actions"><button class="btn" onclick="closeSheet()">Agora não</button><button class="btn pr sp" onclick="closeSheet();setTimeout(instalar,250)">${ic('phone', 18)} Instalar o app</button></div>`);
+}
 
 // ================= Comportamento de app nativo (sem zoom, sem seleção, sem menu de toque longo) =================
 (() => {
