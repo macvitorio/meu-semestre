@@ -87,5 +87,15 @@
       "destination": "/app",
       "permanent": true
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/forum",
+      "destination": "/api/config?pagina=forum"
+    },
+    {
+      "source": "/forum/:id",
+      "destination": "/api/config?pagina=forum&id=:id"
+    }
   ]
 }

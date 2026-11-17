@@ -312,6 +312,6 @@ for g in GUIAS:
 open(os.path.join(aqui, 'index.html'), 'w').write(indice())
 # sitemap
 raiz = os.path.dirname(aqui)
-urls = [('/', '1.0', 'weekly'), ('/guias', '0.8', 'weekly')] + [('/guias/' + g['slug'], '0.8', 'monthly') for g in GUIAS] + [('/marca', '0.4', 'monthly'), ('/privacidade', '0.3', 'yearly'), ('/termos', '0.3', 'yearly')]
+urls = [('/', '1.0', 'weekly'), ('/forum', '0.9', 'daily'), ('/guias', '0.8', 'weekly')] + [('/guias/' + g['slug'], '0.8', 'monthly') for g in GUIAS] + [('/marca', '0.4', 'monthly'), ('/privacidade', '0.3', 'yearly'), ('/termos', '0.3', 'yearly')]
 open(os.path.join(raiz, 'sitemap.xml'), 'w').write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + ''.join(f'  <url><loc>{BASE}{u}</loc><lastmod>{DATA}</lastmod><changefreq>{c}</changefreq><priority>{p}</priority></url>\n' for u, p, c in urls) + '</urlset>\n')
 print('ok', len(GUIAS), 'guias')

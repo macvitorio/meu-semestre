@@ -303,7 +303,7 @@ a,img,svg{-webkit-user-drag:none;-webkit-touch-callout:none}
 .top{position:sticky}
 .top .ttl{position:absolute;left:50%;transform:translate(-50%,6px);max-width:55vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none}
 .top.scrolled .ttl{transform:translate(-50%,0)}
-@media(max-width:430px){.sync span{display:none}.sync{padding:8px}}
+
 
 /* iPhone instalado: cabeçalho sólido (sem degradê) e barra inferior colada no fim da tela */
 @media (display-mode: standalone){

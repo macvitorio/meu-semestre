@@ -171,7 +171,7 @@ async function sair() {
 
 // ================= Tela de login =================
 let authMode = 'entrar';
-const TERMOS_VERSAO = '2026-11-16';
+const TERMOS_VERSAO = '2026-11-17';
 const LINKS_LEGAIS = '<a href="termos.html" target="_blank">Termos de Uso</a> e a <a href="privacidade.html" target="_blank">Política de Privacidade</a>';
 function renderAuth() {
   document.body.classList.remove('app');
@@ -346,7 +346,7 @@ function startApp() {
   document.body.classList.add('app');
   parseHash();
   $('#root').innerHTML = `<header class="top" id="top"><div class="brand">${marca()}<span class="brand-tx">Meu Semestre</span></div><span class="ttl" id="ttl"></span><span class="sp"></span>
-    <span class="sync" id="sync"><i></i><span></span></span>
+    <a class="ib" aria-label="Fórum da galera" href="#/forum">${ic('chat', 22)}</a>
     <a class="ib so-mobile" aria-label="Configurações" href="#/config">${ic('gear', 22)}</a></header>
     <main id="view"></main><nav class="bn" id="nav"></nav>`;
   setSync(syncState);
@@ -364,6 +364,7 @@ function render() {
   $('#nav').insertAdjacentHTML('afterbegin', `<a href="#/inicio" class="nav-brand">${marca()}<b>Meu Semestre</b></a>`);
   aplicarTema(); aplicarRegras();
   $('#view').innerHTML = (V[R.v] || V.inicio)();
+  if (R.v === 'config') setSync(syncState);
   if (R.v === 'avisos') avPrev();
   const t = $('#ttl'); if (t) t.textContent = R.v === 'disc' ? nomeM(byId(R.id)) : R.v === 'config' ? 'Configurações' : R.v === 'premium' ? 'Premium' : R.v === 'indicar' ? 'Indique e ganhe' : R.v === 'horas' ? 'Horas complementares' : R.v === 'admin' ? 'Admin' : R.v === 'feedbacks' ? 'Feedbacks' : R.v === 'forum' ? 'Fórum' : R.v === 'avisos' ? 'Notificações' : (NAV.find(n => n[0] === cur) || [, , ''])[2];
 }
@@ -1156,6 +1157,7 @@ V.config = () => {
   </div></section>
 
   <section class="grp"><h4>Conta</h4><div class="card">
+    <div class="li"><span class="ico" style="background:#0ca678">${ic('db')}</span><span class="tx">Seus dados<small>${user ? 'Salvos na sua conta e neste aparelho' : 'Salvos só neste aparelho'}</small></span><span class="sync" id="sync"><i></i><span></span></span></div>
     ${user ? li('lock', '#5c7cfa', temSenha() ? 'Trocar senha' : 'Criar senha', temSenha() ? '' : 'Pra entrar também com e-mail e senha', chev, `onclick="senhaSheet()"`) : ''}
     ${li('out', '#868e96', user ? 'Sair da conta' : 'Entrar com uma conta', user ? '' : 'Para sincronizar entre aparelhos', chev, `onclick="sair()"`)}
     <button class="li danger" onclick="apagarTudo()"><span class="ico" style="background:var(--bad)">${ic('trash')}</span><span class="tx">Apagar todos os dados<small>Mantém a conta, zera o semestre</small></span></button>
@@ -2128,7 +2130,7 @@ function forumNovo(tipo = 'duvida') {
     </div>
     <div id="fp-arq" class="forum-anexos"></div>
     <div class="actions"><label class="btn">📎 Anexar<input type="file" hidden multiple accept="application/pdf,image/*" onchange="forumAnexar(this,'fp')"></label><button class="btn pr sp" id="fp-b" onclick="forumPublicar()">Publicar</button></div>
-    <p class="mu sm" style="margin:8px 0 0">Seu nome e curso aparecem na publicação. Nada de provas sigilosas, conteúdo pirata ou ofensas: publicações denunciadas saem do ar.</p>`);
+    <p class="mu sm" style="margin:8px 0 0">O fórum é público na internet: aparecem seu primeiro nome e curso (nome completo e foto só pra quem está logado). Nada de provas sigilosas, conteúdo pirata ou ofensas: publicações denunciadas saem do ar.</p>`);
 }
 async function forumPublicar() {
   const tipo = document.querySelector('#fp-seg .on')?.dataset.k || 'duvida', titulo = val('fp-t'), disciplina = val('fp-d'), texto = $('#fp-x').value.trim();
