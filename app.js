@@ -985,6 +985,9 @@ function cardInstalar() {
 }
 async function instalar() {
   if (promptInstalar) { promptInstalar.prompt(); await promptInstalar.userChoice; promptInstalar = null; render(); return; }
+  if (!isIOS() && !/android/i.test(navigator.userAgent)) return sheet(`<h2>Instalar o app</h2><p class="mu" style="margin-top:6px">No computador, use o <b>Chrome</b> ou o <b>Edge</b>: clique no ícone de instalar (tela com seta ⤓) no fim da barra de endereço.</p>
+    <p class="mu" style="margin-top:10px">No celular, abra <b>meusemestre.com.br</b> e toque em <b>Instalar o app</b> em Configurações.</p>
+    <div class="actions"><button class="btn pr block" onclick="closeSheet()">Entendi</button></div>`);
   if (/android/i.test(navigator.userAgent)) return sheet(`<h2>Instalar no Android</h2><p class="mu" style="margin-top:6px">No <b>Chrome</b>:</p>
     <ol class="ios-steps"><li><span>Toque no menu <b>⋮</b> no canto superior direito</span></li><li><span>Toque em <b>Instalar app</b> (não use "Adicionar à tela inicial", que cria só um atalho de site)</span></li><li><span>Confirme em <b>Instalar</b>. O app abre em tela cheia, sem barra do navegador</span></li></ol>
     <p class="mu" style="margin-top:12px">Se você já tinha um ícone antigo, apague-o antes. Ele aponta para o endereço antigo e abre como site.</p>
