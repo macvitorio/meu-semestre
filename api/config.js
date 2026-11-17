@@ -96,7 +96,7 @@ function pagina({ titulo, desc, canon, corpo, ld, noindex }) {
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>${esc(titulo)}</title><meta name="description" content="${esc(desc)}">${noindex ? '<meta name="robots" content="noindex">' : ''}${canon ? `<link rel="canonical" href="${canon}">` : ''}
 <meta property="og:type" content="website"><meta property="og:site_name" content="Meu Semestre"><meta property="og:title" content="${esc(titulo)}"><meta property="og:description" content="${esc(desc)}"><meta property="og:image" content="${SITE}/og.png?v=5">${canon ? `<meta property="og:url" content="${canon}">` : ''}
-<meta name="theme-color" content="#fffaf3"><link rel="icon" href="/icon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#fffaf3"><link rel="icon" href="/favicon.ico" sizes="48x48"><link rel="icon" type="image/svg+xml" href="/icon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Inter:wght@400;500;600&display=swap">
 ${ld ? `<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c')}</script>` : ''}
 <style>:root{--bg:#fffaf3;--card:#fff;--s2:#fbf3e8;--tx:#1b1340;--tx2:#5b5677;--bd:#efe6da;--pr:#4f46e5;--pr2:#eef0ff;--ok:#16a36a;--sol:#ffc83d}

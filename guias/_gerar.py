@@ -249,7 +249,10 @@ def cabeca(titulo, desc, url, extra_ld):
 <title>{html.escape(titulo)} | Meu Semestre</title>
 <meta name="description" content="{html.escape(desc)}">
 <link rel="canonical" href="{url}">
-<meta name="theme-color" content="#fffaf3"><link rel="icon" href="/icon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#fffaf3"><link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" type="image/png" sizes="96x96" href="/icons/favicon-96.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/favicon-192.png">
+<link rel="icon" type="image/svg+xml" href="/icon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta property="og:type" content="article"><meta property="og:site_name" content="Meu Semestre"><meta property="og:locale" content="pt_BR">
 <meta property="og:url" content="{url}"><meta property="og:title" content="{html.escape(titulo)}"><meta property="og:description" content="{html.escape(desc)}">
 <meta property="og:image" content="{BASE}/og.png?v=5"><meta name="twitter:card" content="summary_large_image">
