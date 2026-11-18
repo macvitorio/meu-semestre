@@ -850,13 +850,13 @@ function discSheet(id) {
   horRender();
 }
 function horRender() {
-  $('#hor').innerHTML = draftH.map((h, i) => `<div class="row hor-row" style="margin-top:8px">
-    <select aria-label="Dia" onchange="draftH[${i}].dia=this.value">${Object.entries(DIAS_L).map(([k, v]) => `<option value="${k}" ${k == h.dia ? 'selected' : ''}>${v}</option>`).join('')}</select>
-    <label class="hor-t">Início<input type="time" aria-label="Início" value="${hhmm(h.inicio || '0730')}" onchange="draftH[${i}].inicio=this.value.replace(':','')"></label>
-    <label class="hor-t">Fim<input type="time" aria-label="Fim" value="${h.fim ? hhmm(h.fim) : fimAula(h.inicio || '0730', h.aulas)}" onchange="draftH[${i}].fim=this.value.replace(':','')"></label>
-    <input aria-label="Nº de aulas" title="Nº de aulas (conta nas faltas)" style="width:56px" inputmode="numeric" value="${esc(h.aulas)}" onchange="draftH[${i}].aulas=this.value">
-    <input aria-label="Sala" placeholder="Sala" style="width:90px" value="${esc(h.sala)}" onchange="draftH[${i}].sala=this.value">
-    <button class="ib" aria-label="Remover horário" onclick="draftH.splice(${i},1);horRender()">${ic('x', 18)}</button></div>`).join('') || '<p class="mu">Nenhum horário.</p>';
+  $('#hor').innerHTML = draftH.map((h, i) => `<div class="hor-card">
+    <label class="hor-t hor-dia">Dia<select aria-label="Dia" onchange="draftH[${i}].dia=this.value">${Object.entries(DIAS_L).map(([k, v]) => `<option value="${k}" ${k == h.dia ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
+    <label class="hor-t">Início<input type="time" value="${hhmm(h.inicio || '0730')}" onchange="draftH[${i}].inicio=this.value.replace(':','')"></label>
+    <label class="hor-t">Fim<input type="time" value="${h.fim ? hhmm(h.fim) : fimAula(h.inicio || '0730', h.aulas)}" onchange="draftH[${i}].fim=this.value.replace(':','')"></label>
+    <label class="hor-t">Aulas<input inputmode="numeric" title="Nº de aulas (conta nas faltas)" value="${esc(h.aulas)}" onchange="draftH[${i}].aulas=this.value"></label>
+    <label class="hor-t hor-sala">Sala<input placeholder="Ex.: CTC 101" value="${esc(h.sala)}" onchange="draftH[${i}].sala=this.value"></label>
+    <button class="ib hor-x" aria-label="Remover horário" onclick="draftH.splice(${i},1);horRender()">${ic('trash', 18)}</button></div>`).join('') || '<p class="mu">Nenhum horário.</p>';
 }
 function salvarDisc(id) {
   const d = { codigo: val('d-codigo').toUpperCase(), nome: val('d-nome'), professor: val('d-professor'), turma: val('d-turma'), cargaHoraria: val('d-ch'), cor: val('d-cor'), horarios: draftH, inicio: val('d-ini'), fim: val('d-fim') };
