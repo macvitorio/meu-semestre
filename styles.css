@@ -476,3 +476,4 @@ input[type=date]::-webkit-date-and-time-value{text-align:left}
 .aceite input{flex:none;margin-top:1px}.aceite a,.aceite-g a{color:var(--pr);font-weight:600}
 .aceite-g{text-align:center;margin:10px 0 0;font-size:12px}
 .disc-fim{opacity:.72}.disc-fim h3,.riscado{text-decoration:line-through;text-decoration-thickness:2px;text-decoration-color:color-mix(in srgb,var(--tx) 55%,transparent)}
+.hor-row{flex-wrap:wrap;gap:8px}.hor-row select{width:auto}.hor-t{display:flex;flex-direction:column;font-size:11px;color:var(--tx-2)}.hor-t input{width:auto;min-height:38px;padding:6px 8px}

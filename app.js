@@ -58,7 +58,8 @@ const hoje = () => iso(new Date());
 const brD = s => s ? parseISO(s).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '';
 const brDL = s => parseISO(s).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' });
 const hhmm = h => h ? h.slice(0, 2) + ':' + h.slice(2) : '';
-const fimAula = (ini, n) => { const i = Math.max(0, SLOTS.indexOf(ini)); const last = SLOTS[Math.min(SLOTS.length - 1, i + (+n || 1) - 1)]; const m = +last.slice(0, 2) * 60 + +last.slice(2) + 50; return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`; };
+const fimAula = (ini, n) => { if (ini && !SLOTS.includes(ini)) { const t = +ini.slice(0, 2) * 60 + +ini.slice(2) + 50 * (+n || 1); return String(Math.floor(t / 60) % 24).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); } const i = Math.max(0, SLOTS.indexOf(ini)); const last = SLOTS[Math.min(SLOTS.length - 1, i + (+n || 1) - 1)]; const m = +last.slice(0, 2) * 60 + +last.slice(2) + 50; return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`; };
+const fimH = h => /^\d{4}$/.test(h.fim || '') ? hhmm(h.fim) : fimAula(h.inicio, h.aulas); // fim informado pelo aluno ou calculado pelos blocos
 const num = v => { if (v === '' || v == null) return null; const n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? null : n; };
 const fmt = n => n == null ? '—' : n.toFixed(1).replace('.', ',');
 const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
@@ -423,18 +424,18 @@ V.inicio = () => {
   // coluna principal
   let main = '';
   if (!S.semestre.inicio) main += `<a class="card tap row" href="#/config" style="color:inherit;text-decoration:none">${ic('alert')}<div class="sp"><b>Defina as datas do semestre</b><div class="mu">Necessário para calcular os dias de aula e as faltas.</div></div>${ic('right')}</a>`;
-  const prox = ag.aulas.find(a => { const f = fimAula(a.h.inicio, a.h.aulas).split(':'); return +f[0] * 60 + +f[1] > mins; });
+  const prox = ag.aulas.find(a => { const f = fimH(a.h).split(':'); return +f[0] * 60 + +f[1] > mins; });
   if (prox) {
     const em = +prox.h.inicio.slice(0, 2) * 60 + +prox.h.inicio.slice(2) - mins;
     main += `<div class="card hero tap" onclick="go('disc/${prox.m.id}')"><p class="mu">${em <= 0 ? 'Acontecendo agora' : em < 90 ? `Começa em ${em} min` : 'Próxima aula hoje'}</p>
-      <h2 style="margin:4px 0">${esc(nomeM(prox.m))}</h2><p class="mu">${hhmm(prox.h.inicio)}–${fimAula(prox.h.inicio, prox.h.aulas)}${prox.h.sala ? ' · ' + esc(prox.h.sala) : ''}</p></div>`;
+      <h2 style="margin:4px 0">${esc(nomeM(prox.m))}</h2><p class="mu">${hhmm(prox.h.inicio)}–${fimH(prox.h)}${prox.h.sala ? ' · ' + esc(prox.h.sala) : ''}</p></div>`;
   }
   main += `<div class="card"><div class="card-h"><h3 class="sp">Aulas de hoje</h3><a class="btn ghost sm" href="#/agenda">Ver agenda</a></div>`;
   if (ag.fer) main += `<p class="mu">${esc(ag.fer.descricao || 'Feriado')} — sem aula 🎉</p>`;
   else if (!ag.aulas.length) main += `<p class="mu">Nenhuma aula hoje. Bom descanso!</p>`;
   else main += `<div class="list">${ag.aulas.map(({ m, h: x }) => {
     const f = m.faltas[h] || 0;
-    return `<div class="row"><span class="swatch" style="background:${m.cor}"></span><div class="sp"><b>${esc(nomeM(m))}</b><div class="mu">${hhmm(x.inicio)}–${fimAula(x.inicio, x.aulas)}${x.sala ? ' · ' + esc(x.sala) : ''}</div></div>
+    return `<div class="row"><span class="swatch" style="background:${m.cor}"></span><div class="sp"><b>${esc(nomeM(m))}</b><div class="mu">${hhmm(x.inicio)}–${fimH(x)}${x.sala ? ' · ' + esc(x.sala) : ''}</div></div>
       <button class="btn sm ${f ? 'danger' : ''}" onclick="toggleFalta('${m.id}','${h}')" aria-pressed="${!!f}">${f ? ic('x', 16) + ' Faltei' : ic('check', 16) + ' Presente'}</button></div>`;
   }).join('')}</div>`;
   main += `</div>`;
@@ -503,7 +504,7 @@ V.agenda = () => {
     const ag = agendaDoDia(agSel);
     html += `<div class="card"><div class="card-h"><h3 class="sp" style="text-transform:capitalize">${brDL(agSel)}</h3><button class="btn ghost sm" onclick="eventoSheet(null,'${agSel}')">${ic('plus', 16)} Evento</button></div>
       ${ag.fer ? `<p>${tag('Feriado', 'ok')} ${esc(ag.fer.descricao)}</p>` : ''}
-      <div class="list">${ag.aulas.map(({ m, h }) => `<div class="row"><span class="swatch" style="background:${m.cor}"></span><div class="sp"><b>${esc(nomeM(m))}</b><div class="mu">${hhmm(h.inicio)}–${fimAula(h.inicio, h.aulas)}</div></div>${m.faltas[agSel] ? tag(m.faltas[agSel] + ' falta(s)', 'bad') : ''}</div>`).join('')}
+      <div class="list">${ag.aulas.map(({ m, h }) => `<div class="row"><span class="swatch" style="background:${m.cor}"></span><div class="sp"><b>${esc(nomeM(m))}</b><div class="mu">${hhmm(h.inicio)}–${fimH(h)}</div></div>${m.faltas[agSel] ? tag(m.faltas[agSel] + ' falta(s)', 'bad') : ''}</div>`).join('')}
       ${ag.evs.filter(e => !e._fer).map(linhaEvento).join('')}</div>
       ${!ag.aulas.length && !ag.evs.length ? '<p class="mu">Nada neste dia.</p>' : ''}</div>`;
   } else {
@@ -537,7 +538,7 @@ V.disc = () => {
   let html = `<div class="stack"><div class="row"><a class="ib" href="#/disciplinas" aria-label="Voltar">${ic('back')}</a><span class="sp"></span><button class="btn sm ${concluida(m) ? '' : 'pr'}" onclick="alternarConcluida('${m.id}')">${ic('check', 16)} ${concluida(m) ? 'Reabrir' : 'Concluir'}</button>${pen(`discSheet('${m.id}')`, 'Editar disciplina')}</div>
   <div class="card" style="border-top:5px solid ${m.cor}"><div class="mu">${esc(m.codigo)}${m.turma ? ' · Turma ' + esc(m.turma) : ''}</div><h1 style="font-size:22px;margin:2px 0 4px" class="${concluida(m) ? 'riscado' : ''}">${esc(m.nome || m.codigo)}</h1>${concluida(m) ? `<div style="margin-bottom:6px">${tag('Concluída', 'ok')}</div>` : ''}
     <div class="mu">${esc(m.professor || 'Professor(a) não informado')} · ${f.total} h/a${(m.inicio || m.fim) ? ` · aulas ${m.inicio ? 'de ' + brD(m.inicio) + ' ' : ''}até ${brD(m.fim || S.semestre.fim)}` : ''}</div>
-    <div class="chips" style="margin-top:10px">${m.horarios.map(h => `<span class="tag neu">${DIAS[h.dia]} ${hhmm(h.inicio)}–${fimAula(h.inicio, h.aulas)}${h.sala ? ' · ' + esc(h.sala) : ''}</span>`).join('') || '<span class="mu">Sem horários</span>'}</div></div>
+    <div class="chips" style="margin-top:10px">${m.horarios.map(h => `<span class="tag neu">${DIAS[h.dia]} ${hhmm(h.inicio)}–${fimH(h)}${h.sala ? ' · ' + esc(h.sala) : ''}</span>`).join('') || '<span class="mu">Sem horários</span>'}</div></div>
   <div class="seg">${[['resumo', 'Resumo'], ['faltas', 'Faltas'], ['notas', 'Notas'], ['estudos', 'Estudos']].map(([k, l]) => `<button class="${sub === k ? 'on' : ''}" onclick="go('disc/${m.id}/${k}')">${l}</button>`).join('')}</div>`;
 
   if (sub === 'resumo') {
@@ -849,10 +850,11 @@ function discSheet(id) {
   horRender();
 }
 function horRender() {
-  $('#hor').innerHTML = draftH.map((h, i) => `<div class="row" style="margin-top:8px">
+  $('#hor').innerHTML = draftH.map((h, i) => `<div class="row hor-row" style="margin-top:8px">
     <select aria-label="Dia" onchange="draftH[${i}].dia=this.value">${Object.entries(DIAS_L).map(([k, v]) => `<option value="${k}" ${k == h.dia ? 'selected' : ''}>${v}</option>`).join('')}</select>
-    <select aria-label="Início" onchange="draftH[${i}].inicio=this.value">${SLOTS.map(s => `<option value="${s}" ${s === h.inicio ? 'selected' : ''}>${hhmm(s)}</option>`).join('')}</select>
-    <input aria-label="Nº de aulas" style="width:56px" inputmode="numeric" value="${esc(h.aulas)}" onchange="draftH[${i}].aulas=this.value">
+    <label class="hor-t">Início<input type="time" aria-label="Início" value="${hhmm(h.inicio || '0730')}" onchange="draftH[${i}].inicio=this.value.replace(':','')"></label>
+    <label class="hor-t">Fim<input type="time" aria-label="Fim" value="${h.fim ? hhmm(h.fim) : fimAula(h.inicio || '0730', h.aulas)}" onchange="draftH[${i}].fim=this.value.replace(':','')"></label>
+    <input aria-label="Nº de aulas" title="Nº de aulas (conta nas faltas)" style="width:56px" inputmode="numeric" value="${esc(h.aulas)}" onchange="draftH[${i}].aulas=this.value">
     <input aria-label="Sala" placeholder="Sala" style="width:90px" value="${esc(h.sala)}" onchange="draftH[${i}].sala=this.value">
     <button class="ib" aria-label="Remover horário" onclick="draftH.splice(${i},1);horRender()">${ic('x', 18)}</button></div>`).join('') || '<p class="mu">Nenhum horário.</p>';
 }
@@ -1079,7 +1081,7 @@ function exportarAgenda() {
   const diaSeg = d => { const x = parseISO(d); x.setDate(x.getDate() + 1); return iso(x); };
   for (const m of S.materias) {
     for (const d of diasDeAula(m)) for (const h of m.horarios.filter(h => +h.dia - 1 === parseISO(d.data).getDay())) {
-      add(`${m.id}-${d.data}-${h.inicio}`, [`DTSTART;TZID=${tz}:${z(d.data)}T${h.inicio}00`, `DTEND;TZID=${tz}:${z(d.data)}T${fimAula(h.inicio, h.aulas).replace(':', '')}00`, `SUMMARY:${escI((m.codigo ? m.codigo + ' · ' : '') + nomeM(m))}`, h.sala ? `LOCATION:${escI(h.sala)}` : '', m.professor ? `DESCRIPTION:${escI('Prof. ' + m.professor)}` : ''].filter(Boolean));
+      add(`${m.id}-${d.data}-${h.inicio}`, [`DTSTART;TZID=${tz}:${z(d.data)}T${h.inicio}00`, `DTEND;TZID=${tz}:${z(d.data)}T${fimH(h).replace(':', '')}00`, `SUMMARY:${escI((m.codigo ? m.codigo + ' · ' : '') + nomeM(m))}`, h.sala ? `LOCATION:${escI(h.sala)}` : '', m.professor ? `DESCRIPTION:${escI('Prof. ' + m.professor)}` : ''].filter(Boolean));
     }
     for (const a of m.avaliacoes.filter(a => a.data)) add(`av-${m.id}-${a.id}`, [`DTSTART;VALUE=DATE:${z(a.data)}`, `DTEND;VALUE=DATE:${z(diaSeg(a.data))}`, `SUMMARY:${escI('📝 ' + a.nome + ' · ' + nomeM(m))}`, 'BEGIN:VALARM', 'TRIGGER:-PT15H', 'ACTION:DISPLAY', `DESCRIPTION:${escI(a.nome)}`, 'END:VALARM']);
   }
