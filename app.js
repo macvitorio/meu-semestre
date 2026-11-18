@@ -441,21 +441,21 @@ V.inicio = () => {
   if (prox) {
     const em = +prox.h.inicio.slice(0, 2) * 60 + +prox.h.inicio.slice(2) - mins;
     main += `<div class="card hero tap" onclick="go('disc/${prox.m.id}')"><p class="mu">${em <= 0 ? 'Acontecendo agora' : em < 90 ? `Começa em ${em} min` : 'Próxima aula hoje'}</p>
-      <h2 style="margin:4px 0">${esc(nomeM(prox.m))}</h2><p class="mu">${hhmm(prox.h.inicio)}–${fimH(prox.h)}${prox.h.sala ? ' · ' + esc(prox.h.sala) : ''}</p></div>`;
+      <h2 style="margin:4px 0" class="${concluida(prox.m) ? 'riscado' : ''}">${esc(nomeM(prox.m))}</h2><p class="mu">${hhmm(prox.h.inicio)}–${fimH(prox.h)}${prox.h.sala ? ' · ' + esc(prox.h.sala) : ''}</p></div>`;
   }
   main += `<div class="card"><div class="card-h"><h3 class="sp">Aulas de hoje</h3><a class="btn ghost sm" href="#/agenda">Ver agenda</a></div>`;
   if (ag.fer) main += `<p class="mu">${esc(ag.fer.descricao || 'Feriado')} — sem aula 🎉</p>`;
   else if (!ag.aulas.length) main += `<p class="mu">Nenhuma aula hoje. Bom descanso!</p>`;
   else main += `<div class="list">${ag.aulas.map(({ m, h: x }) => {
     const f = m.faltas[h] || 0;
-    return `<div class="row"><span class="swatch" style="background:${m.cor}"></span><div class="sp"><b>${esc(nomeM(m))}</b><div class="mu">${hhmm(x.inicio)}–${fimH(x)}${x.sala ? ' · ' + esc(x.sala) : ''}</div></div>
+    return `<div class="row"><span class="swatch" style="background:${corM(m)}"></span><div class="sp"><b class="${concluida(m) ? 'riscado' : ''}">${esc(nomeM(m))}</b><div class="mu">${hhmm(x.inicio)}–${fimH(x)}${x.sala ? ' · ' + esc(x.sala) : ''}</div></div>
       <button class="btn sm ${f ? 'danger' : ''}" onclick="toggleFalta('${m.id}','${h}')" aria-pressed="${!!f}">${f ? ic('x', 16) + ' Faltei' : ic('check', 16) + ' Presente'}</button></div>`;
   }).join('')}</div>`;
   main += `</div>`;
   // disciplinas resumidas
   main += `<div class="card"><div class="card-h"><h3 class="sp">Suas disciplinas</h3><a class="btn ghost sm" href="#/disciplinas">Ver todas</a></div><div class="list">${S.materias.map(m => {
     const f = freq(m), n = notas(m);
-    return `<a class="row" href="#/disc/${m.id}" style="color:inherit;text-decoration:none"><span class="swatch" style="background:${m.cor}"></span><div class="sp"><b>${esc(nomeM(m))}</b><div class="mu">${esc(m.codigo)}</div></div>
+    return `<a class="row" href="#/disc/${m.id}" style="color:inherit;text-decoration:none"><span class="swatch" style="background:${corM(m)}"></span><div class="sp"><b class="${concluida(m) ? 'riscado' : ''}">${esc(nomeM(m))}</b><div class="mu">${esc(m.codigo)}</div></div>
       <div class="mini"><span class="mu">Presença</span><b style="color:${nivelCor(f.nivel)}">${Math.round(f.pct)}%</b></div><div class="mini"><span class="mu">Média</span><b>${fmt(n.mf ?? n.parcial)}</b></div>${ic('right', 18)}</a>`;
   }).join('')}</div></div>`;
 
