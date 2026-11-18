@@ -71,7 +71,7 @@ let S = novoEstado();
 function migrar(d) {
   d = Object.assign(novoEstado(), d || {});
   d.feriados = (d.feriados || []).map(f => typeof f === 'string' ? { data: f, descricao: 'Sem aula' } : f);
-  d.materias.forEach(m => { m.faltas ||= {}; m.canceladas ||= []; m.avaliacoes ||= []; m.topicos ||= []; m.horarios ||= []; });
+  d.materias.forEach(m => { m.faltas ||= {}; m.canceladas ||= []; m.avaliacoes ||= []; m.topicos ||= []; m.horarios ||= []; m.remarcadas ||= []; });
   const idOk = v => typeof v === 'string' && /^[\w-]{1,40}$/.test(v) ? v : uid();
   const corOk = v => /^#[0-9a-f]{6}$/i.test(v || '') ? v : null;
   d.materias.forEach((m, i) => {
@@ -283,13 +283,14 @@ async function enviarFeedback() {
 function diasDeAula(m) {
   const out = [];
   if (!S.semestre.inicio || !S.semestre.fim) return out;
-  const fer = new Set(S.feriados.map(f => f.data)), canc = new Set(m.canceladas || []);
+  const fer = new Set(S.feriados.map(f => f.data)), canc = new Set(m.canceladas || []), rem = m.remarcadas || [], movidas = new Set(rem.map(r => r.de));
   for (let d = parseISO(S.semestre.inicio); d <= parseISO(S.semestre.fim); d.setDate(d.getDate() + 1)) {
     const k = iso(d), hs = m.horarios.filter(h => +h.dia - 1 === d.getDay());
-    if (!hs.length || fer.has(k) || canc.has(k)) continue;
+    if (!hs.length || fer.has(k) || canc.has(k) || movidas.has(k)) continue;
     out.push({ data: k, aulas: hs.reduce((a, h) => a + (+h.aulas || 0), 0) });
   }
-  return out;
+  for (const r of rem) if (!canc.has(r.para) && !out.some(o => o.data === r.para)) out.push({ data: r.para, aulas: +r.aulas || 1, de: r.de });
+  return out.sort((a, b) => a.data.localeCompare(b.data));
 }
 function freq(m) {
   const dias = diasDeAula(m), gerado = dias.reduce((a, d) => a + d.aulas, 0);
@@ -300,12 +301,23 @@ function freq(m) {
   const nivel = max - faltas < 0 ? 'bad' : max && faltas / max >= .7 ? 'warn' : 'ok';
   return { dias, total, faltas, max, restam: max - faltas, pct, nivel };
 }
+function concluida(m) {
+  if (m.concluida === true) return true;
+  if (m.concluida === false) return false;
+  const dias = diasDeAula(m), h = hoje();
+  return !!((S.semestre.fim && h > S.semestre.fim) || (dias.length > 0 && dias[dias.length - 1].data < h));
+}
+function alternarConcluida(id) {
+  const m = byId(id), era = concluida(m);
+  upd(() => { m.concluida = !era; });
+  toast(era ? 'Disciplina reaberta.' : 'Disciplina concluída! 🎉', () => upd(() => { m.concluida = era; }));
+}
 function notas(m) {
   const av = m.avaliacoes || [], pesos = av.map(a => num(a.peso)), usaPeso = pesos.some(p => p > 0);
   const w = i => usaPeso ? (pesos[i] || 0) : 1, sumW = av.reduce((a, _, i) => a + w(i), 0);
   let feito = 0, wF = 0;
   av.forEach((a, i) => { const n = num(a.nota); if (n != null) { feito += n * w(i); wF += w(i); } });
-  const parcial = wF ? feito / wF : null, wR = sumW - wF;
+  const parcial = wF && sumW ? feito / sumW : null, wR = sumW - wF; // pontos acumulados: provas sem nota contam como 0
   const final = sumW && wR === 0 && av.length ? feito / sumW : null;
   const precisa = wR > 0 ? (MEDIA_APROV * sumW - feito) / wR : null;
   let sit = 'Em andamento', nivel = 'neu', mf = final;
@@ -323,7 +335,8 @@ function notas(m) {
 function agendaDoDia(d) {
   const dow = parseISO(d).getDay() + 1, fer = S.feriados.find(f => f.data === d);
   const fora = S.semestre.inicio && S.semestre.fim && (d < S.semestre.inicio || d > S.semestre.fim);
-  const aulas = fer || fora ? [] : S.materias.flatMap(m => (m.canceladas || []).includes(d) ? [] : m.horarios.filter(h => +h.dia === dow).map(h => ({ m, h })))
+  const aulas = fer || fora ? [] : S.materias.flatMap(m => (m.canceladas || []).includes(d) || (m.remarcadas || []).some(r => r.de === d) ? [] : m.horarios.filter(h => +h.dia === dow).map(h => ({ m, h })))
+    .concat(S.materias.flatMap(m => (m.remarcadas || []).filter(r => r.para === d).map(r => ({ m, h: { ...(m.horarios.find(h => +h.dia === parseISO(r.de).getDay() + 1) || m.horarios[0] || { inicio: '0730', aulas: 1 }), aulas: +r.aulas || 1 } }))))
     .sort((a, b) => a.h.inicio.localeCompare(b.h.inicio));
   return { aulas, evs: todosEventos().filter(e => e.data === d), fer };
 }
@@ -503,10 +516,11 @@ const linhaEvento = e => `<div class="row"><span class="dot" style="background:$
 V.disciplinas = () => {
   let html = `<div class="stack"><div class="between"><h1>Disciplinas</h1><div class="row"><a class="btn sm" href="#/horas">${ic('clip', 16)} Horas compl.</a><button class="btn sm" onclick="discSheet()">${ic('plus', 16)} Nova</button></div></div>`;
   if (!S.materias.length) return html + vazio('book', 'Nenhuma disciplina ainda', 'Importe pelo plano de ensino ou crie manualmente.', `${ctaImportar}<button class="btn" onclick="discSheet()">Criar manual</button>`) + '</div>';
-  html += `<div class="grid two">${S.materias.map(m => {
-    const f = freq(m), n = notas(m), tp = m.topicos, fe = tp.filter(t => t.feito).length;
-    return `<div class="card tap" onclick="go('disc/${m.id}')"><div class="row" style="align-items:flex-start"><span class="swatch" style="background:${m.cor};min-height:44px"></span>
-      <div class="sp"><div class="mu">${esc(m.codigo)}${m.turma ? ' · ' + esc(m.turma) : ''}</div><h3>${esc(m.nome || m.codigo)}</h3></div>${tag(n.sit, n.nivel)}</div>
+  const ordem = [...S.materias].sort((a, b) => concluida(a) - concluida(b));
+  html += `<div class="grid two">${ordem.map(m => {
+    const f = freq(m), n = notas(m), tp = m.topicos, fe = tp.filter(t => t.feito).length, fim = concluida(m);
+    return `<div class="card tap ${fim ? 'disc-fim' : ''}" onclick="go('disc/${m.id}')"><div class="row" style="align-items:flex-start"><span class="swatch" style="background:${m.cor};min-height:44px"></span>
+      <div class="sp"><div class="mu">${esc(m.codigo)}${m.turma ? ' · ' + esc(m.turma) : ''}${fim ? ' · concluída' : ''}</div><h3>${esc(m.nome || m.codigo)}</h3></div>${tag(n.sit, n.nivel)}</div>
       <div class="stats" style="margin-top:12px"><div class="stat"><div class="mu">Presença</div><div class="v" style="color:${nivelCor(f.nivel)}">${f.pct.toFixed(0)}%</div></div>
       <div class="stat"><div class="mu">Média</div><div class="v">${fmt(n.mf ?? n.parcial)}</div></div>
       <div class="stat"><div class="mu">Estudos</div><div class="v">${fe}/${tp.length}</div></div></div></div>`;
@@ -518,8 +532,8 @@ V.disc = () => {
   const m = byId(R.id);
   if (!m) { setTimeout(() => go('disciplinas')); return ''; }
   const sub = R.sub || 'resumo', f = freq(m), n = notas(m);
-  let html = `<div class="stack"><div class="row"><a class="ib" href="#/disciplinas" aria-label="Voltar">${ic('back')}</a><span class="sp"></span>${pen(`discSheet('${m.id}')`, 'Editar disciplina')}</div>
-  <div class="card" style="border-top:5px solid ${m.cor}"><div class="mu">${esc(m.codigo)}${m.turma ? ' · Turma ' + esc(m.turma) : ''}</div><h1 style="font-size:22px;margin:2px 0 4px">${esc(m.nome || m.codigo)}</h1>
+  let html = `<div class="stack"><div class="row"><a class="ib" href="#/disciplinas" aria-label="Voltar">${ic('back')}</a><span class="sp"></span><button class="btn sm ${concluida(m) ? '' : 'pr'}" onclick="alternarConcluida('${m.id}')">${ic('check', 16)} ${concluida(m) ? 'Reabrir' : 'Concluir'}</button>${pen(`discSheet('${m.id}')`, 'Editar disciplina')}</div>
+  <div class="card" style="border-top:5px solid ${m.cor}"><div class="mu">${esc(m.codigo)}${m.turma ? ' · Turma ' + esc(m.turma) : ''}</div><h1 style="font-size:22px;margin:2px 0 4px" class="${concluida(m) ? 'riscado' : ''}">${esc(m.nome || m.codigo)}</h1>${concluida(m) ? `<div style="margin-bottom:6px">${tag('Concluída', 'ok')}</div>` : ''}
     <div class="mu">${esc(m.professor || 'Professor(a) não informado')} · ${f.total} h/a</div>
     <div class="chips" style="margin-top:10px">${m.horarios.map(h => `<span class="tag neu">${DIAS[h.dia]} ${hhmm(h.inicio)}–${fimAula(h.inicio, h.aulas)}${h.sala ? ' · ' + esc(h.sala) : ''}</span>`).join('') || '<span class="mu">Sem horários</span>'}</div></div>
   <div class="seg">${[['resumo', 'Resumo'], ['faltas', 'Faltas'], ['notas', 'Notas'], ['estudos', 'Estudos']].map(([k, l]) => `<button class="${sub === k ? 'on' : ''}" onclick="go('disc/${m.id}/${k}')">${l}</button>`).join('')}</div>`;
@@ -527,7 +541,7 @@ V.disc = () => {
   if (sub === 'resumo') {
     const prox = m.avaliacoes.filter(a => a.data && a.data >= hoje()).sort((a, b) => a.data.localeCompare(b.data))[0];
     html += `<div class="grid two"><div class="card"><div class="row">${ring(Math.round(f.pct), nivelCor(f.nivel), Math.round(f.pct) + '%')}<div class="sp"><b>Presença</b><div class="mu" style="margin-bottom:4px">${f.faltas} de ${f.max} faltas usadas</div>${f.restam >= 0 ? tag(`Pode faltar mais ${f.restam}`, f.nivel) : tag('Reprovado por frequência', 'bad')}</div></div></div>
-      <div class="card"><div class="row"><div class="sp"><b>Média ${n.final != null ? 'final' : 'parcial'}</b><div class="big">${fmt(n.mf ?? n.parcial)}</div></div>${tag(n.sit, n.nivel)}</div>
+      <div class="card"><div class="row"><div class="sp"><b>Média ${n.final != null ? 'final' : 'parcial'}</b><div class="big">${fmt(n.mf ?? n.parcial)}</div>${n.final == null && n.parcial != null ? `<div class="mu sm">pontos somados até agora · provas sem nota contam 0</div>` : ""}</div>${tag(n.sit, n.nivel)}</div>
       ${n.precisa != null ? `<p class="mu">Precisa de <b>${n.precisa > 10 ? 'mais de 10' : fmt(Math.max(0, n.precisa))}</b> de média nas próximas para fechar 6,0.</p>` : ''}</div></div>
       ${prox ? `<div class="card"><div class="row">${ic('cal')}<div class="sp"><b>Próxima avaliação: ${esc(prox.nome)}</b><div class="mu">${brDL(prox.data)} · ${quando(prox.data)}</div></div></div></div>` : ''}
       <a class="card tap row" style="text-decoration:none;color:inherit" href="#/atualizar">${ic('cam')}<div class="sp"><b>Atualizar com print ou PDF</b><div class="mu">Notas do Moodle, novo cronograma, mudança de sala…</div></div>${ic('right')}</a>`;
@@ -541,14 +555,18 @@ V.disc = () => {
       const v = m.faltas[d.data] || 0;
       return `<div class="row"><div class="sp"><b class="sm" style="text-transform:capitalize">${brDL(d.data)}</b><div class="mu">${d.aulas} aula(s)</div></div>
         <select style="width:auto;min-height:36px" aria-label="Presença em ${brD(d.data)}" onchange="setFalta('${m.id}','${d.data}',this.value)">${Array.from({ length: d.aulas + 1 }, (_, i) => `<option value="${i}" ${i === v ? 'selected' : ''}>${i ? i + ' falta(s)' : 'Presente'}</option>`).join('')}</select>
+        <button class="ib" aria-label="Mudar a data desta aula" title="Mudar data" onclick="remarcarSheet('${m.id}','${d.data}')">${ic('pen', 18)}</button>
         <button class="ib" aria-label="Marcar aula como cancelada" title="Aula cancelada" onclick="cancelarAula('${m.id}','${d.data}')">${ic('x', 18)}</button></div>`;
     }).join('') || '<p class="mu">Nenhuma aula até hoje.</p>'}</div></div>
+    ${(() => { const fut = f.dias.filter(d => d.data > hoje()).slice(0, 8); return fut.length ? `<div class="card"><h3 style="margin-bottom:6px">Próximas aulas</h3><div class="list">${fut.map(d => `<div class="row"><div class="sp"><b class="sm" style="text-transform:capitalize">${brDL(d.data)}</b><div class="mu">${d.aulas} aula(s)${d.de ? ' · remarcada de ' + brD(d.de) : ''}</div></div>
+        <button class="ib" aria-label="Mudar a data desta aula" title="Mudar data" onclick="remarcarSheet('${m.id}','${d.data}')">${ic('pen', 18)}</button>
+        <button class="ib" aria-label="Marcar aula como cancelada" title="Aula cancelada" onclick="cancelarAula('${m.id}','${d.data}')">${ic('x', 18)}</button></div>`).join('')}</div></div>` : ''; })()}
     ${m.canceladas.length ? `<p class="mu">${m.canceladas.length} aula(s) cancelada(s) · <button class="btn ghost sm" onclick="upd(()=>byId('${m.id}').canceladas=[])">restaurar</button></p>` : ''}`;
   }
   if (sub === 'notas') {
     html += `<div class="card"><div class="card-h"><h3 class="sp">Avaliações</h3><button class="btn ghost sm" onclick="avSheet('${m.id}')">${ic('plus', 16)} Adicionar</button></div>
       ${m.avaliacoes.length ? `<div class="list">${m.avaliacoes.map(a => `<div class="row"><div class="sp"><b>${esc(a.nome)}</b><div class="mu">${a.peso ? 'Peso ' + esc(a.peso) + '%' : 'Peso igual'}${a.data ? ' · ' + brD(a.data) : ''}</div></div><span class="big" style="font-size:20px">${fmt(num(a.nota))}</span>${pen(`avSheet('${m.id}','${a.id}')`)}</div>`).join('')}</div>` : '<p class="mu">Nenhuma avaliação. Adicione ou importe o plano de ensino.</p>'}</div>
-      <div class="card"><div class="between"><div><div class="mu">Média ${n.final != null ? 'final' : 'parcial'}</div><div class="big">${fmt(n.mf ?? n.parcial)}</div></div>${tag(n.sit, n.nivel)}</div>
+      <div class="card"><div class="between"><div><div class="mu">Média ${n.final != null ? 'final' : 'parcial'}</div><div class="big">${fmt(n.mf ?? n.parcial)}</div>${n.final == null && n.parcial != null ? `<div class="mu sm">pontos somados até agora · provas sem nota contam 0</div>` : ""}</div>${tag(n.sit, n.nivel)}</div>
       ${n.final != null && n.final < MEDIA_APROV && n.final >= MEDIA_REC ? `<label class="f" style="margin-top:12px">Nota da recuperação<input inputmode="decimal" value="${esc(m.rec)}" onchange="upd(()=>byId('${m.id}').rec=this.value)"></label>` : ''}
       <p class="mu" style="margin-top:8px">Sua regra: aprovação com média ≥ ${fmt(MEDIA_APROV)} e presença ≥ ${Math.round(FREQ_MIN * 100)}%. Média a partir de ${fmt(MEDIA_REC)} dá direito à recuperação; a final é (média + REC) ÷ 2. <a href="#/config">Ajustar regras</a></p></div>`;
   }
@@ -781,6 +799,25 @@ function toggleFalta(id, d) {
   vibrar(antes ? 8 : [10, 40, 10]);
   upd(() => { if (antes) delete m.faltas[d]; else m.faltas[d] = aulas; });
   if (!antes) { const f = freq(m); toast(f.restam >= 0 ? `Falta registrada. Restam ${f.restam}.` : 'Falta registrada — limite ultrapassado!', () => upd(() => delete m.faltas[d])); }
+}
+function remarcarSheet(id, data) {
+  const m = byId(id), dia = freq(m).dias.find(d => d.data === data);
+  sheet(`<h2>Mudar data da aula</h2><p class="mu" style="margin:4px 0 12px">A aula de <b style="text-transform:capitalize">${brDL(dia?.de || data)}</b> foi para outro dia? Escolha a nova data. A falta, se tiver, vai junto.</p>
+    <div class="fields c2"><label class="f">Nova data<input type="date" id="rm-d" value="${data}"></label><label class="f">Aulas<input id="rm-a" inputmode="numeric" value="${dia?.aulas || 1}"></label></div>
+    <div class="actions">${dia?.de ? `<button class="btn" onclick="remarcar('${id}','${data}',null)">Voltar ao dia original</button>` : `<button class="btn" onclick="closeSheet()">Cancelar</button>`}<button class="btn pr sp" onclick="remarcar('${id}','${data}',val('rm-d'))">Salvar</button></div>`);
+}
+function remarcar(id, atual, nova) {
+  const m = byId(id), dia = freq(m).dias.find(d => d.data === atual), orig = dia?.de || atual, aulas = Math.max(1, parseInt(val('rm-a'), 10) || dia?.aulas || 1);
+  if (nova === atual) return closeSheet();
+  if (nova && freq(m).dias.some(d => d.data === nova)) return toast('Já tem aula dessa disciplina nesse dia.');
+  closeSheet();
+  upd(() => {
+    m.remarcadas = (m.remarcadas || []).filter(r => r.de !== orig);
+    const f = m.faltas[atual]; delete m.faltas[atual];
+    if (nova && nova !== orig) m.remarcadas.push({ de: orig, para: nova, aulas });
+    const destino = nova || orig; if (f) m.faltas[destino] = Math.min(f, aulas);
+  });
+  toast(nova && nova !== orig ? `Aula remarcada para ${brD(nova)}.` : 'Aula voltou para o dia original.');
 }
 function setFalta(id, d, v) { upd(() => { const m = byId(id); if (+v) m.faltas[d] = +v; else delete m.faltas[d]; }); }
 function cancelarAula(id, d) { const m = byId(id), f = m.faltas[d]; upd(() => { m.canceladas.push(d); delete m.faltas[d]; }); toast('Aula marcada como cancelada.', () => upd(() => { m.canceladas = m.canceladas.filter(x => x !== d); if (f) m.faltas[d] = f; })); }
