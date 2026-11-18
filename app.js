@@ -309,7 +309,17 @@ function concluida(m) {
   if (m.concluida === false) return false;
   const dias = diasDeAula(m), h = hoje();
   const fimD = m.fim || S.semestre.fim;
-  return !!((fimD && h > fimD) || (dias.length > 0 && dias[dias.length - 1].data < h));
+  if (fimD && h > fimD) return true;
+  if (!dias.length) return false;
+  const ult = dias[dias.length - 1];
+  if (ult.data < h) return true;
+  if (ult.data > h) return false;
+  // última aula é hoje: conclui quando passar o horário de fim dela
+  const dow = parseISO(ult.data).getDay() + 1, hs = m.horarios.filter(x => +x.dia === dow);
+  const fim = (hs.length ? hs : m.horarios).map(fimH).sort().pop();
+  if (!fim) return false;
+  const agora = new Date(), [hh, mm] = fim.split(':').map(Number);
+  return agora.getHours() * 60 + agora.getMinutes() >= hh * 60 + mm;
 }
 function alternarConcluida(id) {
   const m = byId(id), era = concluida(m);
