@@ -209,9 +209,12 @@ footer a{text-decoration:none}footer a:hover{color:var(--indigo)}
 .cta-fixo.on{transform:none}
 @media(max-width:759px){.cta-fixo{display:block}}
 .rev{opacity:0;transform:translateY(24px);transition:opacity .6s,transform .6s}.rev.vis{opacity:1;transform:none}
+.novidade{display:flex;align-items:center;gap:8px;justify-content:center;background:var(--indigo,#4f46e5);color:#fff;font-size:14px;padding:9px max(16px,env(safe-area-inset-left)) 9px max(16px,env(safe-area-inset-left))}.novidade a{color:#fff;text-decoration:none;text-align:center}.novidade button{flex:none;background:none;border:0;color:#fff;font-size:16px;cursor:pointer;padding:4px 6px;opacity:.8}
 </style>
 </head>
 <body>
+<div class="novidade" id="novidade"><a href="/forum"><b>Novo:</b> Fórum da galera, aberto pra todo mundo. Tira dúvida e troca resumo com outros estudantes →</a><button aria-label="Fechar aviso" onclick="this.parentNode.remove();try{localStorage.setItem('ms-novidade','forum')}catch(e){}">✕</button></div>
+<script>try{if(localStorage.getItem('ms-novidade')==='forum')document.getElementById('novidade').remove()}catch(e){}</script>
 <header id="hd"><div class="w nav">
   <a class="logo" href="/"><img class="mark" src="/icon.svg" alt="">Meu Semestre</a>
   <nav class="links" aria-label="Seções"><a href="#recursos">Recursos</a><a href="#como-funciona">Como funciona</a><a href="#calculadora">Calculadora de faltas</a><a href="#precos">Preços</a><a href="/forum">Fórum</a><a href="/guias">Guias</a></nav>

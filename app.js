@@ -161,6 +161,7 @@ async function entrar(u) {
   carregarPlano();
   setTimeout(checarTermos, 400);
   setTimeout(popupApp, 2500);
+  setTimeout(novidades, 3200);
   limparCurriculoGuardado();
 }
 function entrarLocal() { modoLocal = true; user = null; try { localStorage.setItem(KEY + ':modo', 'local'); } catch { } S = migrar(loadLocal(':local')); startApp(); }
@@ -1202,6 +1203,7 @@ V.config = () => {
 
   <section class="grp"><h4>Fale com a gente</h4><div class="card">
     ${li('bulb', '#f59f00', 'Dar ideia ou feedback', 'Sugestões, problemas ou elogios', chev, `onclick="feedbackSheet()"`)}
+    ${li('spark', '#7048e8', 'Novidades', 'O que mudou no app', chev, `onclick="novidades(true)"`)}
   </div></section>
 
   <section class="grp"><h4>Conta</h4><div class="card">
@@ -1228,6 +1230,31 @@ function feriadosSheet() {
 }
 function addFeriado() { const d = val('fer-d'); if (!d) return toast('Escolha a data.'); if (!S.feriados.some(f => f.data === d)) S.feriados.push({ data: d, descricao: val('fer-t') || 'Sem aula' }); save(); feriadosSheet(); }
 function removerFeriado(d) { S.feriados = S.feriados.filter(f => f.data !== d); save(); feriadosSheet(); }
+
+// ===== Novidades: mostra uma vez por versão (troque NOVIDADES_VERSAO e a lista ao lançar algo novo) =====
+const NOVIDADES_VERSAO = '2026-11-18';
+const NOVIDADES = [
+  ['💬', 'Fórum da galera', 'Tire dúvidas e troque resumos com outros estudantes. Toque no balão no topo da tela.'],
+  ['✅', 'Concluir disciplina', 'Marque a matéria como concluída (ou ela se conclui sozinha quando as aulas acabam) e ela fica riscada na lista.'],
+  ['📅', 'Aula mudou de dia?', 'Nas faltas, toque no lápis pra mudar a data da aula, ou marque como "Aula cancelada".'],
+  ['⏰', 'Datas e horários certinhos', 'Cada disciplina pode ter início e fim das aulas próprios, e agora dá pra colocar o horário de fim.'],
+  ['📊', 'Média parcial mais real', 'Agora conta as provas que ainda não têm nota, pra você ver quantos pontos já somou.'],
+];
+function novidades(forcar) {
+  if (!document.body.classList.contains('app')) return;
+  const k = KEY + ':novidades';
+  let visto = null; try { visto = localStorage.getItem(k); } catch { }
+  if (!forcar) {
+    if (visto === NOVIDADES_VERSAO) return;
+    if (!visto && !S.materias.length) { try { localStorage.setItem(k, NOVIDADES_VERSAO); } catch { } return; } // conta nova: tudo já é novidade
+    if ($('#layer').innerHTML.trim()) return setTimeout(novidades, 3000); // espera termos/instalar fecharem
+  }
+  try { localStorage.setItem(k, NOVIDADES_VERSAO); } catch { }
+  sheet(`<h2>Novidades no Meu Semestre ✨</h2><p class="mu" style="margin:4px 0 12px">A gente ouviu vocês e caprichou:</p>
+    <div class="novs">${NOVIDADES.map(([e, t, d]) => `<div class="nov"><span class="nov-e">${e}</span><div><b>${t}</b><div class="mu sm">${d}</div></div></div>`).join('')}</div>
+    <p class="mu sm" style="margin:12px 0 0">Tem ideia pra próxima? Manda em Configurações › Dar ideia 💡</p>
+    <div class="actions"><button class="btn pr block" onclick="closeSheet()">Bora usar!</button></div>`);
+}
 
 // Primeiro login pelo navegador: avisa uma vez (por conta) que dá pra instalar o app
 function popupApp() {

@@ -482,3 +482,5 @@ input[type=date]::-webkit-date-and-time-value{text-align:left}
 .hor-t input,.hor-t select{width:100%;max-width:100%;min-width:0;min-height:44px;padding:8px 12px;box-sizing:border-box}
 .hor-t input[type=time]{-webkit-appearance:none;appearance:none;display:block;text-align:left}
 .hor-t input[type=time]::-webkit-date-and-time-value{text-align:left}
+
+.novs{display:grid;gap:12px}.nov{display:flex;gap:12px;align-items:flex-start}.nov-e{flex:none;width:40px;height:40px;border-radius:12px;background:var(--surface-2);display:grid;place-items:center;font-size:20px}.nov b{font-size:15px}
