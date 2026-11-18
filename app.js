@@ -554,7 +554,7 @@ V.disc = () => {
     else html += `<div class="card"><div class="list">${f.dias.filter(d => d.data <= hoje()).reverse().map(d => {
       const v = m.faltas[d.data] || 0;
       return `<div class="row"><div class="sp"><b class="sm" style="text-transform:capitalize">${brDL(d.data)}</b><div class="mu">${d.aulas} aula(s)</div></div>
-        <select style="width:auto;min-height:36px" aria-label="Presença em ${brD(d.data)}" onchange="setFalta('${m.id}','${d.data}',this.value)">${Array.from({ length: d.aulas + 1 }, (_, i) => `<option value="${i}" ${i === v ? 'selected' : ''}>${i ? i + ' falta(s)' : 'Presente'}</option>`).join('')}</select>
+        <select style="width:auto;min-height:36px" aria-label="Presença em ${brD(d.data)}" onchange="this.value==='canc'?cancelarAula('${m.id}','${d.data}'):setFalta('${m.id}','${d.data}',this.value)">${Array.from({ length: d.aulas + 1 }, (_, i) => `<option value="${i}" ${i === v ? 'selected' : ''}>${i ? i + ' falta(s)' : 'Presente'}</option>`).join('')}<option value="canc">Aula cancelada</option></select>
         <button class="ib" aria-label="Mudar a data desta aula" title="Mudar data" onclick="remarcarSheet('${m.id}','${d.data}')">${ic('pen', 18)}</button>
         <button class="ib" aria-label="Marcar aula como cancelada" title="Aula cancelada" onclick="cancelarAula('${m.id}','${d.data}')">${ic('x', 18)}</button></div>`;
     }).join('') || '<p class="mu">Nenhuma aula até hoje.</p>'}</div></div>
