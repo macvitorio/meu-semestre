@@ -487,3 +487,4 @@ input[type=date]::-webkit-date-and-time-value{text-align:left}
 .wk .c.fim .wk-nome{text-decoration:line-through;text-decoration-thickness:2px}.wk .c.fim{color:#fff}
 :root{--fim:#b9b4c9}
 @media (prefers-color-scheme:dark){:root:not([data-theme=light]){--fim:#55515f}}:root[data-theme=dark]{--fim:#55515f}
+.tap-row{cursor:pointer;border-radius:10px}.tap-row:hover{background:var(--surface-2)}

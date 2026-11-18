@@ -529,7 +529,9 @@ V.agenda = () => {
 const linhaEvento = e => `<div class="row"><span class="dot" style="background:${corEv(e)}"></span><div class="sp"><b>${esc(e.titulo)}</b><div class="mu">${brDL(e.data)} · ${esc(TIPOS_EV[e.tipo] || e.tipo)}${e.materiaId ? ' · ' + esc(nomeM(byId(e.materiaId))) : ''}</div></div>
   ${e._av ? pen(`avSheet('${e.materiaId}','${e.id.split(':')[2]}')`) : e._fer ? pen('configSheet()') : pen(`eventoSheet('${e.id}')`)}</div>`;
 
+let voltarDisc = 'disciplinas';
 V.disciplinas = () => {
+  voltarDisc = 'disciplinas';
   let html = `<div class="stack"><div class="between"><h1>Disciplinas</h1><div class="row"><a class="btn sm" href="#/horas">${ic('clip', 16)} Horas compl.</a><button class="btn sm" onclick="discSheet()">${ic('plus', 16)} Nova</button></div></div>`;
   if (!S.materias.length) return html + vazio('book', 'Nenhuma disciplina ainda', 'Importe pelo plano de ensino ou crie manualmente.', `${ctaImportar}<button class="btn" onclick="discSheet()">Criar manual</button>`) + '</div>';
   const ordem = [...S.materias].sort((a, b) => concluida(a) - concluida(b));
@@ -548,7 +550,7 @@ V.disc = () => {
   const m = byId(R.id);
   if (!m) { setTimeout(() => go('disciplinas')); return ''; }
   const sub = R.sub || 'resumo', f = freq(m), n = notas(m);
-  let html = `<div class="stack"><div class="row"><a class="ib" href="#/disciplinas" aria-label="Voltar">${ic('back')}</a><span class="sp"></span><button class="btn sm ${concluida(m) ? '' : 'pr'}" onclick="alternarConcluida('${m.id}')">${ic('check', 16)} ${concluida(m) ? 'Reabrir' : 'Concluir'}</button>${pen(`discSheet('${m.id}')`, 'Editar disciplina')}</div>
+  let html = `<div class="stack"><div class="row"><a class="ib" href="#/${voltarDisc}" aria-label="Voltar">${ic('back')}</a><span class="sp"></span><button class="btn sm ${concluida(m) ? '' : 'pr'}" onclick="alternarConcluida('${m.id}')">${ic('check', 16)} ${concluida(m) ? 'Reabrir' : 'Concluir'}</button>${pen(`discSheet('${m.id}')`, 'Editar disciplina')}</div>
   <div class="card" style="border-top:5px solid ${m.cor}"><div class="mu">${esc(m.codigo)}${m.turma ? ' · Turma ' + esc(m.turma) : ''}</div><h1 style="font-size:22px;margin:2px 0 4px" class="${concluida(m) ? 'riscado' : ''}">${esc(m.nome || m.codigo)}</h1>${concluida(m) ? `<div style="margin-bottom:6px">${tag('Concluída', 'ok')}</div>` : ''}
     <div class="mu">${esc(m.professor || 'Professor(a) não informado')} · ${f.total} h/a${(m.inicio || m.fim) ? ` · aulas ${m.inicio ? 'de ' + brD(m.inicio) + ' ' : ''}até ${brD(m.fim || S.semestre.fim)}` : ''}</div>
     <div class="chips" style="margin-top:10px">${m.horarios.map(h => `<span class="tag neu">${DIAS[h.dia]} ${hhmm(h.inicio)}–${fimH(h)}${h.sala ? ' · ' + esc(h.sala) : ''}</span>`).join('') || '<span class="mu">Sem horários</span>'}</div></div>
@@ -597,17 +599,40 @@ V.disc = () => {
 function togTop(mid_, tid) { vibrar(8); upd(() => { const t = byId(mid_).topicos.find(x => x.id === tid); t.feito = !t.feito; }); }
 function addTop(mid_, v) { if (v.trim()) upd(() => byId(mid_).topicos.push({ id: uid(), texto: v.trim(), feito: false })); }
 
+function cardDisc(m, origem) {
+  const f = freq(m), n = notas(m), tp = m.topicos, fe = tp.filter(t => t.feito).length, fim = concluida(m);
+  return `<div class="card tap ${fim ? 'disc-fim' : ''}" onclick="voltarDisc='${origem}';go('disc/${m.id}')"><div class="row" style="align-items:flex-start"><span class="swatch" style="background:${corM(m)};min-height:44px"></span>
+      <div class="sp"><div class="mu">${esc(m.codigo)}${m.turma ? ' · ' + esc(m.turma) : ''}${fim ? ' · concluída' : ''}</div><h3>${esc(m.nome || m.codigo)}</h3></div>${tag(n.sit, n.nivel)}</div>
+      <div class="stats" style="margin-top:12px"><div class="stat"><div class="mu">Presença</div><div class="v" style="color:${nivelCor(f.nivel)}">${f.pct.toFixed(0)}%</div></div>
+      <div class="stat"><div class="mu">Média</div><div class="v">${fmt(n.mf ?? n.parcial)}</div></div>
+      <div class="stat"><div class="mu">Estudos</div><div class="v">${fe}/${tp.length}</div></div></div></div>`;
+}
+const materiaDoHist = h => S.materias.find(m => (h.codigo && norm(m.codigo) === norm(h.codigo)) || (!h.codigo && h.nome && norm(m.nome) === norm(h.nome)));
+function abrirHist(id) {
+  const h = S.historico.find(x => x.id === id); if (!h) return;
+  const m = materiaDoHist(h);
+  if (m) { voltarDisc = 'historico'; return go('disc/' + m.id); }
+  const sit = h.situacao ? tag(h.situacao, /aprov|valid/i.test(h.situacao) ? 'ok' : /reprov|\bfi\b/i.test(h.situacao) ? 'bad' : 'neu') : '';
+  sheet(`<div class="mu">${esc(h.codigo || '')}${h.semestre ? ' · ' + esc(h.semestre) : ''}</div><h2 style="margin:2px 0 8px">${esc(h.nome || h.codigo)}</h2>${sit}
+    <div class="stats" style="margin-top:14px"><div class="stat"><div class="mu">Nota final</div><div class="v">${fmt(num(h.nota))}</div></div><div class="stat"><div class="mu">Créditos</div><div class="v">${esc(h.creditos || '—')}</div></div><div class="stat"><div class="mu">Semestre</div><div class="v" style="font-size:16px">${esc(h.semestre || '—')}</div></div></div>
+    <p class="mu sm" style="margin-top:12px">Essa disciplina veio do histórico escolar, então não tem faltas, provas e conteúdos guardados no app.</p>
+    <div class="actions"><button class="btn" onclick="closeSheet()">Fechar</button><button class="btn pr sp" onclick="histSheet('${h.id}')">${ic('pen', 16)} Editar</button></div>`);
+}
 V.historico = () => {
+  voltarDisc = 'historico';
+  const concl = S.materias.filter(concluida);
   const hs = S.historico, grupos = {};
   hs.forEach(h => (grupos[h.semestre || 'Sem semestre'] ||= []).push(h));
   let somaN = 0, somaC = 0;
   hs.forEach(h => { const n = num(h.nota), c = num(h.creditos) || 1; if (n != null) { somaN += n * c; somaC += c; } });
   const cred = hs.filter(h => /aprov|valid/i.test(h.situacao)).reduce((a, h) => a + (num(h.creditos) || 0), 0);
   let html = `<div class="stack"><div class="between"><h1>Histórico</h1><button class="btn sm" onclick="histSheet()">${ic('plus', 16)} Adicionar</button></div>`;
-  if (!hs.length) return html + vazio('hist', 'Seu histórico aparece aqui', 'Envie um print ou o PDF do histórico escolar (CAGR) e as disciplinas cursadas são lançadas automaticamente.', `<a class="btn pr" href="#/atualizar/historico">${ic('cam')} Enviar histórico</a>`) + '</div>';
+  const blocoConcl = concl.length ? `<div><h3 style="margin:4px 2px 10px">Disciplinas concluídas no app</h3><div class="grid two">${concl.map(m => cardDisc(m, 'historico')).join('')}</div></div>` : '';
+  if (!hs.length) return html + blocoConcl + vazio('hist', 'Seu histórico aparece aqui', 'Envie um print ou o PDF do histórico escolar (CAGR) e as disciplinas cursadas são lançadas automaticamente.', `<a class="btn pr" href="#/atualizar/historico">${ic('cam')} Enviar histórico</a>`) + '</div>';
   html += `<div class="stats"><div class="stat"><div class="mu">Média geral</div><div class="v">${fmt(somaC ? somaN / somaC : null)}</div></div><div class="stat"><div class="mu">Disciplinas</div><div class="v">${hs.length}</div></div>${(() => { const r = resumoHoras(); return `<a class="stat" href="#/horas" style="color:inherit;text-decoration:none"><div class="mu">Horas compl.</div><div class="v">${fmtH(r.total)}${r.meta ? `<small class="mu" style="font-size:13px;font-weight:500"> / ${fmtH(r.meta)}</small>` : ''}</div></a>`; })()}</div>
     <p class="mu">Média ponderada pelos créditos — uma estimativa do IAA.</p>`;
-  html += Object.keys(grupos).sort().reverse().map(sem => `<div class="card"><h3 style="margin-bottom:6px">${esc(sem)}</h3><div class="list">${grupos[sem].map(h => `<div class="row"><div class="sp"><b>${esc(h.nome || h.codigo)}</b><div class="mu">${esc(h.codigo)}${h.creditos ? ' · ' + esc(h.creditos) + ' créd.' : ''}</div></div>
+  html += blocoConcl + (concl.length ? '<h3 style="margin:8px 2px 0">Histórico escolar</h3>' : '');
+  html += Object.keys(grupos).sort().reverse().map(sem => `<div class="card"><h3 style="margin-bottom:6px">${esc(sem)}</h3><div class="list">${grupos[sem].map(h => `<div class="row tap-row" onclick="if(!event.target.closest('.ib'))abrirHist('${h.id}')"><div class="sp"><b>${esc(h.nome || h.codigo)}</b><div class="mu">${esc(h.codigo)}${h.creditos ? ' · ' + esc(h.creditos) + ' créd.' : ''}</div></div>
     <div style="text-align:right"><div><b>${fmt(num(h.nota))}</b></div>${h.situacao ? tag(h.situacao, /aprov|valid/i.test(h.situacao) ? 'ok' : /reprov|\bfi\b/i.test(h.situacao) ? 'bad' : 'neu') : ''}</div>${pen(`histSheet('${h.id}')`)}</div>`).join('')}</div></div>`).join('');
   return html + '</div>';
 };
