@@ -620,11 +620,16 @@ function sincronizarHistorico() {
     const fim = concluida(m), n = notas(m), f = freq(m);
     let h = S.historico.find(x => x.materiaId === m.id);
     if (!h) { h = S.historico.find(x => !x.materiaId && mesmaDisc(m, x)); if (h) { h.materiaId = m.id; mudou = true; } }
-    if (!fim) { if (h && h.origem === 'app') { S.historico = S.historico.filter(x => x !== h); mudou = true; } continue; }
     const media = n.mf ?? n.final ?? n.parcial;
+    if (!fim) {
+      if (h && h.origem === 'app') { S.historico = S.historico.filter(x => x !== h); mudou = true; }
+      else if (h && media != null && (num(h.nota) == null || Math.abs(num(h.nota) - media) > 0.04)) { h.nota = media.toFixed(1); mudou = true; }
+      continue;
+    }
     const sit = f.restam < 0 ? 'Reprovado por frequência (FI)' : media == null ? 'Concluída' : media >= MEDIA_APROV ? 'Aprovado' : n.sit === 'Recuperação' ? 'Recuperação' : 'Reprovado';
     const dados = { codigo: m.codigo, nome: m.nome || m.codigo, semestre: semestreDe(m.fim || S.semestre.fim || hoje()), nota: media == null ? '' : media.toFixed(1), creditos: m.cargaHoraria ? String(Math.round(+m.cargaHoraria / 18)) : '', situacao: sit };
     if (!h) { S.historico.push({ id: uid(), ...dados, materiaId: m.id, origem: 'app' }); mudou = true; }
+    else if (h.origem !== 'app' && media != null && (num(h.nota) == null || Math.abs(num(h.nota) - media) > 0.04)) { h.nota = media.toFixed(1); h.situacao = dados.situacao; mudou = true; }
     else if (h.origem === 'app' && JSON.stringify(dados) !== JSON.stringify({ codigo: h.codigo, nome: h.nome, semestre: h.semestre, nota: h.nota, creditos: h.creditos, situacao: h.situacao })) { Object.assign(h, dados); mudou = true; }
   }
   if (mudou) save();
@@ -654,7 +659,7 @@ V.historico = () => {
   html += `<div class="stats"><div class="stat"><div class="mu">Média geral</div><div class="v">${fmt(somaC ? somaN / somaC : null)}</div></div><div class="stat"><div class="mu">Disciplinas</div><div class="v">${hs.length}</div></div>${(() => { const r = resumoHoras(); return `<a class="stat" href="#/horas" style="color:inherit;text-decoration:none"><div class="mu">Horas compl.</div><div class="v">${fmtH(r.total)}${r.meta ? `<small class="mu" style="font-size:13px;font-weight:500"> / ${fmtH(r.meta)}</small>` : ''}</div></a>`; })()}</div>
     <p class="mu">Média ponderada pelos créditos — uma estimativa do IAA.</p>`;
   html += blocoConcl + (concl.length ? '<h3 style="margin:8px 2px 0">Histórico escolar</h3>' : '');
-  html += Object.keys(grupos).sort().reverse().map(sem => `<div class="card"><h3 style="margin-bottom:6px">${esc(sem)}</h3><div class="list">${grupos[sem].map(h => `<div class="row tap-row" onclick="if(!event.target.closest('.ib'))abrirHist('${h.id}')"><div class="sp"><b>${esc(h.nome || h.codigo)}</b>${materiaDoHist(h) ? ' <span class="tag neu" style="font-size:11px">no app</span>' : ''}<div class="mu">${esc(h.codigo)}${h.creditos ? ' · ' + esc(h.creditos) + ' créd.' : ''}</div></div>
+  html += Object.keys(grupos).sort().reverse().map(sem => `<div class="card"><h3 style="margin-bottom:6px">${esc(sem)}</h3><div class="list">${grupos[sem].map(h => `<div class="row tap-row" onclick="if(!event.target.closest('.ib'))abrirHist('${h.id}')"><div class="sp"><b>${esc(h.nome || h.codigo)}</b><div class="mu">${esc(h.codigo)}${h.creditos ? ' · ' + esc(h.creditos) + ' créd.' : ''}</div></div>
     <div style="text-align:right"><div><b>${fmt(num(h.nota))}</b></div>${h.situacao ? tag(h.situacao, /aprov|valid/i.test(h.situacao) ? 'ok' : /reprov|\bfi\b/i.test(h.situacao) ? 'bad' : 'neu') : ''}</div>${pen(`histSheet('${h.id}')`)}</div>`).join('')}</div></div>`).join('');
   return html + '</div>';
 };
