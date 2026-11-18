@@ -12,9 +12,10 @@ const hhmm = h => h.slice(0, 2) + ':' + h.slice(2);
 function totalFaltas(m) { return Object.values(m.faltas || {}).reduce((a, n) => a + (+n || 0), 0); }
 function restam(m, S) {
   let total = +m.cargaHoraria;
-  if (!total && S.semestre?.inicio && S.semestre?.fim) {
+  const ini = m.inicio || S.semestre?.inicio, fimD = m.fim || S.semestre?.fim;
+  if (!total && ini && fimD) {
     total = 0; const fer = new Set((S.feriados || []).map(f => f.data));
-    for (let d = new Date(S.semestre.inicio + 'T12:00:00Z'); d <= new Date(S.semestre.fim + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + 1)) {
+    for (let d = new Date(ini + 'T12:00:00Z'); d <= new Date(fimD + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + 1)) {
       const k = d.toISOString().slice(0, 10); if (fer.has(k) || (m.canceladas || []).includes(k)) continue;
       total += (m.horarios || []).filter(h => +h.dia === d.getUTCDay() + 1).reduce((a, h) => a + (+h.aulas || 0), 0);
     }
@@ -27,7 +28,7 @@ export function resumo(S, hoje = hojeBR(), amanha = hojeBR(1)) {
   const nome = m => m.nome || m.codigo;
   const dentro = !S.semestre?.inicio || (hoje >= S.semestre.inicio && hoje <= (S.semestre.fim || hoje));
   const feriado = (S.feriados || []).find(f => f.data === hoje);
-  const aulas = feriado || !dentro ? [] : (S.materias || []).flatMap(m => (m.canceladas || []).includes(hoje) ? [] : (m.horarios || []).filter(h => +h.dia === diaSemana(hoje)).map(h => ({ m, h })))
+  const aulas = feriado || !dentro ? [] : (S.materias || []).flatMap(m => (m.canceladas || []).includes(hoje) || (m.inicio && hoje < m.inicio) || (m.fim && hoje > m.fim) ? [] : (m.horarios || []).filter(h => +h.dia === diaSemana(hoje)).map(h => ({ m, h })))
     .sort((a, b) => a.h.inicio.localeCompare(b.h.inicio));
   const datas = [
     ...(S.materias || []).flatMap(m => (m.avaliacoes || []).filter(a => a.data === hoje || a.data === amanha).map(a => ({ data: a.data, t: `${a.nome} (${nome(m)})` }))),

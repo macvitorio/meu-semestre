@@ -282,9 +282,10 @@ async function enviarFeedback() {
 // ================= Cálculos =================
 function diasDeAula(m) {
   const out = [];
-  if (!S.semestre.inicio || !S.semestre.fim) return out;
+  const ini = m.inicio || S.semestre.inicio, fimD = m.fim || S.semestre.fim;
+  if (!ini || !fimD) return out;
   const fer = new Set(S.feriados.map(f => f.data)), canc = new Set(m.canceladas || []), rem = m.remarcadas || [], movidas = new Set(rem.map(r => r.de));
-  for (let d = parseISO(S.semestre.inicio); d <= parseISO(S.semestre.fim); d.setDate(d.getDate() + 1)) {
+  for (let d = parseISO(ini); d <= parseISO(fimD); d.setDate(d.getDate() + 1)) {
     const k = iso(d), hs = m.horarios.filter(h => +h.dia - 1 === d.getDay());
     if (!hs.length || fer.has(k) || canc.has(k) || movidas.has(k)) continue;
     out.push({ data: k, aulas: hs.reduce((a, h) => a + (+h.aulas || 0), 0) });
@@ -305,7 +306,8 @@ function concluida(m) {
   if (m.concluida === true) return true;
   if (m.concluida === false) return false;
   const dias = diasDeAula(m), h = hoje();
-  return !!((S.semestre.fim && h > S.semestre.fim) || (dias.length > 0 && dias[dias.length - 1].data < h));
+  const fimD = m.fim || S.semestre.fim;
+  return !!((fimD && h > fimD) || (dias.length > 0 && dias[dias.length - 1].data < h));
 }
 function alternarConcluida(id) {
   const m = byId(id), era = concluida(m);
@@ -335,7 +337,7 @@ function notas(m) {
 function agendaDoDia(d) {
   const dow = parseISO(d).getDay() + 1, fer = S.feriados.find(f => f.data === d);
   const fora = S.semestre.inicio && S.semestre.fim && (d < S.semestre.inicio || d > S.semestre.fim);
-  const aulas = fer || fora ? [] : S.materias.flatMap(m => (m.canceladas || []).includes(d) || (m.remarcadas || []).some(r => r.de === d) ? [] : m.horarios.filter(h => +h.dia === dow).map(h => ({ m, h })))
+  const aulas = fer || fora ? [] : S.materias.flatMap(m => (m.canceladas || []).includes(d) || (m.remarcadas || []).some(r => r.de === d) || (m.inicio && d < m.inicio) || (m.fim && d > m.fim) ? [] : m.horarios.filter(h => +h.dia === dow).map(h => ({ m, h })))
     .concat(S.materias.flatMap(m => (m.remarcadas || []).filter(r => r.para === d).map(r => ({ m, h: { ...(m.horarios.find(h => +h.dia === parseISO(r.de).getDay() + 1) || m.horarios[0] || { inicio: '0730', aulas: 1 }), aulas: +r.aulas || 1 } }))))
     .sort((a, b) => a.h.inicio.localeCompare(b.h.inicio));
   return { aulas, evs: todosEventos().filter(e => e.data === d), fer };
@@ -534,7 +536,7 @@ V.disc = () => {
   const sub = R.sub || 'resumo', f = freq(m), n = notas(m);
   let html = `<div class="stack"><div class="row"><a class="ib" href="#/disciplinas" aria-label="Voltar">${ic('back')}</a><span class="sp"></span><button class="btn sm ${concluida(m) ? '' : 'pr'}" onclick="alternarConcluida('${m.id}')">${ic('check', 16)} ${concluida(m) ? 'Reabrir' : 'Concluir'}</button>${pen(`discSheet('${m.id}')`, 'Editar disciplina')}</div>
   <div class="card" style="border-top:5px solid ${m.cor}"><div class="mu">${esc(m.codigo)}${m.turma ? ' · Turma ' + esc(m.turma) : ''}</div><h1 style="font-size:22px;margin:2px 0 4px" class="${concluida(m) ? 'riscado' : ''}">${esc(m.nome || m.codigo)}</h1>${concluida(m) ? `<div style="margin-bottom:6px">${tag('Concluída', 'ok')}</div>` : ''}
-    <div class="mu">${esc(m.professor || 'Professor(a) não informado')} · ${f.total} h/a</div>
+    <div class="mu">${esc(m.professor || 'Professor(a) não informado')} · ${f.total} h/a${(m.inicio || m.fim) ? ` · aulas ${m.inicio ? 'de ' + brD(m.inicio) + ' ' : ''}até ${brD(m.fim || S.semestre.fim)}` : ''}</div>
     <div class="chips" style="margin-top:10px">${m.horarios.map(h => `<span class="tag neu">${DIAS[h.dia]} ${hhmm(h.inicio)}–${fimAula(h.inicio, h.aulas)}${h.sala ? ' · ' + esc(h.sala) : ''}</span>`).join('') || '<span class="mu">Sem horários</span>'}</div></div>
   <div class="seg">${[['resumo', 'Resumo'], ['faltas', 'Faltas'], ['notas', 'Notas'], ['estudos', 'Estudos']].map(([k, l]) => `<button class="${sub === k ? 'on' : ''}" onclick="go('disc/${m.id}/${k}')">${l}</button>`).join('')}</div>`;
 
@@ -840,6 +842,8 @@ function discSheet(id) {
     <label class="f">Nome<input id="d-nome" value="${esc(m.nome)}"></label>
     <label class="f">Professor(a)<input id="d-professor" value="${esc(m.professor)}"></label>
     <div class="fields c2"><label class="f">Carga horária (h/a)<input id="d-ch" inputmode="numeric" value="${esc(m.cargaHoraria)}" placeholder="automática"></label><label class="f">Cor<input id="d-cor" type="color" value="${m.cor}" style="padding:4px"></label></div>
+    <div class="fields c2"><label class="f">Início das aulas<input id="d-ini" type="date" value="${esc(m.inicio || '')}"></label><label class="f">Fim das aulas<input id="d-fim" type="date" value="${esc(m.fim || '')}"></label></div>
+    <p class="mu sm" style="margin:-4px 0 0">Deixe em branco para usar as datas do semestre${S.semestre.inicio ? ` (${brD(S.semestre.inicio)} a ${brD(S.semestre.fim)})` : ''}.</p>
     <div><div class="between"><b>Horários</b><button class="btn ghost sm" onclick="draftH.push({dia:'2',inicio:'0820',aulas:'2',sala:''});horRender()">${ic('plus', 16)} Horário</button></div><div id="hor"></div></div>
   </div>${acoes(`salvarDisc('${id || ''}')`, id ? `excluirComDesfazer('Disciplina excluída.',()=>S.materias=S.materias.filter(x=>x.id!=='${id}'));go('disciplinas')` : '')}`);
   horRender();
@@ -853,8 +857,9 @@ function horRender() {
     <button class="ib" aria-label="Remover horário" onclick="draftH.splice(${i},1);horRender()">${ic('x', 18)}</button></div>`).join('') || '<p class="mu">Nenhum horário.</p>';
 }
 function salvarDisc(id) {
-  const d = { codigo: val('d-codigo').toUpperCase(), nome: val('d-nome'), professor: val('d-professor'), turma: val('d-turma'), cargaHoraria: val('d-ch'), cor: val('d-cor'), horarios: draftH };
+  const d = { codigo: val('d-codigo').toUpperCase(), nome: val('d-nome'), professor: val('d-professor'), turma: val('d-turma'), cargaHoraria: val('d-ch'), cor: val('d-cor'), horarios: draftH, inicio: val('d-ini'), fim: val('d-fim') };
   if (!d.nome && !d.codigo) return toast('Informe o nome ou o código.');
+  if (d.inicio && d.fim && d.fim < d.inicio) return toast('O fim das aulas precisa ser depois do início.');
   closeSheet();
   if (id) upd(() => Object.assign(byId(id), d));
   else { const m = migrar({ materias: [{ id: uid(), ...d, rec: '' }] }).materias[0]; upd(() => S.materias.push(m)); go('disc/' + m.id); }
