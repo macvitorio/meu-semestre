@@ -323,7 +323,7 @@ function concluida(m) {
 }
 function alternarConcluida(id) {
   const m = byId(id), era = concluida(m);
-  upd(() => { m.concluida = !era; });
+  upd(() => { m.concluida = !era; }); sincronizarHistorico();
   toast(era ? 'Disciplina reaberta.' : 'Disciplina concluída! 🎉', () => upd(() => { m.concluida = era; }));
 }
 function notas(m) {
@@ -607,7 +607,28 @@ function cardDisc(m, origem) {
       <div class="stat"><div class="mu">Média</div><div class="v">${fmt(n.mf ?? n.parcial)}</div></div>
       <div class="stat"><div class="mu">Estudos</div><div class="v">${fe}/${tp.length}</div></div></div></div>`;
 }
-const materiaDoHist = h => S.materias.find(m => (h.codigo && norm(m.codigo) === norm(h.codigo)) || (!h.codigo && h.nome && norm(m.nome) === norm(h.nome)));
+const codBase = c => { const k = norm(c).replace(/[^a-z0-9]/g, ''); const mm = k.match(/^[a-z]{2,5}\d{3,4}/); return mm ? mm[0] : k; };
+const ROMANOS = { i: '1', ii: '2', iii: '3', iv: '4', v: '5', vi: '6' };
+const nomeKey = n => norm(n).replace(/[^a-z0-9 ]/g, ' ').split(' ').filter(w => w && !['de', 'da', 'do', 'das', 'dos', 'e', 'a', 'o', 'em', 'para', 'ao'].includes(w)).map(w => ROMANOS[w] || (w.length > 3 ? w.replace(/s$/, '') : w)).join('');
+const mesmaDisc = (a, b) => (a.codigo && b.codigo && codBase(a.codigo) === codBase(b.codigo)) || (a.nome && b.nome && nomeKey(a.nome) && nomeKey(a.nome) === nomeKey(b.nome));
+const materiaDoHist = h => (h.materiaId && byId(h.materiaId)) || S.materias.find(m => mesmaDisc(m, h));
+const semestreDe = d => d ? `${d.slice(0, 4)}.${+d.slice(5, 7) <= 6 ? 1 : 2}` : '';
+// Disciplina concluída no app entra (ou se liga) sozinha no histórico, sem duplicar
+function sincronizarHistorico() {
+  let mudou = false;
+  for (const m of S.materias) {
+    const fim = concluida(m), n = notas(m), f = freq(m);
+    let h = S.historico.find(x => x.materiaId === m.id);
+    if (!h) { h = S.historico.find(x => !x.materiaId && mesmaDisc(m, x)); if (h) { h.materiaId = m.id; mudou = true; } }
+    if (!fim) { if (h && h.origem === 'app') { S.historico = S.historico.filter(x => x !== h); mudou = true; } continue; }
+    const media = n.mf ?? n.final ?? n.parcial;
+    const sit = f.restam < 0 ? 'Reprovado por frequência (FI)' : media == null ? 'Concluída' : media >= MEDIA_APROV ? 'Aprovado' : n.sit === 'Recuperação' ? 'Recuperação' : 'Reprovado';
+    const dados = { codigo: m.codigo, nome: m.nome || m.codigo, semestre: semestreDe(m.fim || S.semestre.fim || hoje()), nota: media == null ? '' : media.toFixed(1), creditos: m.cargaHoraria ? String(Math.round(+m.cargaHoraria / 18)) : '', situacao: sit };
+    if (!h) { S.historico.push({ id: uid(), ...dados, materiaId: m.id, origem: 'app' }); mudou = true; }
+    else if (h.origem === 'app' && JSON.stringify(dados) !== JSON.stringify({ codigo: h.codigo, nome: h.nome, semestre: h.semestre, nota: h.nota, creditos: h.creditos, situacao: h.situacao })) { Object.assign(h, dados); mudou = true; }
+  }
+  if (mudou) save();
+}
 function abrirHist(id) {
   const h = S.historico.find(x => x.id === id); if (!h) return;
   const m = materiaDoHist(h);
@@ -620,7 +641,8 @@ function abrirHist(id) {
 }
 V.historico = () => {
   voltarDisc = 'historico';
-  const concl = S.materias.filter(concluida);
+  sincronizarHistorico();
+  const concl = S.materias.filter(m => concluida(m) && !S.historico.some(h => h.materiaId === m.id));
   const hs = S.historico, grupos = {};
   hs.forEach(h => (grupos[h.semestre || 'Sem semestre'] ||= []).push(h));
   let somaN = 0, somaC = 0;
@@ -632,7 +654,7 @@ V.historico = () => {
   html += `<div class="stats"><div class="stat"><div class="mu">Média geral</div><div class="v">${fmt(somaC ? somaN / somaC : null)}</div></div><div class="stat"><div class="mu">Disciplinas</div><div class="v">${hs.length}</div></div>${(() => { const r = resumoHoras(); return `<a class="stat" href="#/horas" style="color:inherit;text-decoration:none"><div class="mu">Horas compl.</div><div class="v">${fmtH(r.total)}${r.meta ? `<small class="mu" style="font-size:13px;font-weight:500"> / ${fmtH(r.meta)}</small>` : ''}</div></a>`; })()}</div>
     <p class="mu">Média ponderada pelos créditos — uma estimativa do IAA.</p>`;
   html += blocoConcl + (concl.length ? '<h3 style="margin:8px 2px 0">Histórico escolar</h3>' : '');
-  html += Object.keys(grupos).sort().reverse().map(sem => `<div class="card"><h3 style="margin-bottom:6px">${esc(sem)}</h3><div class="list">${grupos[sem].map(h => `<div class="row tap-row" onclick="if(!event.target.closest('.ib'))abrirHist('${h.id}')"><div class="sp"><b>${esc(h.nome || h.codigo)}</b><div class="mu">${esc(h.codigo)}${h.creditos ? ' · ' + esc(h.creditos) + ' créd.' : ''}</div></div>
+  html += Object.keys(grupos).sort().reverse().map(sem => `<div class="card"><h3 style="margin-bottom:6px">${esc(sem)}</h3><div class="list">${grupos[sem].map(h => `<div class="row tap-row" onclick="if(!event.target.closest('.ib'))abrirHist('${h.id}')"><div class="sp"><b>${esc(h.nome || h.codigo)}</b>${materiaDoHist(h) ? ' <span class="tag neu" style="font-size:11px">no app</span>' : ''}<div class="mu">${esc(h.codigo)}${h.creditos ? ' · ' + esc(h.creditos) + ' créd.' : ''}</div></div>
     <div style="text-align:right"><div><b>${fmt(num(h.nota))}</b></div>${h.situacao ? tag(h.situacao, /aprov|valid/i.test(h.situacao) ? 'ok' : /reprov|\bfi\b/i.test(h.situacao) ? 'bad' : 'neu') : ''}</div>${pen(`histSheet('${h.id}')`)}</div>`).join('')}</div></div>`).join('');
   return html + '</div>';
 };
@@ -804,8 +826,9 @@ function montarMudancas(r) {
   const discCurr = (c.disciplinasCurriculo || []).filter(x => x.nome && num(x.cargaHoraria));
   if (discCurr.length) add('Horas complementares', `${discCurr.length} disciplina(s) do currículo com carga horária`, `${discCurr.filter(x => /optativ|eletiv/i.test(x.tipo)).length} optativa(s)/eletiva(s), para usar nas horas complementares`, () => { S.horas.curriculo = curriculoSemDuplicar(discCurr.map(x => ({ codigo: (x.codigo || '').toUpperCase(), nome: x.nome, horas: String(num(x.cargaHoraria)), tipo: x.tipo || '' }))); });
   for (const h of r.historico || []) {
-    const ex = h.codigo && S.historico.find(x => norm(x.codigo) === norm(h.codigo) && x.semestre === h.semestre);
-    if (!ex) add('Histórico', `${h.codigo ? h.codigo + ' · ' : ''}${h.nome}`, [h.semestre, h.nota && `nota ${h.nota}`, h.situacao].filter(Boolean).join(' · '), () => S.historico.push({ id: uid(), ...h }));
+    const ex = S.historico.find(x => mesmaDisc(x, h) && (!x.semestre || !h.semestre || x.semestre === h.semestre));
+    if (!ex) add('Histórico', `${h.codigo ? h.codigo + ' · ' : ''}${h.nome}`, [h.semestre, h.nota && `nota ${h.nota}`, h.situacao].filter(Boolean).join(' · '), () => { const mat = S.materias.find(m => mesmaDisc(m, h)); S.historico.push({ id: uid(), ...h, ...(mat ? { materiaId: mat.id } : {}) }); });
+    else if (ex.origem === 'app') add('Histórico', ex.nome || ex.codigo, `Nota oficial do histórico: ${h.nota || '—'} ${h.situacao || ''}`, () => { Object.assign(ex, { codigo: h.codigo || ex.codigo, nome: h.nome || ex.nome, semestre: h.semestre || ex.semestre, nota: h.nota || ex.nota, creditos: h.creditos || ex.creditos, situacao: h.situacao || ex.situacao }); delete ex.origem; });
     else if ((h.nota && num(h.nota) !== num(ex.nota)) || (h.situacao && h.situacao !== ex.situacao)) add('Histórico', ex.nome || ex.codigo, `${ex.nota || '—'} → ${h.nota || ex.nota} ${h.situacao || ''}`, () => Object.assign(ex, { nota: h.nota || ex.nota, situacao: h.situacao || ex.situacao }));
   }
   return out;
@@ -902,7 +925,7 @@ function salvarDisc(id) {
   if (d.inicio && d.fim && d.fim < d.inicio) return toast('O fim das aulas precisa ser depois do início.');
   closeSheet();
   if (id) upd(() => Object.assign(byId(id), d));
-  else { const m = migrar({ materias: [{ id: uid(), ...d, rec: '' }] }).materias[0]; upd(() => S.materias.push(m)); go('disc/' + m.id); }
+  else { const m = migrar({ materias: [{ id: uid(), ...d, rec: '' }] }).materias[0]; upd(() => { S.materias.push(m); const h = S.historico.find(x => !x.materiaId && mesmaDisc(m, x)); if (h) h.materiaId = m.id; }); go('disc/' + m.id); }
 }
 function avSheet(mid_, aid) {
   const m = byId(mid_), a = aid ? m.avaliacoes.find(x => x.id === aid) : { nome: '', peso: '', data: '', nota: '' };
