@@ -359,7 +359,9 @@ function todosEventos() {
   const fer = S.feriados.map(f => ({ id: 'fer:' + f.data, data: f.data, titulo: f.descricao || 'Feriado', tipo: 'feriado', _fer: true }));
   return [...S.eventos, ...avs, ...fer].sort((a, b) => a.data.localeCompare(b.data));
 }
-const corEv = e => e.tipo === 'feriado' ? 'var(--ok)' : byId(e.materiaId)?.cor || 'var(--tx-2)';
+const COR_FIM = 'var(--fim, #b9b4c9)';
+const corM = m => concluida(m) ? COR_FIM : m.cor; // disciplina concluída fica sem cor
+const corEv = e => e.tipo === 'feriado' ? 'var(--ok)' : byId(e.materiaId) ? corM(byId(e.materiaId)) : 'var(--tx-2)';
 
 // ================= Navegação =================
 let R = { v: 'inicio' };
@@ -498,7 +500,7 @@ V.agenda = () => {
     const porNome = !!S.perfil.gradeNome;
     html += `<div class="row wrap"><div class="seg" style="width:auto"><button class="${porNome ? '' : 'on'}" onclick="S.perfil.gradeNome=false;save();render()">Código</button><button class="${porNome ? 'on' : ''}" onclick="S.perfil.gradeNome=true;save();render()">Nome</button></div><span class="sp"></span><button class="btn sm" onclick="compartilharGrade()">${ic('up', 16)} Compartilhar grade</button><button class="btn sm" onclick="exportarAgenda()">${ic('cal', 16)} Google Agenda</button></div>`;
     html += `<div class="card"><div class="wk" style="--d:${dias.length}"><div></div>${dias.map(d => `<div class="h">${DIAS[d]}</div>`).join('')}
-      ${usados.map(s => `<div class="t">${hhmm(s)}</div>${dias.map(d => { const o = oc[d + s]; return o ? `<div class="c has" style="background:${o.m.cor};${o.first ? '' : 'opacity:.8'}" onclick="go('disc/${o.m.id}')">${o.first ? `<span class="wk-nome">${esc(porNome ? (o.m.nome || o.m.codigo) : (o.m.codigo || o.m.nome))}</span>` + (o.h.sala ? `<small>${esc(o.h.sala)}</small>` : '') : ''}</div>` : '<div class="c"></div>'; }).join('')}`).join('')}</div></div>`;
+      ${usados.map(s => `<div class="t">${hhmm(s)}</div>${dias.map(d => { const o = oc[d + s]; return o ? `<div class="c has ${concluida(o.m) ? 'fim' : ''}" style="background:${corM(o.m)};${o.first ? '' : 'opacity:.8'}" onclick="go('disc/${o.m.id}')">${o.first ? `<span class="wk-nome">${esc(porNome ? (o.m.nome || o.m.codigo) : (o.m.codigo || o.m.nome))}</span>` + (o.h.sala ? `<small>${esc(o.h.sala)}</small>` : '') : ''}</div>` : '<div class="c"></div>'; }).join('')}`).join('')}</div></div>`;
   } else if (agModo === 'mes') {
     agMes ||= hoje().slice(0, 7); agSel ||= hoje();
     const [y, mo] = agMes.split('-').map(Number), first = new Date(y, mo - 1, 1), start = new Date(first); start.setDate(1 - first.getDay());
@@ -506,7 +508,7 @@ V.agenda = () => {
     let cells = '';
     for (let i = 0; i < 42; i++) {
       const d = new Date(start); d.setDate(start.getDate() + i); const k = iso(d);
-      const ag = agendaDoDia(k), dots = [...new Set([...ag.aulas.map(a => a.m.cor), ...evs.filter(e => e.data === k).map(corEv)])].slice(0, 4);
+      const ag = agendaDoDia(k), dots = [...new Set([...ag.aulas.map(a => corM(a.m)), ...evs.filter(e => e.data === k).map(corEv)])].slice(0, 4);
       cells += `<button class="${d.getMonth() !== mo - 1 ? 'out' : ''} ${k === hoje() ? 'today' : ''} ${k === agSel ? 'sel' : ''}" aria-label="${brDL(k)}" onclick="agSel='${k}';render()">${d.getDate()}<span class="ds">${dots.map(c => `<i style="background:${c}"></i>`).join('')}</span></button>`;
     }
     const nav = dm => iso(new Date(y, mo - 1 + dm, 1)).slice(0, 7);
@@ -515,7 +517,7 @@ V.agenda = () => {
     const ag = agendaDoDia(agSel);
     html += `<div class="card"><div class="card-h"><h3 class="sp" style="text-transform:capitalize">${brDL(agSel)}</h3><button class="btn ghost sm" onclick="eventoSheet(null,'${agSel}')">${ic('plus', 16)} Evento</button></div>
       ${ag.fer ? `<p>${tag('Feriado', 'ok')} ${esc(ag.fer.descricao)}</p>` : ''}
-      <div class="list">${ag.aulas.map(({ m, h }) => `<div class="row"><span class="swatch" style="background:${m.cor}"></span><div class="sp"><b>${esc(nomeM(m))}</b><div class="mu">${hhmm(h.inicio)}–${fimH(h)}</div></div>${m.faltas[agSel] ? tag(m.faltas[agSel] + ' falta(s)', 'bad') : ''}</div>`).join('')}
+      <div class="list">${ag.aulas.map(({ m, h }) => `<div class="row"><span class="swatch" style="background:${corM(m)}"></span><div class="sp"><b class="${concluida(m) ? 'riscado' : ''}">${esc(nomeM(m))}</b><div class="mu">${hhmm(h.inicio)}–${fimH(h)}${concluida(m) ? ' · concluída' : ''}</div></div>${m.faltas[agSel] ? tag(m.faltas[agSel] + ' falta(s)', 'bad') : ''}</div>`).join('')}
       ${ag.evs.filter(e => !e._fer).map(linhaEvento).join('')}</div>
       ${!ag.aulas.length && !ag.evs.length ? '<p class="mu">Nada neste dia.</p>' : ''}</div>`;
   } else {

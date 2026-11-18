@@ -484,3 +484,6 @@ input[type=date]::-webkit-date-and-time-value{text-align:left}
 .hor-t input[type=time]::-webkit-date-and-time-value{text-align:left}
 
 .novs{display:grid;gap:12px}.nov{display:flex;gap:12px;align-items:flex-start}.nov-e{flex:none;width:40px;height:40px;border-radius:12px;background:var(--surface-2);display:grid;place-items:center;font-size:20px}.nov b{font-size:15px}
+.wk .c.fim .wk-nome{text-decoration:line-through;text-decoration-thickness:2px}.wk .c.fim{color:#fff}
+:root{--fim:#b9b4c9}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--fim:#55515f}}:root[data-theme=dark]{--fim:#55515f}
