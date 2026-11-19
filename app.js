@@ -623,7 +623,6 @@ function sincronizarHistorico() {
     const media = n.mf ?? n.final ?? n.parcial;
     if (!fim) {
       if (h && h.origem === 'app') { S.historico = S.historico.filter(x => x !== h); mudou = true; }
-      else if (h && media != null && (num(h.nota) == null || Math.abs(num(h.nota) - media) > 0.04)) { h.nota = media.toFixed(1); mudou = true; }
       continue;
     }
     const sit = f.restam < 0 ? 'Reprovado por frequência (FI)' : media == null ? 'Concluída' : media >= MEDIA_APROV ? 'Aprovado' : n.sit === 'Recuperação' ? 'Recuperação' : 'Reprovado';
